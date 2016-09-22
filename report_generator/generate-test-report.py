@@ -333,6 +333,7 @@ We used the following versions of software for interoperability testing:
 
     def print_pdf(self, output_pdf_file, author, email, report_number):
         output_filename, _ = os.path.splitext(output_pdf_file)
+        output_dir = os.path.dirname(output_pdf_file)
         output_md_file = output_filename + ReportGenerator.MD_EXT
         output_docx_file = output_filename + ReportGenerator.DOCX_EXT
 
@@ -363,7 +364,8 @@ We used the following versions of software for interoperability testing:
 
         # Generate the pdf document using LibreOffice Writer
         lowriter_cmd = [ReportGenerator.TOOL_LOWRITER, "--headless",
-            "--convert-to", "pdf:writer_pdf_Export", output_docx_file]
+            "--convert-to", "pdf:writer_pdf_Export", "--outdir", output_dir,
+            output_docx_file]
         lowriter_proc = subprocess.Popen(args=lowriter_cmd)
         lowriter_exit_code = lowriter_proc.wait()
         if lowriter_exit_code != 0:
