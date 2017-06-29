@@ -1,0 +1,16 @@
+This code is re-licensed to CLIENT_NAME (Licensee)
+by Offspark B.V. under a Commercial License for use in
+CLIENT_PRODUCTS.
+
+Full terms of the Software License are stated in the relevant PolarSSL
+Commercial License Agreement (CLIENT_LICENSE).
+
+This code is re-named from "PolarSSL" to "mbed TLS". Other than the
+foregoing, the provisions of the PolarSSL Commercial License Agreement
+(CLIENT_LICENSE) are not modified,
+and shall be in full force and effect according to the terms therein.
+
+In short Licensee has a nonexclusive, perpetual, irrevocable worldwide
+license to use, make, have made, copy, modify and create derivative works
+of this Software in source and object code for purposes of developing and
+integrating the Software into the product(s) specified in the License.
