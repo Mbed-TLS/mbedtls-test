@@ -1,5 +1,7 @@
 /*
- *  SSL client with certificate authentication
+ *  This program is a modified version of ssl_client2.c in mbed TLS. However,
+ *  it has been modified to extract the gmt_unix_time from the ServerHello
+ *  message. Note that this program is for internal use only!
  *
  *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
  *  SPDX-License-Identifier: Apache-2.0
@@ -58,10 +60,12 @@ int main( void )
 #include "mbedtls/error.h"
 #include "mbedtls/debug.h"
 #include "mbedtls/timing.h"
+#include "mbedtls/ssl_internal.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define DFL_SERVER_NAME         "localhost"
 #define DFL_SERVER_ADDR         NULL
@@ -471,6 +475,10 @@ int main( int argc, char *argv[] )
 #endif
     char *p, *q;
     const int *list;
+    uint32_t gmt_unix_time = 0;
+    time_t gmt_unix_time_as_time_t;
+    struct tm *srv_unix_time;
+    char time_buf[128];
 
     /*
      * Make sure memory references are valid.
@@ -1382,21 +1390,50 @@ int main( int argc, char *argv[] )
     mbedtls_printf( "  . Performing the SSL/TLS handshake..." );
     fflush( stdout );
 
-    while( ( ret = mbedtls_ssl_handshake( &ssl ) ) != 0 )
+    /*
+     * Manually step through the execution of the internal SSL state machine.
+     * When the next state is MBEDTLS_SSL_SERVER_HELLO_DONE, the ServerHello
+     * message would have already been successfully parsed. Therefore, we
+     * can access the internal TLS handshake struct and read out the first four
+     * bytes of the ServerHello.random array which correspond to the
+     * gmt_unix_time value in RFC 5646 Section A.4.1. Once the value is read,
+     * conttinue the TLS handshake as normal.
+     */
+    while( ssl.state != MBEDTLS_SSL_HANDSHAKE_OVER )
     {
-        if( ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE )
+        while( ( ret = mbedtls_ssl_handshake_step( &ssl ) ) != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_handshake returned -0x%x\n", -ret );
+            if( ret == MBEDTLS_ERR_SSL_WANT_READ &&
+                ret == MBEDTLS_ERR_SSL_WANT_WRITE )
+            {
+                continue;
+            }
+
+            mbedtls_printf( " failed\n  ! mbedtls_ssl_handshake_step returned "
+                            "-0x%04x\n", -ret );
+
             if( ret == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED )
-                mbedtls_printf(
-                    "    Unable to verify the server's certificate. "
-                        "Either it is invalid,\n"
-                    "    or you didn't set ca_file or ca_path "
-                        "to an appropriate value.\n"
-                    "    Alternatively, you may want to use "
-                        "auth_mode=optional for testing purposes.\n" );
-            mbedtls_printf( "\n" );
+            {
+                mbedtls_printf( "    Unable to verify the server's "
+                                "certificate. Either it is invalid,\n"
+                                "    or you didn't set ca_file or ca_path "
+                                "to an appropriate value.\n"
+                                "    Alternatively, you may want to use "
+                                "auth_mode=optional for testing purposes.\n"
+                                "\n" );
+            }
+
             goto exit;
+        }
+
+        /* Extract the first 4 bytes of the ServerHello random */
+        if( ssl.state == MBEDTLS_SSL_SERVER_HELLO_DONE )
+        {
+            gmt_unix_time =
+                ( (uint32_t)ssl.handshake->randbytes[32 + 0] << 24 ) |
+                ( (uint32_t)ssl.handshake->randbytes[32 + 1] << 16 ) |
+                ( (uint32_t)ssl.handshake->randbytes[32 + 2] << 8  ) |
+                ( (uint32_t)ssl.handshake->randbytes[32 + 3] << 0  );
         }
     }
 
@@ -1412,6 +1449,23 @@ int main( int argc, char *argv[] )
     mbedtls_printf( "    [ Maximum fragment length is %u ]\n",
                     (unsigned int) mbedtls_ssl_get_max_frag_len( &ssl ) );
 #endif
+
+    gmt_unix_time_as_time_t = (time_t)gmt_unix_time;
+    srv_unix_time = localtime( &gmt_unix_time_as_time_t );
+    if( srv_unix_time == NULL )
+    {
+        mbedtls_printf( " failed\n  !  localtime returned NULL\n" );
+        goto exit;
+    }
+
+    if( strftime( time_buf, sizeof( time_buf ), "%d-%m-%Y %H:%M:%S",
+                  srv_unix_time ) == 0 )
+    {
+        mbedtls_printf( " failed\n  !  strftime returned 0\n" );
+        goto exit;
+    }
+
+    mbedtls_printf( "    [ ServerHello gmt_unix_time is %s ]\n", time_buf );
 
 #if defined(MBEDTLS_SSL_ALPN)
     if( opt.alpn_string != NULL )
