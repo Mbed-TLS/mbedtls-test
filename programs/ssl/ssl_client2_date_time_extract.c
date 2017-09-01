@@ -1396,8 +1396,12 @@ int main( int argc, char *argv[] )
      * message would have already been successfully parsed. Therefore, we
      * can access the internal TLS handshake struct and read out the first four
      * bytes of the ServerHello.random array which correspond to the
-     * gmt_unix_time value in RFC 5646 Section A.4.1. Once the value is read,
-     * conttinue the TLS handshake as normal.
+     * gmt_unix_time value in RFC 5246 Section A.4.1. Once the value is read,
+     * continue the TLS handshake as normal.
+     *
+     * WARNING! In some cases this value is not authenticated at this point yet
+     * and cannot be trusted. To be on the safe side, only use it after the
+     * handshake has been successfully completed and discard otherwise.
      */
     while( ssl.state != MBEDTLS_SSL_HANDSHAKE_OVER )
     {
