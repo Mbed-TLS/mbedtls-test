@@ -1407,7 +1407,7 @@ int main( int argc, char *argv[] )
     {
         while( ( ret = mbedtls_ssl_handshake_step( &ssl ) ) != 0 )
         {
-            if( ret == MBEDTLS_ERR_SSL_WANT_READ &&
+            if( ret == MBEDTLS_ERR_SSL_WANT_READ ||
                 ret == MBEDTLS_ERR_SSL_WANT_WRITE )
             {
                 continue;
