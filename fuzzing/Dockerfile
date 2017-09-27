@@ -28,6 +28,7 @@ ENV CFLAGS -g -O1 -fno-omit-frame-pointer -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUC
 ENV ASAN_CFLAGS $CFLAGS -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined -fno-sanitize-recover=undefined
 ENV MSAN_CFLAGS $CFLAGS -fsanitize-coverage=trace-pc-guard -fsanitize=memory -fsanitize-memory-track-origins
 ENV FAST_CFLAGS -fsanitize-coverage=trace-pc-guard -O3 -g -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+ENV COVERAGE_CFLAGS -fprofile-instr-generate -fcoverage-mapping
 
 # Build all mbed TLS variants
 COPY scripts/setup_mbedtls.sh /fuzzing/

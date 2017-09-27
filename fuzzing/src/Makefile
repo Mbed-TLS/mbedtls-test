@@ -42,8 +42,8 @@ CXX=clang++
 
 # TODO: these could do with some cleaning up
 LIBS=-lmbedtls -lmbedx509 -lmbedcrypto
-FUZZER_LIBS=-lFuzzer -lmbedtls -lmbedx509 -lmbedcrypto
-MSAN_FUZZER_LIBS=-lFuzzer_msan -lmbedtls -lmbedx509 -lmbedcrypto
+FUZZER_LIBS=-lFuzzer ${LIBS}
+MSAN_FUZZER_LIBS=-lFuzzer_msan ${LIBS}
 CFLAGS=-fsanitize-coverage=trace-pc-guard -I/usr/local/a/mbedtls/include/ -g -fno-omit-frame-pointer -O1 \
        -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
 LDFLAGS=-fsanitize-coverage=trace-pc-guard
@@ -55,10 +55,11 @@ ASAN_LIB=-L/usr/local/fat/mbedtls-libfuzzer-asan-ubsan/lib
 MSAN_LIB=-L/usr/local/fat/mbedtls-libfuzzer-msan/lib -L/usr/local/libcxx_msan/lib
 FAST_LIB=-L/usr/local/fat/mbedtls-libfuzzer-fast/lib
 AFL_LIB=-L/usr/local/fat/mbedtls-afl/lib
+COVERAGE_LIB=-L/usr/local/fat/mbedtls-libfuzzer-coverage/lib
 
 AFL_CC=afl-clang-fast
 AFL_CXX=afl-clang-fast++
-AFL_LIBS=-lmbedtls -lmbedx509 -lmbedcrypto
+AFL_LIBS=${LIBS}
 AFL_CFLAGS=-I/usr/local/a/mbedtls/include/
 
 TARGETS := csr_parse_der \
@@ -79,6 +80,7 @@ LIBFUZZER_VARIANTS := fast asan msan
 
 RUNNERS = $(foreach T, $(TARGETS), $(foreach V, $(LIBFUZZER_VARIANTS), fuzz_$V_$T)) \
 	  $(foreach T, $(TARGETS), $(foreach V, $(LIBFUZZER_VARIANTS), standalone_$V_$T)) \
+	  $(foreach T, $(TARGETS), coverage_$T) \
 	  $(foreach T, $(TARGETS), afl_$T)
 
 all: ${RUNNERS}
@@ -92,6 +94,10 @@ list_targets:
 	${CC} ${MSAN_OPT} ${CFLAGS} $< -c -o $@
 %_fast.o: %.c
 	${CC} ${CFLAGS} $< -c -o $@
+%_coverage.o: %.c
+	${CC} -I/usr/local/a/mbedtls/include/ $< -c -o $@
+%_coverage.o: %.cpp
+	${CXX} $< -c -o $@
 
 %_afl.o: %.c
 	${AFL_CC} ${AFL_CFLAGS} $< -c -o $@
@@ -113,6 +119,9 @@ standalone_msan_%: %_msan.o StandaloneFuzzTargetMain.o
 
 standalone_fast_%: %_fast.o StandaloneFuzzTargetMain.o
 	${CXX} ${FAST_LIB} ${LDFLAGS} $+ ${LIBS} -o $@
+
+coverage_%: %_coverage.o StandaloneFuzzTargetMain_coverage.o
+	${CXX} ${COVERAGE_LIB} -fprofile-instr-generate -fcoverage-mapping $+ ${LIBS} -o $@
 
 afl_driver.o: afl_driver.cpp
 	${AFL_CXX} ${AFL_CFLAGS} $< -c -o $@

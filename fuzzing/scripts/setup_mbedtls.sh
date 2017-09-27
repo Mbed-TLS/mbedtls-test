@@ -31,6 +31,7 @@ mkdir -p build/standalone
 mkdir -p build/libfuzzer-fast
 mkdir -p build/libfuzzer-asan-ubsan
 mkdir -p build/libfuzzer-msan
+mkdir -p build/libfuzzer-coverage
 mkdir -p build/afl
 
 # Standalone is a regular installation of mbed TLS
@@ -75,6 +76,17 @@ cmake -DCMAKE_C_COMPILER=clang-6.0 \
     -DINSTALL_MBEDTLS_HEADERS=Off \
     -DCMAKE_C_FLAGS="${MSAN_CFLAGS}" \
     -DCMAKE_INSTALL_PREFIX="/usr/local/$VERSION/mbedtls-libfuzzer-msan" \
+    ../..
+make install
+
+# Build for coverage_* executables (enables instrumentation for coverage)
+cd ../../build/libfuzzer-msan
+cmake -DCMAKE_C_COMPILER=clang-6.0 \
+    -DENABLE_PROGRAMS=Off \
+    -DENABLE_TESTING=Off \
+    -DINSTALL_MBEDTLS_HEADERS=Off \
+    -DCMAKE_C_FLAGS="${COVERAGE_CFLAGS}" \
+    -DCMAKE_INSTALL_PREFIX="/usr/local/$VERSION/mbedtls-libfuzzer-coverage" \
     ../..
 make install
 
