@@ -43,23 +43,28 @@ image has the required fuzzing tools installed, while the second image (tagged
 `mbedtls-fuzzing-tmp` by default) sets up the various builds of mbed TLS and
 compiles the fuzzing targets. `./build.sh` builds both images.
 
-The mbed TLS source is pulled in from the `mbedtls_src` directory. A good way
-to set this up is by creating a git worktree as follows. (Note that any branch
-can only be checked out once. Also note that this is a rather new feature of
-git, available since 2.6.0.)
+The mbed TLS source is pulled in from the `srcs/mbedtls_a` directory. A good
+way to set this up is by creating a git worktree as follows. (Note that any
+branch can only be checked out once. Also note that this is a rather new
+feature of git, available since 2.6.0.)
 
 ```
 cd /path/to/mbedtls-git-repository
-git worktree /path/to/mbedtls-test/fuzzing/mbedtls_src
+git worktree /path/to/mbedtls-test/fuzzing/srcs/mbedtls_a
 ```
 
-The usual git commands work inside `mbedtls_src` without `.git` containing the
+The usual git commands work inside `mbedtls_a` without `.git` containing the
 full git history.
 
-After setting `mbedtls_src` to the branch you want to fuzz, run `./build.sh`.
-It accepts `--tag` to tag the mbed TLS image in Docker. It's a good
-idea to use the tag to indicate which revision of mbed TLS is included in the
-image.
+In addition, it is possible to do A/B testing for certificate verification
+target. Provide a second implementation at `srcs/mbedtls_b` and the output,
+both return value and flags, of the two versions will be compared for every
+input.
+
+After setting `mbedtls_a` (and optionally `mbedtls_b`) to the branch you want
+to fuzz, run `./build.sh`.  It accepts `--tag` to tag the mbed TLS image in
+Docker. It's a good idea to use the tag to indicate which revision of mbed TLS
+is included in the image.
 
 ```
 sudo ./build.sh --tag development

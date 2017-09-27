@@ -24,23 +24,28 @@ FROM fuzz_infra
 
 WORKDIR /fuzzing
 
-ENV CFLAGS -g -O1 -fno-omit-frame-pointer
+ENV CFLAGS -g -O1 -fno-omit-frame-pointer -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
 ENV ASAN_CFLAGS $CFLAGS -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined -fno-sanitize-recover=undefined
 ENV MSAN_CFLAGS $CFLAGS -fsanitize-coverage=trace-pc-guard -fsanitize=memory -fsanitize-memory-track-origins
-ENV FAST_CFLAGS -fsanitize-coverage=trace-pc-guard -O3
+ENV FAST_CFLAGS -fsanitize-coverage=trace-pc-guard -O3 -g -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
 
 # Build all mbed TLS variants
 COPY scripts/setup_mbedtls.sh /fuzzing/
-COPY mbedtls_src /fuzzing/mbedtls
-WORKDIR /fuzzing/mbedtls/
-RUN ../setup_mbedtls.sh
+
+COPY srcs/ /fuzzing/srcs
+
+RUN /fuzzing/setup_mbedtls.sh /fuzzing/srcs/mbedtls_a "a"
+RUN /fuzzing/setup_mbedtls.sh /fuzzing/srcs/mbedtls_b "b"
+
+COPY scripts/rewrite_symbols.sh /fuzzing/scripts/
+RUN /fuzzing/scripts/rewrite_symbols.sh /usr/local/mbedtls-*
 
 # Include fuzz target sources
 COPY src /fuzzing/src
 
 # Build and "install" fuzz targets
 WORKDIR /fuzzing/src
-RUN make && make install && make clean
+RUN ./configure && make && make install && make clean
 
 ENV MSAN_SYMBOLIZER_PATH=/usr/bin/llvm-symbolizer
 
@@ -52,6 +57,7 @@ ENV MSAN_SYMBOLIZER_PATH=/usr/bin/llvm-symbolizer
 RUN mkdir /fuzzing/corpora
 COPY corpora/ /fuzzing/corpora/
 COPY scripts/ /fuzzing/scripts/
+COPY root_ca.crt /fuzzing/
 
 WORKDIR /fuzzing
 

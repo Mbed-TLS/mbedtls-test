@@ -44,27 +44,29 @@ CXX=clang++
 LIBS=-lmbedtls -lmbedx509 -lmbedcrypto
 FUZZER_LIBS=-lFuzzer -lmbedtls -lmbedx509 -lmbedcrypto
 MSAN_FUZZER_LIBS=-lFuzzer_msan -lmbedtls -lmbedx509 -lmbedcrypto
-CFLAGS=-fsanitize-coverage=trace-pc-guard -I/usr/local/mbedtls/include/ -g -fno-omit-frame-pointer -O1
+CFLAGS=-fsanitize-coverage=trace-pc-guard -I/usr/local/a/mbedtls/include/ -g -fno-omit-frame-pointer -O1 \
+       -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
 LDFLAGS=-fsanitize-coverage=trace-pc-guard
 
 ASAN_OPT=-fsanitize=address,undefined -fno-sanitize-recover=undefined
 MSAN_OPT=-fsanitize=memory -fsanitize-memory-track-origins
 
-ASAN_LIB=-L/usr/local/mbedtls-libfuzzer-asan-ubsan/lib
-MSAN_LIB=-L/usr/local/mbedtls-libfuzzer-msan/lib -L/usr/local/libcxx_msan/lib
-FAST_LIB=-L/usr/local/mbedtls-libfuzzer-fast/lib
-AFL_LIB=-L/usr/local/mbedtls-afl/lib
+ASAN_LIB=-L/usr/local/fat/mbedtls-libfuzzer-asan-ubsan/lib
+MSAN_LIB=-L/usr/local/fat/mbedtls-libfuzzer-msan/lib -L/usr/local/libcxx_msan/lib
+FAST_LIB=-L/usr/local/fat/mbedtls-libfuzzer-fast/lib
+AFL_LIB=-L/usr/local/fat/mbedtls-afl/lib
 
 AFL_CC=afl-clang-fast
 AFL_CXX=afl-clang-fast++
 AFL_LIBS=-lmbedtls -lmbedx509 -lmbedcrypto
-AFL_CFLAGS=-I/usr/local/mbedtls/include/
+AFL_CFLAGS=-I/usr/local/a/mbedtls/include/
 
 TARGETS := csr_parse_der \
 	   crt_parse_der \
 	   crl_parse_der \
 	   pk_parse_key \
 	   pk_parse_public_key \
+	   crt_verify \
 	   dhm_parse_dhm
 
 # TODO: properly add ocsp_parse_response as a target once that feature has been

@@ -21,6 +21,12 @@
 
 set -eu
 
+DIR="$1"
+VERSION=$2
+
+[ ! -d "$DIR" ] && exit 0
+cd "$DIR"
+
 mkdir -p build/standalone
 mkdir -p build/libfuzzer-fast
 mkdir -p build/libfuzzer-asan-ubsan
@@ -35,7 +41,7 @@ cmake -DCMAKE_C_COMPILER=clang-6.0 \
     -DINSTALL_MBEDTLS_HEADERS=On \
     -DCMAKE_C_FLAGS="${CFLAGS}" \
     \ #-DCMAKE_C_FLAGS="${FAST_CFLAGS}" \
-    -DCMAKE_INSTALL_PREFIX=/usr/local/mbedtls \
+    -DCMAKE_INSTALL_PREFIX="/usr/local/$VERSION/mbedtls" \
     ../..
 make install
 
@@ -46,7 +52,7 @@ cmake -DCMAKE_C_COMPILER=clang-6.0 \
     -DENABLE_TESTING=Off \
     -DINSTALL_MBEDTLS_HEADERS=Off \
     -DCMAKE_C_FLAGS="${FAST_CFLAGS}" \
-    -DCMAKE_INSTALL_PREFIX=/usr/local/mbedtls-libfuzzer-fast \
+    -DCMAKE_INSTALL_PREFIX="/usr/local/$VERSION/mbedtls-libfuzzer-fast" \
     ../..
 make install
 
@@ -57,7 +63,7 @@ cmake -DCMAKE_C_COMPILER=clang-6.0 \
     -DENABLE_TESTING=Off \
     -DINSTALL_MBEDTLS_HEADERS=Off \
     -DCMAKE_C_FLAGS="${ASAN_CFLAGS}" \
-    -DCMAKE_INSTALL_PREFIX=/usr/local/mbedtls-libfuzzer-asan-ubsan \
+    -DCMAKE_INSTALL_PREFIX="/usr/local/$VERSION/mbedtls-libfuzzer-asan-ubsan" \
     ../..
 make install
 
@@ -68,7 +74,7 @@ cmake -DCMAKE_C_COMPILER=clang-6.0 \
     -DENABLE_TESTING=Off \
     -DINSTALL_MBEDTLS_HEADERS=Off \
     -DCMAKE_C_FLAGS="${MSAN_CFLAGS}" \
-    -DCMAKE_INSTALL_PREFIX=/usr/local/mbedtls-libfuzzer-msan \
+    -DCMAKE_INSTALL_PREFIX="/usr/local/$VERSION/mbedtls-libfuzzer-msan" \
     ../..
 make install
 
@@ -78,7 +84,7 @@ cmake -DCMAKE_C_COMPILER=afl-clang-fast \
     -DENABLE_PROGRAMS=Off \
     -DENABLE_TESTING=Off \
     -DINSTALL_MBEDTLS_HEADERS=Off \
-    -DCMAKE_INSTALL_PREFIX=/usr/local/mbedtls-afl \
+    -DCMAKE_INSTALL_PREFIX="/usr/local/$VERSION/mbedtls-afl" \
     ../..
 make install
 
