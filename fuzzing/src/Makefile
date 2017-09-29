@@ -67,7 +67,8 @@ TARGETS := csr_parse_der \
 	   pk_parse_key \
 	   pk_parse_public_key \
 	   crt_verify \
-	   dhm_parse_dhm
+	   dhm_parse_dhm \
+	   handshake
 
 # TODO: properly add ocsp_parse_response as a target once that feature has been
 # committed.
