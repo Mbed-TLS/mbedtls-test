@@ -17,7 +17,7 @@
 #
 # This file is part of mbed TLS (https://tls.mbed.org)
 
-# Builds fuzz_infra and mbedtls fuzz images.
+# Builds fuzz_infra, mbedtls_builder and mbedtls_fuzzer, then runs the builder.
 
 set -eu
 
@@ -28,21 +28,29 @@ print_usage()
     printf "\n"
     printf "Options\n"
     printf "  -h, --help\tprint this help\n"
-    printf "      --tag TAG\ttag the newly created image (mbedtls-fuzzing-tmp by default)\n"
+    printf "  --fuzzers FUZZ_BINARIES\tan absolute path or a Docker volume where the fuzzing binaries will be installed\n"
+    printf "  --tls-sources TLS_SOURCES\tan absolute path or a Docker volume containing sources of Mbed TLS"
+    printf "  --fuzz-target-source FUZZ_TARGET_SOURCE\tan absolute path or a Docker volume containing the fuzz target sources"
 }
-
-TAG=mbedtls-fuzzing-tmp
 
 while [ $# -gt 0 ]
 do
     case $1 in
-        --tag)
-            TAG=$2
-            shift
-            ;;
         -h|--help)
             print_usage
             exit 0
+            ;;
+        --fuzzers)
+            BUILD_RESULT="$2"
+            shift
+            ;;
+        --tls-sources)
+            TLS_SOURCES="$2"
+            shift
+            ;;
+        --fuzz-target-source)
+            FUZZ_TARGET_SOURCE="$2"
+            shift
             ;;
         *)
             echo "Unknown option: $1"
@@ -62,5 +70,12 @@ if ! docker ps >/dev/null; then
     exit 1
 fi
 
+TLS_SOURCES="${TLS_SOURCES:-$(pwd)/srcs}"
+FUZZ_TARGET_SOURCE="${FUZZ_TARGET_SOURCE:-$(pwd)/src}"
+BUILD_RESULT="${BUILD_RESULT:-fuzz_bin}"
+
 docker build fuzz_infra -t fuzz_infra
-docker build . -t "${TAG}"
+docker build builder -t mbedtls_builder
+docker build fuzzer -t mbedtls_fuzzer
+
+./builder/run.sh "$TLS_SOURCES" "$FUZZ_TARGET_SOURCE" "$BUILD_RESULT"

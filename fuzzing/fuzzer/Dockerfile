@@ -1,4 +1,4 @@
-#!/bin/sh
+# Dockerfile -- mbed TLS fuzzing
 #
 # Copyright (C) 2017, ARM Limited, All Rights Reserved
 # SPDX-License-Identifier: Apache-2.0
@@ -17,26 +17,22 @@
 #
 # This file is part of mbed TLS (https://tls.mbed.org)
 
-# Build and install latest git version of libFuzzer, once with default flags,
-# once with memory sanitizer enabled.
+# Includes mbed TLS from ./mbedtls_src and builds it for all fuzzers. Adds all
+# fuzz targets and builds fuzz and standalone executables for all variants.
 
-set -eu
+FROM fuzz_infra
 
-git clone -q --depth 1 http://llvm.org/git/compiler-rt.git
-cd compiler-rt/lib/fuzzer
+WORKDIR /fuzzing
 
-export CXX="clang++ -stdlib=libc++ -fsanitize=memory -fsanitize-memory-track-origins -I/usr/local/libcxx_msan/include/c++/v1"
-./build.sh
-mkdir -p /usr/local/lib
-cp libFuzzer.a /usr/local/lib/libFuzzer_msan.a
+COPY scripts/run_fuzzer.sh /fuzzing/scripts/
+COPY scripts/filter_libfuzzer_output.py /fuzzing/scripts/
+COPY scripts/regen_corpus.sh /fuzzing/scripts/
+COPY root_ca.crt /fuzzing/
 
-export CXX=clang++
-./build.sh
-cp libFuzzer.a /usr/local/lib
+ENV MSAN_SYMBOLIZER_PATH=/usr/bin/llvm-symbolizer
 
-DIR=/usr/local/share/libfuzzer
-mkdir -p $DIR
-cp afl/afl_driver.cpp standalone/StandaloneFuzzTargetMain.c $DIR
+# my_init acts as init and reaps any zombies
+ENTRYPOINT ["/sbin/my_init", "--"]
 
-cd ../../..
-rm -rf compiler-rt
+# run bash (inside init) by default
+CMD ["bash"]

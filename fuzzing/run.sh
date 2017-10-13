@@ -28,11 +28,11 @@ print_usage()
     printf "\n"
     printf "Options\n"
     printf "  -h, --help\tprint this help\n"
-    printf "  -i, --image IMAGE\t\tthe Docker image used (mbedtls-fuzzing-tmp by default)\n"
-    printf "  -r, --results RESULTS_DIR\tthe results directory used as source for the new corpus\n"
+    printf "  -r, --results RESULTS_DIR\tan absolute path or a Docker volume where results are stored\n"
+    printf "  --fuzzers FUZZ_BINARIES\tan absolute path or a Docker volume where the fuzzing binaries are installed\n"
+    printf "  --corpus FUZZ_CORPUS\tan absolute path or a Docker volume containing fuzz corpora\n"
 }
 
-IMAGE=mbedtls-fuzzing-tmp
 
 while [ $# -gt 0 ]
 do
@@ -41,8 +41,12 @@ do
             RESULT_DIR="$2"
             shift
             ;;
-        -i|--image)
-            IMAGE="$2"
+        --fuzzers)
+            FUZZ_BINARIES="$2"
+            shift
+            ;;
+        --corpus)
+            FUZZ_CORPUS="$2"
             shift
             ;;
         -h|--help)
@@ -64,13 +68,16 @@ if ! docker ps >/dev/null; then
     exit 1
 fi
 
-
-RESULT_DIR="${RESULT_DIR:-/scratch/mbedtls/results/}"
+FUZZ_BINARIES="${FUZZ_BINARIES:-fuzz_bin}"
+RESULT_DIR="${RESULT_DIR:-$(pwd)/results}"
+FUZZ_CORPUS="${FUZZ_CORPUS:-$(pwd)/corpora}"
 
 docker run \
     --log-driver none \
     -v "${RESULT_DIR}:/fuzzing/results" \
+    -v "${FUZZ_BINARIES}:/fuzzing/bin" \
+    -v "${FUZZ_CORPUS}:/fuzzing/corpora" \
     -it \
-    "${IMAGE}" \
+    mbedtls_fuzzer \
     "$@"
 

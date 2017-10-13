@@ -17,26 +17,15 @@
 #
 # This file is part of mbed TLS (https://tls.mbed.org)
 
-# Build and install latest git version of libFuzzer, once with default flags,
-# once with memory sanitizer enabled.
+# Run build.sh within mbedtls_builder.
 
 set -eu
 
-git clone -q --depth 1 http://llvm.org/git/compiler-rt.git
-cd compiler-rt/lib/fuzzer
+# TODO arg parsing for --tls-srcs, --fuzz-src and --fuzz-bin
 
-export CXX="clang++ -stdlib=libc++ -fsanitize=memory -fsanitize-memory-track-origins -I/usr/local/libcxx_msan/include/c++/v1"
-./build.sh
-mkdir -p /usr/local/lib
-cp libFuzzer.a /usr/local/lib/libFuzzer_msan.a
-
-export CXX=clang++
-./build.sh
-cp libFuzzer.a /usr/local/lib
-
-DIR=/usr/local/share/libfuzzer
-mkdir -p $DIR
-cp afl/afl_driver.cpp standalone/StandaloneFuzzTargetMain.c $DIR
-
-cd ../../..
-rm -rf compiler-rt
+docker run \
+    -v "${1:-tls_srcs}":/fuzzing/srcs \
+    -v "${2:-fuzz_src}":/fuzzing/src \
+    -v "${3:-fuzz_bin}":/fuzzing/bin \
+    mbedtls_builder \
+    /fuzzing/scripts/build.sh "$@"

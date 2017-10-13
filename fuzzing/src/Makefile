@@ -74,7 +74,7 @@ TARGETS := csr_parse_der \
 # TODO: properly add ocsp_parse_response as a target once that feature has been
 # committed.
 #
-# TARGETS += ocsp_parse_response
+TARGETS += ocsp_parse_response
 
 LIBFUZZER_VARIANTS := fast asan msan
 
@@ -96,8 +96,10 @@ list_targets:
 	${CC} ${CFLAGS} $< -c -o $@
 %_coverage.o: %.c
 	${CC} -I/usr/local/a/mbedtls/include/ $< -c -o $@
-%_coverage.o: %.cpp
-	${CXX} $< -c -o $@
+StandaloneFuzzTargetMain_coverage.o: /usr/local/share/libfuzzer/StandaloneFuzzTargetMain.c
+	${CC} $< -c -o $@
+StandaloneFuzzTargetMain.o: /usr/local/share/libfuzzer/StandaloneFuzzTargetMain.c
+	${CC} $< -c -o $@
 
 %_afl.o: %.c
 	${AFL_CC} ${AFL_CFLAGS} $< -c -o $@
@@ -123,15 +125,17 @@ standalone_fast_%: %_fast.o StandaloneFuzzTargetMain.o
 coverage_%: %_coverage.o StandaloneFuzzTargetMain_coverage.o
 	${CXX} ${COVERAGE_LIB} -fprofile-instr-generate -fcoverage-mapping $+ ${LIBS} -o $@
 
-afl_driver.o: afl_driver.cpp
+afl_driver.o: /usr/local/share/libfuzzer/afl_driver.cpp
 	${AFL_CXX} ${AFL_CFLAGS} $< -c -o $@
 
 afl_%: afl_driver.o %_afl.o
 	${AFL_CXX} ${AFL_LIB} $+ ${AFL_LIBS} -o $@
 
 clean:
-	rm ${RUNNERS}
+	rm -f config.h
+	rm -f ${RUNNERS}
+	rm -f *.o
 
 install:
-	mkdir ../bin
+	mkdir -p ../bin
 	install ${RUNNERS} ../bin

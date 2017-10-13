@@ -1,7 +1,7 @@
 # Fuzzing mbed TLS
 
 Fuzz testing is the art of automatically generating random inputs to find
-faults, such as crashes, asserts, or memory leaks, buffer overflows etc.
+faults, such as crashes, asserts, or memory leaks, and buffer overflows.
 
 With AFL, fuzzers have started using information about which paths are
 exercised by an input to determine its usefulness. Fuzzers based on this
@@ -19,7 +19,7 @@ test cases that exercises different paths in the code.
 This README gives further details about how to run the included fuzzers.
 
 For more information about the investigated fuzzers look
-[here](https://confluence.arm.com/display/IoTBU/mbed+TLS+fuzzing+tools+analysis).
+[here](https://confluence.arm.com/display/IoTBU/tools+analysis).
 
 ## Prerequisites
 
@@ -39,14 +39,18 @@ build process.
 ## Setup
 
 The tools for fuzzing mbed TLS are provided as a Docker image. The `fuzz_infra`
-image has the required fuzzing tools installed, while the second image (tagged
-`mbedtls-fuzzing-tmp` by default) sets up the various builds of mbed TLS and
-compiles the fuzzing targets. `./build.sh` builds both images.
+image has the required fuzzing tools installed. The `mbedtls_builder` image can
+compile Mbed TLS and the fuzz targets. The `mbedtls_fuzzer` image can run the
+fuzzers themselves.
 
-The mbed TLS source is pulled in from the `srcs/mbedtls_a` directory. A good
-way to set this up is by creating a git worktree as follows. (Note that any
-branch can only be checked out once. Also note that this is a rather new
-feature of git, available since 2.6.0.)
+The `./build.sh` script builds all the images and runs the builder image. It
+pulls in the Mbed TLS sources and the source for the fuzzer targets. The
+resulting executables are exported from the Docker image.
+
+The Mbed TLS source is pulled in from (by default) the `srcs/mbedtls_a`
+directory. A good way to set this up is by creating a git worktree as follows.
+(Note that any branch can only be checked out once. Also note that this is a
+rather new feature of git, available since 2.6.0.)
 
 ```
 cd /path/to/mbedtls-git-repository
@@ -62,23 +66,23 @@ both return value and flags, of the two versions will be compared for every
 input.
 
 After setting `mbedtls_a` (and optionally `mbedtls_b`) to the branch you want
-to fuzz, run `./build.sh`.  It accepts `--tag` to tag the mbed TLS image in
-Docker. It's a good idea to use the tag to indicate which revision of mbed TLS
-is included in the image.
+to fuzz, run `./build.sh`. The `--fuzzers`, `--tls-sources` and
+`--fuzz-target-source` refer to a Docker image or absolute path which contains
+(or will contain) the relevant sources and results.
 
 ```
-sudo ./build.sh --tag development
+sudo ./build.sh --fuzzers fuzz_bin --tls-sources "$CWD/srcs" --fuzz-target-source "$CWD/src"
 ```
 
 ## Running a fuzzer
 
 The `./run.sh` script is a wrapper around Docker's `run` command. It accepts
-`-i`, or `--image`, as specification of a Docker image (e.g. its tag). `-r`, or
-`--results`, can be used to set the directory where results are collected. By
-default, this is `/scratch/mbedtls/results/`. Most of the time, a single
+`-r`, or `--results`, can be used to set the directory where results are
+collected. By default, this is `$CWD/results/`. Most of the time, a single
 results directory can be used. Occasionally it is necessary to use separate
 results directories. This is especially the case when fuzzing the same target
-for different revisions of mbed TLS at the same time.
+for different revisions of Mbed TLS at the same time, but refer to A/B testing
+above as well.
 
 The arguments after the last option are passed to `docker run`.
 
@@ -92,8 +96,8 @@ AFL fuzzer for the target specified with `-t` or `--target`.
 See the next section for the results from running these commands.
 
 ```
-sudo ./run.sh -r $results_dir -i $image ./scripts/run_fuzzer.sh --mode all -t $fuzz_target
-sudo ./run.sh -r $results_dir -i $image ./scripts/run_fuzzer.sh --mode afl -t $fuzz_target
+sudo ./run.sh -r $results_dir ./scripts/run_fuzzer.sh --mode all -t $fuzz_target
+sudo ./run.sh -r $results_dir ./scripts/run_fuzzer.sh --mode afl -t $fuzz_target
 ```
 
 To list all available fuzz targets, run `run_fuzzer.sh` without a `-t` option.
@@ -126,7 +130,7 @@ The results structure is as follows:
 To collect the results into a new corpus, run the `./regen_corpus.sh` script.
 
 ```
-sudo ./regen_corpus.sh -t fuzz_target -r results_dir -i image
+sudo ./regen_corpus.sh -t fuzz_target -r results_dir
 ```
 
 This results in a new (or updated) corpus in `./corpora/fuzz_target/`, based on
@@ -141,9 +145,9 @@ the fuzzer. You could either reproduce inside the Docker image, or outside.
 Reproducing outside the Docker image is likely to be a bit more work, since the
 image includes all the necessary executables.
 
-The process for finding the reproducing example is differs whether the fuzzer
-is libFuzzer or AFL. AFL will show if there are failures (crashes) in its
-curses interface, or in its summary file. AFL reproducers are stored in
+The process for finding the reproducing example differs whether the fuzzer is
+libFuzzer or AFL. AFL will show if there are failures (crashes) in its curses
+interface, or in its summary file. AFL reproducers are stored in
 `$results/$target/out/crashes`. libFuzzer stores crashes as
 `$results/$target/crash-*`. The file name will be printed by libFuzzer together
 with a stack trace.

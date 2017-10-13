@@ -21,11 +21,33 @@
 
 set -eu
 
+VERSION=
+
+while [ $# -gt 0 ]
+do
+    case "$1" in
+        --version)
+            VERSION=$2
+            shift
+            ;;
+        --force-reconfigure)
+            FORCE=1
+            ;;
+        *)
+            break
+            ;;
+    esac
+    shift
+done
+
 DIR="$1"
-VERSION=$2
 
 [ ! -d "$DIR" ] && exit 0
 cd "$DIR"
+
+if [ ! -z ${FORCE:-} ]; then
+    rm -rf build
+fi
 
 mkdir -p build/standalone
 mkdir -p build/libfuzzer-fast
@@ -36,70 +58,85 @@ mkdir -p build/afl
 
 # Standalone is a regular installation of mbed TLS
 cd build/standalone
+
 cmake -DCMAKE_C_COMPILER=clang-6.0 \
     -DENABLE_PROGRAMS=On \
     -DENABLE_TESTING=Off \
     -DINSTALL_MBEDTLS_HEADERS=On \
     -DCMAKE_C_FLAGS="${CFLAGS}" \
-    \ #-DCMAKE_C_FLAGS="${FAST_CFLAGS}" \
     -DCMAKE_INSTALL_PREFIX="/usr/local/$VERSION/mbedtls" \
+    -G Ninja \
     ../..
-make install
+ninja
+ninja install
 
 # Build for fuzz_fast_* executables
 cd ../../build/libfuzzer-fast
+
 cmake -DCMAKE_C_COMPILER=clang-6.0 \
     -DENABLE_PROGRAMS=Off \
     -DENABLE_TESTING=Off \
     -DINSTALL_MBEDTLS_HEADERS=Off \
     -DCMAKE_C_FLAGS="${FAST_CFLAGS}" \
     -DCMAKE_INSTALL_PREFIX="/usr/local/$VERSION/mbedtls-libfuzzer-fast" \
+    -G Ninja \
     ../..
-make install
+ninja
+ninja install
 
 # Build for fuzz_asan_* executables (enables address sanitizer)
 cd ../../build/libfuzzer-asan-ubsan
+
 cmake -DCMAKE_C_COMPILER=clang-6.0 \
     -DENABLE_PROGRAMS=Off \
     -DENABLE_TESTING=Off \
     -DINSTALL_MBEDTLS_HEADERS=Off \
     -DCMAKE_C_FLAGS="${ASAN_CFLAGS}" \
     -DCMAKE_INSTALL_PREFIX="/usr/local/$VERSION/mbedtls-libfuzzer-asan-ubsan" \
+    -G Ninja \
     ../..
-make install
+ninja
+ninja install
 
 # Build for fuzz_msan_* executables (enables memory sanitizer)
 cd ../../build/libfuzzer-msan
+
 cmake -DCMAKE_C_COMPILER=clang-6.0 \
     -DENABLE_PROGRAMS=Off \
     -DENABLE_TESTING=Off \
     -DINSTALL_MBEDTLS_HEADERS=Off \
     -DCMAKE_C_FLAGS="${MSAN_CFLAGS}" \
     -DCMAKE_INSTALL_PREFIX="/usr/local/$VERSION/mbedtls-libfuzzer-msan" \
+    -G Ninja \
     ../..
-make install
+ninja
+ninja install
 
 # Build for coverage_* executables (enables instrumentation for coverage)
-cd ../../build/libfuzzer-msan
+cd ../../build/libfuzzer-coverage
+
 cmake -DCMAKE_C_COMPILER=clang-6.0 \
     -DENABLE_PROGRAMS=Off \
     -DENABLE_TESTING=Off \
     -DINSTALL_MBEDTLS_HEADERS=Off \
     -DCMAKE_C_FLAGS="${COVERAGE_CFLAGS}" \
     -DCMAKE_INSTALL_PREFIX="/usr/local/$VERSION/mbedtls-libfuzzer-coverage" \
+    -G Ninja \
     ../..
-make install
+ninja
+ninja install
 
 # Build for afl_* executables (suitable for running from afl-fuzz)
 cd ../../build/afl
+
 cmake -DCMAKE_C_COMPILER=afl-clang-fast \
     -DENABLE_PROGRAMS=Off \
     -DENABLE_TESTING=Off \
     -DINSTALL_MBEDTLS_HEADERS=Off \
     -DCMAKE_INSTALL_PREFIX="/usr/local/$VERSION/mbedtls-afl" \
+    -G Ninja \
     ../..
-make install
+ninja
+ninja install
 
 cd ../..
-# no need to keep the build in the image
-rm -rf build

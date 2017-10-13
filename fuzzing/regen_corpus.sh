@@ -66,7 +66,7 @@ fi
 
 mkdir -p "${RESULTS}/${TARGET}/new_corpus"
 ./run.sh \
-    --results "${RESULTS}" --image ${TAG} \
+    --results "${RESULTS}" \
     ./scripts/regen_corpus.sh --target "$TARGET"
 
 rm -rf "corpora/${TARGET}"

@@ -43,6 +43,7 @@ RUN apt-get update -q && apt-get install -y --no-install-recommends \
     llvm \
     llvm-dev \
     make \
+    ninja-build \
     && apt-get clean \
     && rm -rf /tmp/* /var/tmp/* /var/lib/apt/lists/*
 

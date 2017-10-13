@@ -21,8 +21,8 @@
 
 set -eu
 
-git clone -q http://llvm.org/git/libcxx.git
-git clone -q http://llvm.org/git/libcxxabi.git
+git clone --depth 1 -q http://llvm.org/git/libcxx.git
+git clone --depth 1 -q http://llvm.org/git/libcxxabi.git
 
 mkdir libcxx/build
 mkdir libcxxabi/build && cd libcxxabi/build

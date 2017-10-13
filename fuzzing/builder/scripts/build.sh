@@ -17,26 +17,24 @@
 #
 # This file is part of mbed TLS (https://tls.mbed.org)
 
-# Build and install latest git version of libFuzzer, once with default flags,
-# once with memory sanitizer enabled.
+# Builds mbed TLS fuzz targets.  Expects Mbed TLS sources in /fuzzing/srcs/,
+# and fuzz target sources in /fuzzing/src/; produces statically linked
+# executables in /fuzzing/bin/.
 
 set -eu
 
-git clone -q --depth 1 http://llvm.org/git/compiler-rt.git
-cd compiler-rt/lib/fuzzer
+cd /fuzzing/scripts/
 
-export CXX="clang++ -stdlib=libc++ -fsanitize=memory -fsanitize-memory-track-origins -I/usr/local/libcxx_msan/include/c++/v1"
-./build.sh
-mkdir -p /usr/local/lib
-cp libFuzzer.a /usr/local/lib/libFuzzer_msan.a
+# TODO To allow any TLS implementation to be included in the fuzzer, generalise
+# this to "for d in /fuzzing/srcs/*; do; ./setup.sh $d; done". ./setup.sh
+# should know how to build each library and give it a proper prefix.
 
-export CXX=clang++
-./build.sh
-cp libFuzzer.a /usr/local/lib
+./setup_mbedtls.sh --version "a" /fuzzing/srcs/mbedtls_a
+./setup_mbedtls.sh --version "b" /fuzzing/srcs/mbedtls_b
 
-DIR=/usr/local/share/libfuzzer
-mkdir -p $DIR
-cp afl/afl_driver.cpp standalone/StandaloneFuzzTargetMain.c $DIR
+./rewrite_symbols.sh /usr/local/a/mbedtls-*
 
-cd ../../..
-rm -rf compiler-rt
+cd /fuzzing/src/
+
+# Installs into /fuzzing/bin
+./configure && make && make install && make clean
