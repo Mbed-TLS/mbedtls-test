@@ -55,14 +55,13 @@ class MbedWindowsTesting(object):
         self.repository_path = repository_path
         self.log_dir = logging_directory
         self.git_tag_config = git_tag_config
-        self.visual_studio_versions = visual_studio_versions
         self.visual_studio_configurations = visual_studio_configurations
         self.visual_studio_architectures = visual_studio_architectures
         self.log_formatter = logging.Formatter(
             '%(asctime)s - %(levelname)s - %(message)s'
         )
-        self.visual_studio_vcvars_path = {}
-        self.set_visual_studio_vcvars_paths()
+        self.visual_studio_versions = sorted(visual_studio_versions.keys())
+        self.visual_studio_vcvars_path = visual_studio_versions
         self.vs_version_toolsets = {
             "2010": "100",
             "2013": "120",
@@ -76,7 +75,7 @@ class MbedWindowsTesting(object):
             "2010": "Visual Studio 10 2010",
             "2013": "Visual Studio 12 2013",
             "2015": "Visual Studio 14 2015",
-            "2017": "Visual Studio 15"
+            "2017": "Visual Studio 15 2017"
         }
         self.visual_studio_results = []
         self.mingw_results = {}
@@ -88,32 +87,12 @@ class MbedWindowsTesting(object):
         self.selftest_success_pattern = "\[ All tests (PASS|passed) \]"
         self.test_suites_success_pattern = "100% tests passed, 0 tests failed"
         self.mingw_success_pattern = "PASSED \(\d+ suites, \d+ tests run\)"
-        self.mingw_bin_location = "C:\\MingW\\bin"
         self.config_pl_location = "scripts\\config.pl"
         self.selftest_exe = "selftest.exe"
+        self.mingw_command = "mingw32-make"
+        self.mingw_directory = None
         self.git_command = "git"
         self.perl_command = "perl"
-
-    def set_visual_studio_vcvars_paths(self):
-        """This determines which Program Files directory Visual Studio is
-         installed under. We make the assumption that all the versions have
-         been installed under the same directory."""
-        program_files_directory_search = re.search(
-            "Program Files( \(x\d{2}\))?", os.environ["VS100COMNTOOLS"]
-        )
-        if program_files_directory_search is not None:
-            program_files_directory = program_files_directory_search.group()
-            self.visual_studio_vcvars_path = {
-                "2010": ("C:\\{}\\Microsoft Visual Studio 10.0\\VC\\"
-                         "vcvarsall.bat".format(program_files_directory)),
-                "2013": ("C:\\{}\\Microsoft Visual Studio 12.0\\VC\\"
-                         "vcvarsall.bat".format(program_files_directory)),
-                "2015": ("C:\\{}\\Microsoft Visual Studio 14.0\\VC\\"
-                         "vcvarsall.bat".format(program_files_directory)),
-                "2017": ("C:\\{}\\Microsoft Visual Studio\\2017\\Community\\"
-                         "VC\\Auxiliary\\Build\\vcvarsall.bat".format(
-                            program_files_directory))
-            }
 
     def setup_logger(self, name, log_file, level=logging.INFO):
         """Creates a logger that outputs both to console and to log_file"""
@@ -158,9 +137,7 @@ class MbedWindowsTesting(object):
         git_checkout_output, _ = git_checkout_process.communicate()
         logger.info(git_checkout_output)
 
-    def set_config_on_code(self,
-                           mbed_version,
-                           logger):
+    def set_config_on_code(self, mbed_version, logger):
         """Enables all config specified in config.pl, then disables config
          based on the version being tested."""
         logger.info("Enabling as much of {} as possible".format(
@@ -201,14 +178,30 @@ class MbedWindowsTesting(object):
         except Exception as error:
             mingw_logger.error(error)
 
-    def build_and_test_using_mingw(self, mbed_tag, logger):
+    def get_environment_containing_mingw_path(self):
+        """This first checks if the mingw command exists on the path,
+         if not it searches the system for the command
+         and adds it to the path"""
         my_environment = os.environ.copy()
-        my_environment["PATH"] = "{};{}".format(
-            self.mingw_bin_location, my_environment["PATH"]
-        )
+        if subprocess.call(["where", self.mingw_command]) != 0:
+            if self.mingw_directory is None:
+                for root, dirs, files in os.walk("C:\\"):
+                    if self.mingw_directory is not None:
+                        break
+                    for name in files:
+                        if name == self.mingw_command + ".exe":
+                            self.mingw_directory = root
+                            break
+            my_environment["PATH"] = "{};{}".format(
+                self.mingw_directory, my_environment["PATH"]
+            )
+        return my_environment
+
+    def build_and_test_using_mingw(self, mbed_tag, logger):
+        my_environment = self.get_environment_containing_mingw_path()
         my_environment["WINDOWS"] = "1"
         logger.info(
-            "Building mbedTLS {} using mingw32-make".format(mbed_tag)
+            "Building mbedTLS {} using {}".format(mbed_tag, self.mingw_command)
         )
         make_process = subprocess.Popen(
             ["cmd.exe"],
@@ -218,8 +211,8 @@ class MbedWindowsTesting(object):
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
-        make_process.stdin.write("mingw32-make clean\n")
-        make_process.stdin.write("mingw32-make CC=gcc check\n")
+        make_process.stdin.write(self.mingw_command + " clean\n")
+        make_process.stdin.write(self.mingw_command + " CC=gcc check\n")
         make_process.stdin.close()
         make_output, _ = make_process.communicate()
         logger.info(make_output)
@@ -229,9 +222,7 @@ class MbedWindowsTesting(object):
         else:
             return False
 
-    def run_selftest_on_built_code(self,
-                                   selftest_dir,
-                                   logger):
+    def run_selftest_on_built_code(self, selftest_dir, logger):
         """Runs selftest.exe and checks that it reports all tests passing."""
         logger.info(selftest_dir)
         test_process = subprocess.Popen(
@@ -249,10 +240,7 @@ class MbedWindowsTesting(object):
         else:
             return False
 
-    def run_test_suites_on_built_code(self,
-                                      solution_dir,
-                                      test_run,
-                                      logger):
+    def run_test_suites_on_built_code(self, solution_dir, test_run, logger):
         """Runs the various test suites and checks that they all pass"""
         msbuild_test_process = subprocess.Popen(
             ["cmd.exe"],
@@ -266,7 +254,7 @@ class MbedWindowsTesting(object):
             self.visual_studio_architecture_flags[test_run.architecture]
         ))
         msbuild_test_process.stdin.write(
-            "msbuild /p:Configuration={} /m:4 RUN_TESTS.vcxproj\n".format(
+            "msbuild /p:Configuration={} /m RUN_TESTS.vcxproj\n".format(
                 test_run.configuration
             )
         )
@@ -281,19 +269,29 @@ class MbedWindowsTesting(object):
         else:
             return False
 
-    def build_code_using_visual_studio(self,
-                                       solution_dir,
-                                       test_run,
-                                       logger):
+    def get_environment_containing_VSCMD_START_DIR(self, solution_dir):
+        """This is done to bypass a 'feature' added in Visual Studio 2017.
+         If the %USERPROFILE%\Source directory exists, then running
+         vcvarsall.bat will silently change directory to that directory.
+         Setting the VSCMD_START_DIR environment variable causes it to change
+         to that directory instead"""
+        my_environment = os.environ.copy()
+        my_environment["VSCMD_START_DIR"] = solution_dir
+        return my_environment
+
+    def build_code_using_visual_studio(self, solution_dir, test_run, logger):
         logger.info("Building mbedTLS using Visual Studio v{}".format(
             test_run.vs_version
         ))
+        my_environment = self.get_environment_containing_VSCMD_START_DIR(
+            solution_dir
+        )
         if test_run.should_retarget:
-            retarget = ",PlatformToolset=v{}".format(
+            retarget = "v{}".format(
                 self.vs_version_toolsets[test_run.vs_version]
             )
         else:
-            retarget = ""
+            retarget = "Windows7.1SDK"  # Workaround for missing 2010 x64 tools
         for solution_file in os.listdir(solution_dir):
             if re.search(self.solution_file_pattern, solution_file):
                 break
@@ -302,6 +300,7 @@ class MbedWindowsTesting(object):
             return False
         msbuild_process = subprocess.Popen(
             ["cmd.exe"],
+            env=my_environment,
             cwd=solution_dir,
             stdin=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -312,8 +311,8 @@ class MbedWindowsTesting(object):
             self.visual_studio_architecture_flags[test_run.architecture]
         ))
         msbuild_process.stdin.write(
-            "msbuild /t:Rebuild /p:Configuration={},Platform={}{}"
-            " /m:4 \"{}\"\n".format(
+            "msbuild /t:Rebuild /p:Configuration={},Platform={},"
+            "PlatformToolset={} /m \"{}\"\n".format(
                 test_run.configuration, test_run.architecture,
                 retarget, solution_file
             )
@@ -356,9 +355,7 @@ class MbedWindowsTesting(object):
             )
             return False
 
-    def build_visual_studio_solution_using_cmake(self,
-                                                 test_run,
-                                                 logger):
+    def build_visual_studio_solution_using_cmake(self, test_run, logger):
         solution_dir = self.repository_path + "\\cmake_solution"
         os.makedirs(solution_dir)
         cmake_process = subprocess.Popen(
@@ -390,8 +387,7 @@ class MbedWindowsTesting(object):
         )
         try:
             self.set_repository_to_clean_state(
-                self.git_tag_config[test_run.mbed_version]["tag"],
-                vs_logger
+                self.git_tag_config[test_run.mbed_version]["tag"], vs_logger
             )
             self.set_config_on_code(test_run.mbed_version, vs_logger)
             if test_run.solution_type == "cmake":
@@ -463,8 +459,8 @@ class MbedWindowsTesting(object):
 
     def run_all_tests(self):
         try:
-            for mbed_version in self.git_tag_config.keys():
-                self.test_mingw_built_code(mbed_version)
+            # for mbed_version in self.git_tag_config.keys():
+            #     self.test_mingw_built_code(mbed_version)
             vs_test_runs = [
                 VS_test_run(vs_version, configuration, architecture,
                             should_retarget, mbed_version, solution_type) for
