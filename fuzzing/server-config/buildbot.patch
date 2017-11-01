@@ -1,0 +1,246 @@
+We use https://github.com/thomasvs/puppet-buildbot to integrate buildbot with
+puppet. It is, however, not ideal. This patch makes several changes.
+
+* Buildbot's working files are installed in /var/lib/buildbot by default. This
+  conforms better to how Linux filesystems should be organised than using
+  /home/buildbot . It seems overkill to use hiera to change this, so hardcode a
+  better default path.
+* Install buildbot using pip, and use
+  https://github.com/stankevich/puppet-python for the pip installation. The
+  Ubuntu packaging of buildbot appears to be broken as it installs a version of
+  a python library that is incompatible with a buildbot plugin.
+* Run buildbot as root ( :-( ) since Docker needs to be started as root.
+
+diff -ru modules/buildbot/manifests/common/install.pp modules.bak/buildbot/manifests/common/install.pp
+--- modules/buildbot/manifests/common/install.pp	2017-11-01 13:41:35.779198994 +0000
++++ modules.bak/buildbot/manifests/common/install.pp	2017-11-01 13:39:17.301164088 +0000
+@@ -1,6 +1,6 @@
+ class buildbot::common::install {
+
+-  $home = hiera('buildbot::home', '/home/buildbot')
++  $home = hiera('buildbot::home', '/var/lib/buildbot')
+
+   user { 'buildbot':
+     ensure     => present,
+@@ -15,4 +15,9 @@
+     ensure => present,
+   }
+
++  class { 'python':
++	version => 'system',
++	pip => 'present',
++}
++
+ }
+diff -ru modules/buildbot/manifests/common/service.pp modules.bak/buildbot/manifests/common/service.pp
+--- modules/buildbot/manifests/common/service.pp	2017-11-01 13:41:35.779198994 +0000
++++ modules.bak/buildbot/manifests/common/service.pp	2017-11-01 13:39:17.301164088 +0000
+@@ -1,7 +1,7 @@
+ define buildbot::common::service ($type, $requires=[]) {
+
+   $user = 'buildbot'
+-  $home = hiera('buildbot::home', "/home/${user}")
++  $home = hiera('buildbot::home', "/var/lib/${user}")
+
+   case $type {
+     'master': { $command = 'buildbot' }
+@@ -10,9 +10,9 @@
+   }
+
+   exec {"buildbot::${type}::service-${name}":
+-    cwd         => "${home}/${type}",
+-    user        => $user,
+-    path        => [ '/bin', '/usr/bin', ],
++    cwd         => "${home}/${type}s",
++    user        => 'root',
++    path        => [ '/bin', '/usr/bin', '/usr/local/bin'],
+     command     => "${command} start ${name}",
+     refreshonly => false,
+     unless      => "test -f ${name}/twistd.pid",
+@@ -23,7 +23,7 @@
+   # install a cron file to start service on reboot
+   file {"/etc/cron.d/buildbot-${type}-service-${name}":
+     content => "# created by puppet
+-    @reboot ${user} cd ${home}/${type}; ${command} start ${name}
++    @reboot root cd ${home}/${type}s; ${command} start ${name}
+     "
+   }
+
+diff -ru modules/buildbot/manifests/master/base.pp modules.bak/buildbot/manifests/master/base.pp
+--- modules/buildbot/manifests/master/base.pp	2017-11-01 13:41:35.779198994 +0000
++++ modules.bak/buildbot/manifests/master/base.pp	2017-11-01 13:39:17.301164088 +0000
+@@ -7,9 +7,9 @@
+   $dirowner = 'buildbot'
+   $dirmode  = '0755'
+
+-  $home = hiera('buildbot::home', "/home/${owner}")
++  $home = hiera('buildbot::home', "/var/lib/${owner}")
+
+-  file { "${home}/master":
++  file { "${home}/masters":
+     ensure  => directory,
+     owner   => $dirowner,
+     group   => $group,
+diff -ru modules/buildbot/manifests/master/config.pp modules.bak/buildbot/manifests/master/config.pp
+--- modules/buildbot/manifests/master/config.pp	2017-11-01 13:41:35.779198994 +0000
++++ modules.bak/buildbot/manifests/master/config.pp	2017-11-01 13:39:17.301164088 +0000
+@@ -8,13 +8,13 @@
+   $dirowner = 'buildbot'
+   $dirmode  = '0755'
+
+-  $home = hiera('buildbot::home', "/home/${owner}")
++  $home = hiera('buildbot::home', "/var/lib/${owner}")
+
+   include buildbot::master::install
+
+   include buildbot::master::base
+
+-  file { [ "${home}/master/${name}" ]:
++  file { [ "${home}/masters/${name}" ]:
+     ensure  => directory,
+     owner   => $dirowner,
+     group   => $group,
+@@ -22,19 +22,19 @@
+   }
+
+   exec {"buildbot::master::config::${name}-create-master":
+-    cwd         => "${home}/master",
++    cwd         => "${home}/masters",
+     user        => $owner,
+-    path        => [ '/bin', '/usr/bin', ],
++    path        => [ '/bin', '/usr/bin', '/usr/local/bin/'],
+     command     => "buildbot create-master ${name}",
+     refreshonly => false,
+     unless      => "test -f ${name}/state.sqlite",
+     logoutput   => on_failure,
+     require     => [
+-      File["${home}/master"],
++      File["${home}/masters"],
+     ]
+   }
+
+-  file { "${home}/master/${name}/master.cfg":
++  file { "${home}/masters/${name}/master.cfg":
+     ensure  => file,
+     owner   => $owner,
+     group   => $group,
+@@ -47,14 +47,14 @@
+   }
+
+   exec {"buildbot-master-config-${name}-reconfig":
+-    cwd         => "${home}/master",
++    cwd         => "${home}/masters",
+     user        => $owner,
+-    path        => [ '/bin', '/usr/bin', ],
++    path        => [ '/bin', '/usr/bin', '/usr/local/bin' ],
+     command     => "buildbot reconfig ${name}",
+     refreshonly => true,
+     logoutput   => on_failure,
+     require     => [
+-      File["${home}/master"],
++      File["${home}/masters"],
+     ]
+   }
+
+diff -ru modules/buildbot/manifests/master/install.pp modules.bak/buildbot/manifests/master/install.pp
+--- modules/buildbot/manifests/master/install.pp	2017-11-01 13:41:35.779198994 +0000
++++ modules.bak/buildbot/manifests/master/install.pp	2017-11-01 13:39:17.301164088 +0000
+@@ -2,26 +2,9 @@
+
+   include buildbot::common::install
+
+-  case $::operatingsystem {
+-    /^(RedHat|CentOS|Fedora)$/: {
+-      $pkgs = [
+-        'buildbot-master',
+-        'python-twisted-conch',
+-      ]
+-    }
+-    /^(Ubuntu|Debian)$/: {
+-      $pkgs = [
+-        'buildbot',
+-        'python-twisted-conch',
+-      ]
+-    }
+-     default: {
+-      fail('Unsupported operating system')
+-    }
+-  }
+-
+-  package { $pkgs:
+-    ensure => present,
++  python::pip { 'buildbot':
++	pkgname => 'buildbot',
++	ensure => '0.8.12',
+   }
+
+ }
+diff -ru modules/buildbot/manifests/slave/base.pp modules.bak/buildbot/manifests/slave/base.pp
+--- modules/buildbot/manifests/slave/base.pp	2017-11-01 13:41:35.779198994 +0000
++++ modules.bak/buildbot/manifests/slave/base.pp	2017-11-01 13:39:17.301164088 +0000
+@@ -6,9 +6,9 @@
+   $dirowner = 'buildbot'
+   $dirmode  = '0755'
+
+-  $home = hiera('buildbot::home', "/home/${owner}")
++  $home = hiera('buildbot::home', "/var/lib/${owner}")
+
+-  file { "${home}/slave":
++  file { "${home}/slaves":
+     ensure  => directory,
+     owner   => $dirowner,
+     group   => $group,
+diff -ru modules/buildbot/manifests/slave/config.pp modules.bak/buildbot/manifests/slave/config.pp
+--- modules/buildbot/manifests/slave/config.pp	2017-11-01 13:41:35.779198994 +0000
++++ modules.bak/buildbot/manifests/slave/config.pp	2017-11-01 13:39:17.301164088 +0000
+@@ -10,13 +10,13 @@
+   $dirowner = 'buildbot'
+   $dirmode  = '0755'
+
+-  $home = hiera('buildbot::home', "/home/${owner}")
++  $home = hiera('buildbot::home', "/var/lib/${owner}")
+
+   include buildbot::slave::install
+
+   include buildbot::slave::base
+
+-  file { "${home}/slave/${name}":
++  file { "${home}/slaves/${name}":
+     ensure  => directory,
+     owner   => $dirowner,
+     group   => $group,
+@@ -24,15 +24,15 @@
+   }
+
+   exec {"buildbot::slave::config::${name}-create-slave":
+-    cwd         => "/${home}/slave",
++    cwd         => "/${home}/slaves",
+     user        => $owner,
+-    path        => [ '/bin', '/usr/bin', ],
++    path        => [ '/bin', '/usr/bin', '/usr/local/bin' ],
+     command     => "buildslave create-slave ${name} ${connection} ${botname} ${botpass}",
+     refreshonly => false,
+     unless      => "test -f ${name}/buildbot.tac",
+     logoutput   => on_failure,
+     require     => [
+-      File["${home}/slave"],
++      File["${home}/slaves"],
+       Class['buildbot::slave::install']
+     ]
+   }
+diff -ru modules/buildbot/manifests/slave/install.pp modules.bak/buildbot/manifests/slave/install.pp
+--- modules/buildbot/manifests/slave/install.pp	2017-11-01 13:41:35.779198994 +0000
++++ modules.bak/buildbot/manifests/slave/install.pp	2017-11-01 13:39:17.301164088 +0000
+@@ -2,9 +2,8 @@
+
+   include buildbot::common::install
+
+-  package {[
+-    'buildbot-slave',
+-  ]:
+-    ensure => present,
++  python::pip { 'buildbot-slave':
++	pkgname => 'buildbot-slave',
++        ensure => '0.8.12',
+   }
+ }
