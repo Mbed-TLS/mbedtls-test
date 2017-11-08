@@ -459,8 +459,8 @@ class MbedWindowsTesting(object):
 
     def run_all_tests(self):
         try:
-            # for mbed_version in self.git_tag_config.keys():
-            #     self.test_mingw_built_code(mbed_version)
+            for mbed_version in self.git_tag_config.keys():
+                self.test_mingw_built_code(mbed_version)
             vs_test_runs = [
                 VS_test_run(vs_version, configuration, architecture,
                             should_retarget, mbed_version, solution_type) for
