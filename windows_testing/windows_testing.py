@@ -48,6 +48,7 @@ class MbedWindowsTesting(object):
     def __init__(self,
                  repository_path,
                  logging_directory,
+                 build_method,
                  git_tag_config,
                  visual_studio_versions,
                  visual_studio_configurations,
@@ -55,6 +56,7 @@ class MbedWindowsTesting(object):
         self.repository_path = repository_path
         self.log_dir = logging_directory
         self.git_tag_config = git_tag_config
+        self.build_method = build_method
         self.visual_studio_configurations = visual_studio_configurations
         self.visual_studio_architectures = visual_studio_architectures
         self.log_formatter = logging.Formatter(
@@ -447,32 +449,37 @@ class MbedWindowsTesting(object):
         result_logger = self.setup_logger(
             "results", self.log_dir + "\\results.txt"
         )
-        for version, result in self.mingw_results.iteritems():
-            result_logger.info("MingW build {} in {}".format(
-                "passed" if result else "failed", version
-            ))
-        result_table = PrettyTable(VS_result._fields)
-        result_table.align[VS_result._fields[0]] = "l"
-        for result in self.visual_studio_results:
-            result_table.add_row(result)
-        result_logger.info(result_table)
+        if self.build_method in ["mingw", "all"]:
+            for version, result in self.mingw_results.iteritems():
+                result_logger.info("MingW build {} in {}".format(
+                    "passed" if result else "failed", version
+                ))
+        if self.build_method in ["vs", "all"]:
+            result_table = PrettyTable(VS_result._fields)
+            result_table.align[VS_result._fields[0]] = "l"
+            for result in self.visual_studio_results:
+                result_table.add_row(result)
+            result_logger.info(result_table)
 
     def run_all_tests(self):
         try:
-            for mbed_version in self.git_tag_config.keys():
-                self.test_mingw_built_code(mbed_version)
-            vs_test_runs = [
-                VS_test_run(vs_version, configuration, architecture,
-                            should_retarget, mbed_version, solution_type) for
-                vs_version in self.visual_studio_versions for
-                configuration in self.visual_studio_configurations for
-                architecture in self.visual_studio_architectures for
-                should_retarget in [False, True] for
-                mbed_version in self.git_tag_config.keys() for
-                solution_type in self.visual_studio_solution_types
-            ]
-            for vs_test_run in vs_test_runs:
-                self.test_visual_studio_built_code(vs_test_run)
+            if self.build_method in ["mingw", "all"]:
+                for mbed_version in self.git_tag_config.keys():
+                    self.test_mingw_built_code(mbed_version)
+            if self.build_method in ["vs", "all"]:
+                vs_test_runs = [
+                    VS_test_run(vs_version, configuration,
+                                architecture, should_retarget,
+                                mbed_version, solution_type) for
+                    vs_version in self.visual_studio_versions for
+                    configuration in self.visual_studio_configurations for
+                    architecture in self.visual_studio_architectures for
+                    should_retarget in [False, True] for
+                    mbed_version in self.git_tag_config.keys() for
+                    solution_type in self.visual_studio_solution_types
+                ]
+                for vs_test_run in vs_test_runs:
+                    self.test_visual_studio_built_code(vs_test_run)
         finally:
             cleanup_logger = self.setup_logger(
                 "cleanup", self.log_dir + "\\cleanup.txt"
@@ -492,16 +499,26 @@ def run_main():
         "log_path", type=str, help="the directory path for log files"
     )
     parser.add_argument(
-        "-c", "--configuration-file", type=str,
+        "configuration_file", type=str,
         help="path to a json file containing the testing configurations"
+    )
+    parser.add_argument(
+        "-b", "--build-method", type=str,
+        choices=["mingw", "vs", "all"], required=True,
+        help="which build methods to test, either mingw, visual studio or both"
     )
 
     windows_testing_args = parser.parse_args()
     with open(windows_testing_args.configuration_file) as f:
         testing_config = json.load(f)
+    if windows_testing_args.build_method not in ["vs", "all"]:
+        testing_config["visual_studio_versions"] = {}
+        testing_config["visual_studio_configurations"] = []
+        testing_config["visual_studio_architectures"] = []
     mbed_test = MbedWindowsTesting(
         windows_testing_args.repo_path,
         windows_testing_args.log_path,
+        windows_testing_args.build_method,
         testing_config["git_tag_config"],
         testing_config["visual_studio_versions"],
         testing_config["visual_studio_configurations"],
