@@ -121,6 +121,8 @@ class MbedWindowsTesting(object):
         )
         git_reset_output, _ = git_reset_process.communicate()
         logger.info(git_reset_output)
+        if git_reset_process.returncode != 0:
+            raise Exception("Git reset failed, aborting test")
         git_clean_process = subprocess.Popen(
             [self.git_command, "clean", "-qdfx"],
             cwd=self.repository_path,
@@ -129,6 +131,8 @@ class MbedWindowsTesting(object):
         )
         git_clean_output, _ = git_clean_process.communicate()
         logger.info(git_clean_output)
+        if git_clean_process.returncode != 0:
+            raise Exception("Git clean failed, aborting test")
         logger.info("Checking out code to tag {}".format(mbed_tag))
         git_checkout_process = subprocess.Popen(
             [self.git_command, "checkout", mbed_tag],
@@ -138,6 +142,8 @@ class MbedWindowsTesting(object):
         )
         git_checkout_output, _ = git_checkout_process.communicate()
         logger.info(git_checkout_output)
+        if git_checkout_process.returncode != 0:
+            raise Exception("Git checkout failed, aborting test")
 
     def set_config_on_code(self, mbed_version, logger):
         """Enables all config specified in config.pl, then disables config
