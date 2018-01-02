@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install necessary apt tools
 RUN apt-get update > /dev/null && \
-    apt-get install -y apt-transport-https apt-utils software-properties-common dirmngr > /dev/null && \
+    apt-get install -y apt-transport-https apt-utils software-properties-common dirmngr lsof > /dev/null && \
     apt-get clean && rm -rf /var/lib/apt/lists/
 
 # set the working directory to /opt/slave
@@ -36,10 +36,8 @@ RUN apt-get update > /dev/null && \
     apt-get clean && rm -rf /var/lib/apt/lists/
 
 # Install arm-none-eabi-gcc
-RUN add-apt-repository "deb http://ppa.launchpad.net/team-gcc-arm-embedded/ppa/ubuntu yakkety main" && \
-    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys D1FAA6ECF64D33B0 && \
-    apt-get update > /dev/null && \
-    apt-get install -y gcc-arm-embedded > /dev/null && \
+RUN apt-get update > /dev/null && \
+    apt-get install -y binutils-arm-none-eabi > /dev/null && \
     apt-get clean && rm -rf /var/lib/apt/lists/
 
 # Install Docker
