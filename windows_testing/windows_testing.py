@@ -250,8 +250,12 @@ class MbedWindowsTesting(object):
 
     def run_test_suites_on_built_code(self, solution_dir, test_run, logger):
         """Runs the various test suites and checks that they all pass"""
+        my_environment = self.get_environment_containing_VSCMD_START_DIR(
+            solution_dir
+        )
         msbuild_test_process = subprocess.Popen(
             ["cmd.exe"],
+            env=my_environment,
             cwd=solution_dir,
             stdin=subprocess.PIPE,
             stderr=subprocess.STDOUT,
