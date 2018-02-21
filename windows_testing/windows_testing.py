@@ -1,8 +1,8 @@
 #!/usr/bin/env python2
 
 # This script requires python 2.7 and the prettytable package to be installed
-# This script is for testing that mbedTLS builds on Windows. The script checks
-# that mbedTLS can be built in different configurations of Visual Studio, as
+# This script is for testing that mbed TLS builds on Windows. The script checks
+# that mbed TLS can be built in different configurations of Visual Studio, as
 # well as MinGW32
 
 from collections import namedtuple
@@ -22,7 +22,6 @@ VS_test_run = namedtuple(
         "configuration",
         "architecture",
         "should_retarget",
-        "mbed_version",
         "solution_type"
     ]
 )
@@ -34,7 +33,6 @@ VS_result = namedtuple(
         "configuration",
         "architecture",
         "retargeted",
-        "mbed_tag",
         "solution_type",
         "test_type",
         "result"
@@ -43,27 +41,57 @@ VS_result = namedtuple(
 
 
 class MbedWindowsTesting(object):
-    """For testing the building of mbedTLS on Windows."""
+    """For testing the building of mbed TLS on Windows."""
 
     def __init__(self,
                  repository_path,
                  logging_directory,
+                 git_ref,
                  build_method,
-                 git_tag_config,
-                 visual_studio_versions,
-                 visual_studio_configurations,
-                 visual_studio_architectures):
+                 testing_config):
         self.repository_path = repository_path
         self.log_dir = logging_directory
-        self.git_tag_config = git_tag_config
+        self.git_ref = git_ref
         self.build_method = build_method
-        self.visual_studio_configurations = visual_studio_configurations
-        self.visual_studio_architectures = visual_studio_architectures
+        if "config_to_disable" in testing_config.keys():
+            self.config_to_disable = testing_config["config_to_disable"]
+        else:
+            self.config_to_disable = [
+                "MBEDTLS_MEMORY_DEBUG",
+                "MBEDTLS_MEMORY_BACKTRACE",
+                "MBEDTLS_MEMORY_BUFFER_ALLOC_C",
+                "MBEDTLS_THREADING_PTHREAD",
+                "MBEDTLS_THREADING_ALT",
+                "MBEDTLS_THREADING_C",
+                "MBEDTLS_DEPRECATED_WARNING"
+            ]
+        if "visual_studio_configurations" in testing_config.keys():
+            self.visual_studio_configurations = testing_config[
+                "visual_studio_configurations"]
+        else:
+            self.visual_studio_configurations = ["Release", "Debug"]
+        if "visual_studio_architectures" in testing_config.keys():
+            self.visual_studio_architectures = testing_config[
+                "visual_studio_architectures"]
+        else:
+            self.visual_studio_architectures = ["Win32", "x64"]
+        if "visual_studio_versions" in testing_config.keys():
+            self.visual_studio_versions = sorted(
+                testing_config["visual_studio_versions"].keys()
+            )
+            self.visual_studio_vcvars_path = testing_config[
+                "visual_studio_versions"]
+        else:
+            self.visual_studio_versions = ["2010", "2013", "2015", "2017"]
+            self.visual_studio_vcvars_path = {
+                "2010": "C:\\Program Files (x86)\\Microsoft Visual Studio 10.0\\VC\\vcvarsall.bat",
+                "2013": "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat",
+                "2015": "C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\vcvarsall.bat",
+                "2017": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat"
+            }
         self.log_formatter = logging.Formatter(
             '%(asctime)s - %(levelname)s - %(message)s'
         )
-        self.visual_studio_versions = sorted(visual_studio_versions.keys())
-        self.visual_studio_vcvars_path = visual_studio_versions
         self.vs_version_toolsets = {
             "2010": "100",
             "2013": "120",
@@ -80,7 +108,7 @@ class MbedWindowsTesting(object):
             "2017": "Visual Studio 15 2017"
         }
         self.visual_studio_results = []
-        self.mingw_results = {}
+        self.mingw_result = None
         self.solution_file_pattern = "(?i)mbed *TLS\.sln"
         self.visual_studio_build_success_patterns = [
             "Build succeeded.", "\d+ Warning\(s\)", "0 Error\(s\)"
@@ -110,19 +138,10 @@ class MbedWindowsTesting(object):
         logger.addHandler(console)
         return logger
 
-    def set_repository_to_clean_state(self, mbed_tag, logger):
-        """Cleans the repository directory and checks out the specified tag"""
-        logger.info("Returning repository to clean state")
-        git_reset_process = subprocess.Popen(
-            [self.git_command, "reset", "--hard", "-q"],
-            cwd=self.repository_path,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT
-        )
-        git_reset_output, _ = git_reset_process.communicate()
-        logger.info(git_reset_output)
-        if git_reset_process.returncode != 0:
-            raise Exception("Git reset failed, aborting test")
+    def set_clean_state_for_git_reference(self, logger):
+        """Sets the repository directory to a clean state
+         and checks out the specified reference"""
+        logger.info("Setting repository to clean state")
         git_clean_process = subprocess.Popen(
             [self.git_command, "clean", "-qdfx"],
             cwd=self.repository_path,
@@ -133,9 +152,19 @@ class MbedWindowsTesting(object):
         logger.info(git_clean_output)
         if git_clean_process.returncode != 0:
             raise Exception("Git clean failed, aborting test")
-        logger.info("Checking out code to tag {}".format(mbed_tag))
+        git_reset_process = subprocess.Popen(
+            [self.git_command, "reset", "--hard", "-q"],
+            cwd=self.repository_path,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT
+        )
+        git_reset_output, _ = git_reset_process.communicate()
+        logger.info(git_reset_output)
+        if git_reset_process.returncode != 0:
+            raise Exception("Git reset failed, aborting test")
+        logger.info("Checking out code to reference {}".format(self.git_ref))
         git_checkout_process = subprocess.Popen(
-            [self.git_command, "checkout", mbed_tag],
+            [self.git_command, "checkout", self.git_ref],
             cwd=self.repository_path,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT
@@ -145,7 +174,7 @@ class MbedWindowsTesting(object):
         if git_checkout_process.returncode != 0:
             raise Exception("Git checkout failed, aborting test")
 
-    def set_config_on_code(self, mbed_version, logger):
+    def set_config_on_code(self, logger):
         """Enables all config specified in config.pl, then disables config
          based on the version being tested."""
         logger.info("Enabling as much of {} as possible".format(
@@ -159,7 +188,7 @@ class MbedWindowsTesting(object):
         )
         enable_output, _ = enable_process.communicate()
         logger.info(enable_output)
-        for option in self.git_tag_config[mbed_version]["config_to_disable"]:
+        for option in self.config_to_disable:
             disable_process = subprocess.Popen(
                 [self.perl_command, self.config_pl_location, "unset", option],
                 cwd=self.repository_path,
@@ -169,20 +198,15 @@ class MbedWindowsTesting(object):
             disable_output, _ = disable_process.communicate()
             logger.info(disable_output)
 
-    def test_mingw_built_code(self, mbed_version):
-        log_name = "MingW " + self.git_tag_config[mbed_version]["tag"]
+    def test_mingw_built_code(self):
+        log_name = "MingW " + self.git_ref
         mingw_logger = self.setup_logger(
             log_name, "{}\\{}.txt".format(self.log_dir, log_name)
         )
         try:
-            self.set_repository_to_clean_state(
-                self.git_tag_config[mbed_version]["tag"], mingw_logger
-            )
-            self.set_config_on_code(mbed_version, mingw_logger)
-            result = self.build_and_test_using_mingw(
-                self.git_tag_config[mbed_version]["tag"], mingw_logger
-            )
-            self.mingw_results[mbed_version] = result
+            self.set_clean_state_for_git_reference(mingw_logger)
+            self.set_config_on_code(mingw_logger)
+            self.mingw_result = self.build_and_test_using_mingw(mingw_logger)
         except Exception as error:
             mingw_logger.error(error)
 
@@ -205,12 +229,10 @@ class MbedWindowsTesting(object):
             )
         return my_environment
 
-    def build_and_test_using_mingw(self, mbed_tag, logger):
+    def build_and_test_using_mingw(self, logger):
         my_environment = self.get_environment_containing_mingw_path()
         my_environment["WINDOWS"] = "1"
-        logger.info(
-            "Building mbedTLS {} using {}".format(mbed_tag, self.mingw_command)
-        )
+        logger.info("Building mbed TLS using {}".format(self.mingw_command))
         make_process = subprocess.Popen(
             ["cmd.exe"],
             env=my_environment,
@@ -292,7 +314,7 @@ class MbedWindowsTesting(object):
         return my_environment
 
     def build_code_using_visual_studio(self, solution_dir, test_run, logger):
-        logger.info("Building mbedTLS using Visual Studio v{}".format(
+        logger.info("Building mbed TLS using Visual Studio v{}".format(
             test_run.vs_version
         ))
         my_environment = self.get_environment_containing_VSCMD_START_DIR(
@@ -336,16 +358,15 @@ class MbedWindowsTesting(object):
                 all(re.search(x, msbuild_output) for x in
                     self.visual_studio_build_success_patterns)):
             if self.visual_studio_build_zero_warnings_string in msbuild_output:
-                build_result = "Build succeeded"
+                build_result = "Pass"
             else:
-                build_result = "Build succeeded with warnings"
+                build_result = "Pass with warnings"
             self.visual_studio_results.append(
                 VS_result(
                     test_run.vs_version,
                     test_run.configuration,
                     test_run.architecture,
                     "Yes" if test_run.should_retarget else "No",
-                    self.git_tag_config[test_run.mbed_version]["tag"],
                     test_run.solution_type,
                     "Visual Studio build",
                     build_result
@@ -359,10 +380,9 @@ class MbedWindowsTesting(object):
                     test_run.configuration,
                     test_run.architecture,
                     "Yes" if test_run.should_retarget else "No",
-                    self.git_tag_config[test_run.mbed_version]["tag"],
                     test_run.solution_type,
                     "Visual Studio build",
-                    "Build failed"
+                    "Fail"
                 )
             )
             return False
@@ -391,17 +411,15 @@ class MbedWindowsTesting(object):
             test_run.configuration,
             test_run.architecture,
             " Retargeted" if test_run.should_retarget else "",
-            self.git_tag_config[test_run.mbed_version]["tag"],
+            self.git_ref,
             test_run.solution_type
         )
         vs_logger = self.setup_logger(
             log_name, "{}\\{}.txt".format(self.log_dir, log_name)
         )
         try:
-            self.set_repository_to_clean_state(
-                self.git_tag_config[test_run.mbed_version]["tag"], vs_logger
-            )
-            self.set_config_on_code(test_run.mbed_version, vs_logger)
+            self.set_clean_state_for_git_reference(vs_logger)
+            self.set_config_on_code(vs_logger)
             if test_run.solution_type == "cmake":
                 solution_dir = self.build_visual_studio_solution_using_cmake(
                     test_run, vs_logger
@@ -422,7 +440,6 @@ class MbedWindowsTesting(object):
                             test_run.configuration,
                             test_run.architecture,
                             "Yes" if test_run.should_retarget else "No",
-                            self.git_tag_config[test_run.mbed_version]["tag"],
                             test_run.solution_type,
                             "test suites",
                             "Pass" if test_suites_result else "Fail"
@@ -446,7 +463,6 @@ class MbedWindowsTesting(object):
                         test_run.configuration,
                         test_run.architecture,
                         "Yes" if test_run.should_retarget else "No",
-                        self.git_tag_config[test_run.mbed_version]["tag"],
                         test_run.solution_type,
                         "selftest",
                         "Pass" if selftest_result else "Fail"
@@ -454,16 +470,32 @@ class MbedWindowsTesting(object):
                 )
         except Exception as error:
             vs_logger.error(error)
+            self.visual_studio_results.append(
+                VS_result(
+                    test_run.vs_version,
+                    test_run.configuration,
+                    test_run.architecture,
+                    "Yes" if test_run.should_retarget else "No",
+                    test_run.solution_type,
+                    "Test Script",
+                    "Fail"
+                )
+            )
 
     def log_results(self):
         result_logger = self.setup_logger(
-            "results", self.log_dir + "\\results.txt"
+            "results", "{}\\{} results.txt".format(self.log_dir, self.git_ref)
         )
+        result_logger.info("{} results\n".format(self.git_ref))
         if self.build_method in ["mingw", "all"]:
-            for version, result in self.mingw_results.iteritems():
-                result_logger.info("MingW build {} in {}".format(
-                    "passed" if result else "failed", version
+            if self.mingw_result is not None:
+                result_logger.info("MingW build {}".format(
+                    "passed" if self.mingw_result else "failed"
                 ))
+            else:
+                result_logger.info(
+                    "An error occurred while testing MingW build"
+                )
         if self.build_method in ["vs", "all"]:
             result_table = PrettyTable(VS_result._fields)
             result_table.align[VS_result._fields[0]] = "l"
@@ -474,65 +506,65 @@ class MbedWindowsTesting(object):
     def run_all_tests(self):
         try:
             if self.build_method in ["mingw", "all"]:
-                for mbed_version in self.git_tag_config.keys():
-                    self.test_mingw_built_code(mbed_version)
+                self.test_mingw_built_code()
             if self.build_method in ["vs", "all"]:
                 vs_test_runs = [
                     VS_test_run(vs_version, configuration,
                                 architecture, should_retarget,
-                                mbed_version, solution_type) for
+                                solution_type) for
                     vs_version in self.visual_studio_versions for
                     configuration in self.visual_studio_configurations for
                     architecture in self.visual_studio_architectures for
                     should_retarget in [False, True] for
-                    mbed_version in self.git_tag_config.keys() for
                     solution_type in self.visual_studio_solution_types
                 ]
                 for vs_test_run in vs_test_runs:
                     self.test_visual_studio_built_code(vs_test_run)
         finally:
             cleanup_logger = self.setup_logger(
-                "cleanup", self.log_dir + "\\cleanup.txt"
+                "cleanup", "{}\\{} cleanup.txt".format(
+                    self.log_dir, self.git_ref
+                )
             )
-            self.set_repository_to_clean_state("master", cleanup_logger)
+            self.set_clean_state_for_git_reference(cleanup_logger)
             self.log_results()
 
 
 def run_main():
     parser = argparse.ArgumentParser(
-        description='Test building mbedTLS on Windows.'
+        description='Test building mbed TLS on Windows.'
     )
     parser.add_argument(
-        "repo_path", type=str, help="the path to the mbedTLS repository"
+        "repo_path", type=str, help="the path to the mbed TLS repository"
     )
     parser.add_argument(
         "log_path", type=str, help="the directory path for log files"
     )
     parser.add_argument(
-        "configuration_file", type=str,
-        help="path to a json file containing the testing configurations"
+        "git_ref", type=str, help="which git reference to test"
     )
     parser.add_argument(
         "-b", "--build-method", type=str,
-        choices=["mingw", "vs", "all"], required=True,
+        choices=["mingw", "vs", "all"], default="all",
         help="which build methods to test, either mingw, visual studio or both"
+    )
+    parser.add_argument(
+        "-c", "--configuration-file", type=str,
+        help="optional path to a json file for non-default testing"
     )
 
     windows_testing_args = parser.parse_args()
-    with open(windows_testing_args.configuration_file) as f:
-        testing_config = json.load(f)
-    if windows_testing_args.build_method not in ["vs", "all"]:
-        testing_config["visual_studio_versions"] = {}
-        testing_config["visual_studio_configurations"] = []
-        testing_config["visual_studio_architectures"] = []
+    if windows_testing_args.configuration_file is not None:
+        with open(windows_testing_args.configuration_file) as f:
+            testing_config = json.load(f)
+    else:
+        testing_config = {}
     mbed_test = MbedWindowsTesting(
         windows_testing_args.repo_path,
         windows_testing_args.log_path,
+        windows_testing_args.git_ref,
         windows_testing_args.build_method,
-        testing_config["git_tag_config"],
-        testing_config["visual_studio_versions"],
-        testing_config["visual_studio_configurations"],
-        testing_config["visual_studio_architectures"]
+        testing_config
     )
     mbed_test.run_all_tests()
 
