@@ -4,9 +4,9 @@
 #
 # Purpose
 #
-# This is a helper script to starts a docker image with a common work config.
+# This is a helper script to start a docker container with common features.
 # 
-# Config:
+# Features:
 #   User Ids    User/Grp Ids are specified same as the host user so that files
 #               created/updated by docker image can be accessible after
 #               exiting the image.
@@ -22,7 +22,7 @@
 
 if [ $# -ne 2 ]
 then
-    echo "$0: No arguments supplied!"
+    echo "$0: Not all arguments supplied!"
     echo ""
     echo "$0: usage: $0 mount_dir docker_image_tag"
     exit 1
