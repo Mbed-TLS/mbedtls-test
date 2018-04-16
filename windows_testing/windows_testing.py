@@ -1,11 +1,12 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 """
 The script checks that Mbed TLS can be built on Windows in different
-configurations of Visual Studio, as well as MinGW32.
+configurations of Visual Studio, as well as MinGW32. Returns 0 on success,
+1 on test failure, and 2 if there is an error while running the script.
 Requires prettytable package.
 """
 
-from collections import namedtuple
+from collections import OrderedDict
 from prettytable import PrettyTable
 
 import argparse
@@ -16,30 +17,25 @@ import re
 import subprocess
 import tempfile
 import shutil
+import sys
+import traceback
 
-VS_test_run = namedtuple(
-    "VS_test_run",
-    [
-        "vs_version",
-        "configuration",
-        "architecture",
-        "should_retarget",
-        "solution_type"
-    ]
-)
 
-VS_result = namedtuple(
-    "VS_result",
-    [
-        "version",
-        "configuration",
-        "architecture",
-        "retargeted",
-        "solution_type",
-        "test_type",
-        "result"
-    ]
-)
+class VStestrun(object):
+
+    def __init__(self, vs_version, configuration, architecture, retargeted):
+        self.vs_version = vs_version
+        self.configuration = configuration
+        self.architecture = architecture
+        self.retargeted = retargeted
+        self.run_failed = False
+        self.results = OrderedDict([
+            ("shipped build", "Not Run"),
+            ("shipped selftest", "Not Run"),
+            ("cmake build", "Not Run"),
+            ("cmake selftest", "Not Run"),
+            ("cmake test suites", "Not Run"),
+        ])
 
 
 class MbedWindowsTesting(object):
@@ -55,6 +51,7 @@ class MbedWindowsTesting(object):
         self.log_dir = logging_directory
         self.git_ref = git_ref
         self.build_method = build_method
+        self.return_code = 0
         if "config_to_disable" in testing_config.keys():
             self.config_to_disable = testing_config["config_to_disable"]
         else:
@@ -86,18 +83,30 @@ class MbedWindowsTesting(object):
         else:
             self.visual_studio_versions = ["2010", "2013", "2015", "2017"]
             self.visual_studio_vcvars_path = {
-                "2010": "C:\\Program Files (x86)\\Microsoft Visual Studio 10.0"
-                        "\\VC\\vcvarsall.bat",
-                "2013": "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0"
-                        "\\VC\\vcvarsall.bat",
-                "2015": "C:\\Program Files (x86)\\Microsoft Visual Studio 14.0"
-                        "\\VC\\vcvarsall.bat",
-                "2017": "C:\\Program Files (x86)\\Microsoft Visual Studio\\"
-                        "2017\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat"
+                "2010": os.path.join(
+                    "C:", os.sep, "Program Files (x86)",
+                    "Microsoft Visual Studio 10.0", "VC", "vcvarsall.bat"
+                ),
+                "2013": os.path.join(
+                    "C:", os.sep, "Program Files (x86)",
+                    "Microsoft Visual Studio 12.0", "VC", "vcvarsall.bat"
+                ),
+                "2015": os.path.join(
+                    "C:", os.sep, "Program Files (x86)",
+                    "Microsoft Visual Studio 14.0", "VC", "vcvarsall.bat"
+                ),
+                "2017": os.path.join(
+                    "C:", os.sep, "Program Files (x86)",
+                    "Microsoft Visual Studio", "2017", "Community", "VC",
+                    "Auxiliary", "Build", "vcvarsall.bat"
+                )
             }
-        self.log_formatter = logging.Formatter(
-            "%(asctime)s - %(levelname)s - %(message)s"
-        )
+        if "mingw_directory" in testing_config.keys():
+            self.mingw_directory = testing_config["mingw_directory"]
+        else:
+            self.mingw_directory = os.path.join(
+                "C:", "tools", "mingw64", "bin"
+            )
         self.vs_version_toolsets = {
             "2010": "100",
             "2013": "120",
@@ -113,7 +122,7 @@ class MbedWindowsTesting(object):
             "2015": "Visual Studio 14 2015",
             "2017": "Visual Studio 15 2017"
         }
-        self.visual_studio_results = []
+        self.vs_test_runs = []
         self.mingw_result = None
         self.solution_file_pattern = "(?i)mbed *TLS\.sln"
         self.visual_studio_build_success_patterns = [
@@ -126,53 +135,66 @@ class MbedWindowsTesting(object):
         self.config_pl_location = os.path.join("scripts", "config.pl")
         self.selftest_exe = "selftest.exe"
         self.mingw_command = "mingw32-make"
-        self.mingw_directory = None
         self.git_command = "git"
         self.perl_command = "perl"
 
+    def set_return_code(self, return_code):
+        if return_code > self.return_code:
+            self.return_code = return_code
+
     def setup_logger(self, name, log_file, level=logging.INFO):
         """Creates a logger that outputs both to console and to log_file"""
+        log_formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
         console = logging.StreamHandler()
-        console.setLevel(logging.INFO)
-        handler = logging.FileHandler(log_file)
-        if name is not "results":
-            console.setFormatter(self.log_formatter)
-            handler.setFormatter(self.log_formatter)
+        file_handler = logging.FileHandler(log_file)
+        if name is not "Results":
+            console.setFormatter(log_formatter)
+            file_handler.setFormatter(log_formatter)
         logger = logging.getLogger(name)
         logger.setLevel(level)
-        logger.addHandler(handler)
+        logger.addHandler(file_handler)
         logger.addHandler(console)
         return logger
 
     def get_clean_worktree_for_git_reference(self, logger):
         logger.info(
-            "Checking out git worktree for revision {}".format(self.git_ref)
+            "Checking out git worktree for reference {}".format(self.git_ref)
         )
         git_worktree_path = tempfile.mkdtemp()
-        worktree_process = subprocess.Popen(
-            [self.git_command, "worktree", "add",
-             git_worktree_path, self.git_ref],
-            cwd=self.repository_path,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT
-        )
-        worktree_output, _ = worktree_process.communicate()
-        logger.info(worktree_output)
-        if worktree_process.returncode != 0:
+        try:
+            worktree_output = subprocess.run(
+                [self.git_command, "worktree", "add",
+                 git_worktree_path, self.git_ref],
+                cwd=self.repository_path,
+                encoding="utf-8",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=True
+            )
+            logger.info(worktree_output.stdout)
+            return git_worktree_path
+        except subprocess.CalledProcessError as error:
+            self.set_return_code(2)
+            logger.error(error.output)
             raise Exception("Checking out worktree failed, aborting")
-        return git_worktree_path
 
     def cleanup_git_worktree(self, git_worktree_path, logger):
         shutil.rmtree(git_worktree_path)
-        worktree_process = subprocess.Popen(
-            [self.git_command, "worktree", "prune"],
-            cwd=self.repository_path,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT
-        )
-        worktree_output, _ = worktree_process.communicate()
-        logger.info(worktree_output)
-        if worktree_process.returncode != 0:
+        try:
+            worktree_output = subprocess.run(
+                [self.git_command, "worktree", "prune"],
+                cwd=self.repository_path,
+                encoding="utf-8",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=True
+            )
+            logger.info(worktree_output.stdout)
+        except subprocess.CalledProcessError as error:
+            self.set_return_code(2)
+            logger.error(error.output)
             raise Exception("Worktree cleanup failed, aborting")
 
     def set_config_on_code(self, git_worktree_path, logger):
@@ -181,26 +203,37 @@ class MbedWindowsTesting(object):
         logger.info("Enabling as much of {} as possible".format(
                 self.config_pl_location
         ))
-        enable_process = subprocess.Popen(
-            [self.perl_command, self.config_pl_location, "full"],
-            cwd=git_worktree_path,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT
-        )
-        enable_output, _ = enable_process.communicate()
-        logger.info(enable_output)
-        for option in self.config_to_disable:
-            disable_process = subprocess.Popen(
-                [self.perl_command, self.config_pl_location, "unset", option],
+        try:
+            enable_output = subprocess.run(
+                [self.perl_command, self.config_pl_location, "full"],
                 cwd=git_worktree_path,
+                encoding="utf-8",
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT
+                stderr=subprocess.STDOUT,
+                check=True
             )
-            disable_output, _ = disable_process.communicate()
-            logger.info(disable_output)
+            logger.info(enable_output.stdout)
+            for option in self.config_to_disable:
+                disable_output = subprocess.run(
+                    [self.perl_command, self.config_pl_location,
+                     "unset", option],
+                    cwd=git_worktree_path,
+                    encoding="utf-8",
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    check=True
+                )
+                logger.info(disable_output.stdout)
+        except subprocess.CalledProcessError as error:
+            self.set_return_code(2)
+            logger.error(error.output)
+            raise Exception("Setting config failed, aborting")
 
     def test_mingw_built_code(self):
-        log_name = "MingW " + self.git_ref
+        """This checks out the git reference in a worktree, sets the necessary
+        config and then builds and tests using MinGW. The result is determined
+        by parsing the output for any test failures."""
+        log_name = "MinGW"
         mingw_logger = self.setup_logger(
             log_name, os.path.join(self.log_dir, log_name + ".txt")
         )
@@ -214,25 +247,19 @@ class MbedWindowsTesting(object):
                 git_worktree_path, mingw_logger
             )
         except Exception as error:
+            self.set_return_code(2)
             mingw_logger.error(error)
+            traceback.print_exc()
         finally:
             if git_worktree_path:
                 self.cleanup_git_worktree(git_worktree_path, mingw_logger)
 
     def get_environment_containing_mingw_path(self):
         """This first checks if the mingw command exists on the path,
-         if not it searches the system for the command
-         and adds it to the path"""
+         if not it searches the system for the command and adds it to the path.
+          This is needed for the MinGW tools to work correctly"""
         my_environment = os.environ.copy()
-        if subprocess.call(["where", self.mingw_command]) != 0:
-            if self.mingw_directory is None:
-                for root, dirs, files in os.walk("C:\\"):
-                    if self.mingw_directory is not None:
-                        break
-                    for name in files:
-                        if name == self.mingw_command + ".exe":
-                            self.mingw_directory = root
-                            break
+        if not shutil.which(self.mingw_command):
             my_environment["PATH"] = "{};{}".format(
                 self.mingw_directory, my_environment["PATH"]
             )
@@ -242,50 +269,72 @@ class MbedWindowsTesting(object):
         my_environment = self.get_environment_containing_mingw_path()
         my_environment["WINDOWS"] = "1"
         logger.info("Building mbed TLS using {}".format(self.mingw_command))
-        mingw_process = subprocess.Popen(
-            ["cmd.exe"],
-            env=my_environment,
-            cwd=git_worktree_path,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-        )
-        mingw_process.stdin.write(self.mingw_command + " clean\n")
-        mingw_process.stdin.write(self.mingw_command + " CC=gcc check\n")
-        mingw_process.stdin.close()
-        mingw_output, _ = mingw_process.communicate()
-        logger.info(mingw_output)
-        if (mingw_process.returncode == 0 and
-                re.search(self.mingw_success_pattern, mingw_output)):
-            return True
-        else:
+        try:
+            mingw_clean = subprocess.run(
+                [self.mingw_command, "clean"],
+                env=my_environment,
+                encoding="utf-8",
+                cwd=git_worktree_path,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=True
+            )
+            logger.info(mingw_clean.stdout)
+            mingw_check = subprocess.run(
+                [self.mingw_command, "CC=gcc", "check"],
+                env=my_environment,
+                encoding="utf-8",
+                cwd=git_worktree_path,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=True
+            )
+            logger.info(mingw_check.stdout)
+            if re.search(self.mingw_success_pattern, mingw_check.stdout):
+                return True
+            else:
+                self.set_return_code(1)
+                return False
+        except subprocess.CalledProcessError as error:
+            self.set_return_code(2)
+            logger.error(error.output)
             return False
 
     def run_selftest_on_built_code(self, selftest_dir, logger):
-        """Runs selftest.exe and checks that it reports all tests passing."""
+        """Runs selftest.exe and parses the output to check that it
+        reports all tests passing."""
         logger.info(selftest_dir)
-        test_process = subprocess.Popen(
-            [os.path.join(selftest_dir, self.selftest_exe)],
-            cwd=selftest_dir,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-        )
-        test_output, _ = test_process.communicate()
-        logger.info(test_output)
-        if (test_process.returncode == 0 and
-                re.search(self.selftest_success_pattern, test_output)):
-            return True
-        else:
-            return False
+        try:
+            test_output = subprocess.run(
+                [os.path.join(selftest_dir, self.selftest_exe)],
+                cwd=selftest_dir,
+                input="\n",
+                encoding="utf-8",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=True
+            )
+            logger.info(test_output.stdout)
+            if re.search(self.selftest_success_pattern, test_output.stdout):
+                return "Pass"
+            else:
+                self.set_return_code(1)
+                return "Fail"
+        except subprocess.CalledProcessError as error:
+            self.set_return_code(2)
+            logger.error(error.output)
+            return "Fail"
 
     def run_test_suites_on_built_code(self, solution_dir, test_run, logger):
-        """Runs the various test suites and checks that they all pass"""
+        """Runs the various test suites and parses the output to check that
+        all the tests pass"""
         my_environment = self.get_environment_containing_VSCMD_START_DIR(
             solution_dir
         )
         msbuild_test_process = subprocess.Popen(
             ["cmd.exe"],
             env=my_environment,
+            encoding="utf-8",
             cwd=solution_dir,
             stdin=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -307,9 +356,10 @@ class MbedWindowsTesting(object):
                 all(re.search(x, msbuild_test_output) for x in
                     [self.test_suites_success_pattern] +
                     self.visual_studio_build_success_patterns)):
-            return True
+            return "Pass"
         else:
-            return False
+            self.set_return_code(1)
+            return "Fail"
 
     def get_environment_containing_VSCMD_START_DIR(self, solution_dir):
         """This is done to bypass a 'feature' added in Visual Studio 2017.
@@ -321,21 +371,25 @@ class MbedWindowsTesting(object):
         my_environment["VSCMD_START_DIR"] = solution_dir
         return my_environment
 
-    def build_code_using_visual_studio(self, solution_dir, test_run, logger):
+    def build_code_using_visual_studio(self,
+                                       solution_dir,
+                                       test_run,
+                                       solution_type,
+                                       logger):
         logger.info("Building mbed TLS using Visual Studio v{}".format(
             test_run.vs_version
         ))
         my_environment = self.get_environment_containing_VSCMD_START_DIR(
             solution_dir
         )
-        if test_run.should_retarget:
+        if test_run.retargeted:
             retarget = "v{}".format(
                 self.vs_version_toolsets[test_run.vs_version]
             )
         else:
             retarget = "Windows7.1SDK"  # Workaround for missing 2010 x64 tools
         for solution_file in os.listdir(solution_dir):
-            if re.search(self.solution_file_pattern, solution_file):
+            if re.match(self.solution_file_pattern, solution_file):
                 break
         else:
             logger.error("Solution file missing")
@@ -343,6 +397,7 @@ class MbedWindowsTesting(object):
         msbuild_process = subprocess.Popen(
             ["cmd.exe"],
             env=my_environment,
+            encoding="utf-8",
             cwd=solution_dir,
             stdin=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -369,30 +424,11 @@ class MbedWindowsTesting(object):
                 build_result = "Pass"
             else:
                 build_result = "Pass with warnings"
-            self.visual_studio_results.append(
-                VS_result(
-                    test_run.vs_version,
-                    test_run.configuration,
-                    test_run.architecture,
-                    "Yes" if test_run.should_retarget else "No",
-                    test_run.solution_type,
-                    "Visual Studio build",
-                    build_result
-                )
-            )
+            test_run.results[solution_type + " build"] = build_result
             return True
         else:
-            self.visual_studio_results.append(
-                VS_result(
-                    test_run.vs_version,
-                    test_run.configuration,
-                    test_run.architecture,
-                    "Yes" if test_run.should_retarget else "No",
-                    test_run.solution_type,
-                    "Visual Studio build",
-                    "Fail"
-                )
-            )
+            self.set_return_code(1)
+            test_run.results[solution_type + " build"] = "Fail"
             return False
 
     def build_visual_studio_solution_using_cmake(self,
@@ -401,30 +437,33 @@ class MbedWindowsTesting(object):
                                                  logger):
         solution_dir = os.path.join(git_worktree_path, "cmake_solution")
         os.makedirs(solution_dir)
-        cmake_process = subprocess.Popen(
-            ["cmake", "-D", "ENABLE_TESTING=ON", "-G",
-             "{}{}".format(
-                 self.cmake_generators[test_run.vs_version],
-                 self.cmake_architecture_flags[test_run.architecture]),
-             ".."],
-            cwd=solution_dir,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-        )
-        cmake_output, _ = cmake_process.communicate()
-        logger.info(cmake_output)
-        if cmake_process.returncode != 0:
-            raise Exception("cmake failed, aborting")
-        return solution_dir
+        try:
+            cmake_output = subprocess.run(
+                ["cmake", "-D", "ENABLE_TESTING=ON", "-G",
+                 "{}{}".format(
+                     self.cmake_generators[test_run.vs_version],
+                     self.cmake_architecture_flags[test_run.architecture]),
+                 ".."],
+                cwd=solution_dir,
+                encoding="utf-8",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=True
+            )
+            logger.info(cmake_output.stdout)
+            return solution_dir
+        except subprocess.CalledProcessError as error:
+            self.set_return_code(2)
+            logger.error(error.output)
+            raise Exception("Building solution using Cmake failed, aborting")
 
-    def test_visual_studio_built_code(self, test_run):
-        log_name = "VS{} {} {}{} {} {}".format(
+    def test_visual_studio_built_code(self, test_run, solution_type):
+        log_name = "VS{} {} {}{} {}".format(
             test_run.vs_version,
             test_run.configuration,
             test_run.architecture,
-            " Retargeted" if test_run.should_retarget else "",
-            self.git_ref,
-            test_run.solution_type
+            " Retargeted" if test_run.retargeted else "",
+            solution_type
         )
         vs_logger = self.setup_logger(
             log_name, os.path.join(self.log_dir, log_name + ".txt")
@@ -435,7 +474,7 @@ class MbedWindowsTesting(object):
                 vs_logger
             )
             self.set_config_on_code(git_worktree_path, vs_logger)
-            if test_run.solution_type == "cmake":
+            if solution_type == "cmake":
                 solution_dir = self.build_visual_studio_solution_using_cmake(
                     git_worktree_path, test_run, vs_logger
                 )
@@ -444,24 +483,14 @@ class MbedWindowsTesting(object):
                     git_worktree_path, "visualc", "VS2010"
                 )
             build_result = self.build_code_using_visual_studio(
-                solution_dir, test_run, vs_logger
+                solution_dir, test_run, solution_type, vs_logger
             )
             if build_result:
-                if test_run.solution_type == "cmake":
+                if solution_type == "cmake":
                     test_suites_result = self.run_test_suites_on_built_code(
                         solution_dir, test_run, vs_logger
                     )
-                    self.visual_studio_results.append(
-                        VS_result(
-                            test_run.vs_version,
-                            test_run.configuration,
-                            test_run.architecture,
-                            "Yes" if test_run.should_retarget else "No",
-                            test_run.solution_type,
-                            "test suites",
-                            "Pass" if test_suites_result else "Fail"
-                        )
-                    )
+                    test_run.results["cmake test suites"] = test_suites_result
                     selftest_code_path = os.path.join(
                         solution_dir, "programs",
                         "test", test_run.configuration
@@ -475,83 +504,105 @@ class MbedWindowsTesting(object):
                 selftest_result = self.run_selftest_on_built_code(
                     selftest_code_path, vs_logger
                 )
-                self.visual_studio_results.append(
-                    VS_result(
-                        test_run.vs_version,
-                        test_run.configuration,
-                        test_run.architecture,
-                        "Yes" if test_run.should_retarget else "No",
-                        test_run.solution_type,
-                        "selftest",
-                        "Pass" if selftest_result else "Fail"
-                    )
-                )
+                test_run.results[solution_type + " selftest"] = selftest_result
         except Exception as error:
             vs_logger.error(error)
-            self.visual_studio_results.append(
-                VS_result(
-                    test_run.vs_version,
-                    test_run.configuration,
-                    test_run.architecture,
-                    "Yes" if test_run.should_retarget else "No",
-                    test_run.solution_type,
-                    "Test Script",
-                    "Fail"
-                )
-            )
+            traceback.print_exc()
+            self.set_return_code(2)
+            test_run.run_failed = True
         finally:
             if git_worktree_path:
                 self.cleanup_git_worktree(git_worktree_path, vs_logger)
 
     def log_results(self):
         result_logger = self.setup_logger(
-            "results",
+            "Results",
             os.path.join(self.log_dir, self.git_ref + " results.txt")
         )
         result_logger.info("{} results\n".format(self.git_ref))
+        total_test_runs = 0
+        successful_test_runs = 0
         if self.build_method in ["mingw", "all"]:
             if self.mingw_result is not None:
+                total_test_runs += 1
+                successful_test_runs += 1
                 result_logger.info("MingW build {}".format(
                     "passed" if self.mingw_result else "failed"
                 ))
             else:
                 result_logger.info(
-                    "An error occurred while testing MingW build"
+                    "An error occurred while testing MinGW build"
                 )
         if self.build_method in ["vs", "all"]:
-            result_table = PrettyTable(VS_result._fields)
-            result_table.align[VS_result._fields[0]] = "l"
-            for result in self.visual_studio_results:
-                result_table.add_row(result)
+            total_test_runs += len(self.vs_test_runs)
+            result_table = PrettyTable([
+                "Version",
+                "Configuration",
+                "Architecture",
+                "Retargeted",
+                "shipped build",
+                "shipped selftest",
+                "cmake build",
+                "cmake selftest",
+                "cmake test suites"
+            ])
+            result_table.align["version"] = "l"
+            for test_run in self.vs_test_runs:
+                if all("Pass" in result for result
+                       in test_run.results.values()):
+                    successful_test_runs += 1
+                result_table.add_row([
+                    test_run.vs_version,
+                    test_run.configuration,
+                    test_run.architecture,
+                    test_run.retargeted,
+                    test_run.results["shipped build"],
+                    test_run.results["shipped selftest"],
+                    test_run.results["cmake build"],
+                    test_run.results["cmake selftest"],
+                    test_run.results["cmake test suites"],
+                ])
             result_logger.info(result_table)
+        result_logger.info(
+            "{} configurations tested, {} successful".format(
+                total_test_runs, successful_test_runs
+            )
+        )
 
     def run_all_tests(self):
         try:
             if self.build_method in ["mingw", "all"]:
                 self.test_mingw_built_code()
             if self.build_method in ["vs", "all"]:
-                vs_test_runs = [
-                    VS_test_run(vs_version, configuration,
-                                architecture, should_retarget,
-                                solution_type) for
+                self.vs_test_runs = [
+                    VStestrun(vs_version, configuration,
+                              architecture, retargeted) for
                     vs_version in self.visual_studio_versions for
                     configuration in self.visual_studio_configurations for
                     architecture in self.visual_studio_architectures for
-                    should_retarget in [False, True] for
-                    solution_type in self.visual_studio_solution_types
+                    retargeted in [False, True] if
+                    (vs_version, architecture) != ("2010", "x64")
                 ]
-                for vs_test_run in vs_test_runs:
-                    self.test_visual_studio_built_code(vs_test_run)
+                for vs_test_run in self.vs_test_runs:
+                    for solution_type in self.visual_studio_solution_types:
+                        self.test_visual_studio_built_code(
+                            vs_test_run, solution_type
+                        )
+        except Exception:
+            traceback.print_exc()
+            self.set_return_code(2)
         finally:
             self.log_results()
+            sys.exit(self.return_code)
 
 
 def run_main():
     parser = argparse.ArgumentParser(
         description=(
-            "The script checks that Mbed TLS can be built on Windows in "
-            "different configurations of Visual Studio, as well as MinGW32. "
-            "Requires prettytable package."
+            """The script checks that Mbed TLS can be built on Windows in
+            different configurations of Visual Studio, as well as MinGW32.
+            Returns 0 on success, 1 on test failure, and 2 if there is an
+            error while running the script. Requires prettytable package."""
         )
     )
     parser.add_argument(

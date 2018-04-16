@@ -19,5 +19,6 @@
     "MBEDTLS_THREADING_ALT",
     "MBEDTLS_THREADING_C",
     "MBEDTLS_DEPRECATED_WARNING"
-  ]
+  ],
+  "mingw_directory": "C:\\tools\\mingw64\\bin"
 }
