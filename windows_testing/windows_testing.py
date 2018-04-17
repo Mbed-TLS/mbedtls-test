@@ -519,7 +519,7 @@ class MbedWindowsTesting(object):
     def log_results(self):
         result_logger = self.setup_logger(
             "Results",
-            os.path.join(self.log_dir, self.git_ref + " results.txt")
+            os.path.join(self.log_dir, "results.txt")
         )
         result_logger.info("{} results\n".format(self.git_ref))
         total_test_runs = 0
