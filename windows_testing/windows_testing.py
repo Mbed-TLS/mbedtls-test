@@ -124,7 +124,7 @@ class MbedWindowsTesting(object):
         }
         self.vs_test_runs = []
         self.mingw_result = None
-        self.solution_file_pattern = "(?i)mbed *TLS\.sln"
+        self.solution_file_pattern = r"(?i)mbed *TLS\.sln\Z"
         self.visual_studio_build_success_patterns = [
             "Build succeeded.", "\d+ Warning\(s\)", "0 Error\(s\)"
         ]
@@ -168,7 +168,7 @@ class MbedWindowsTesting(object):
                 [self.git_command, "worktree", "add",
                  git_worktree_path, self.git_ref],
                 cwd=self.repository_path,
-                encoding="utf-8",
+                encoding=sys.stdout.encoding,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 check=True
@@ -186,7 +186,7 @@ class MbedWindowsTesting(object):
             worktree_output = subprocess.run(
                 [self.git_command, "worktree", "prune"],
                 cwd=self.repository_path,
-                encoding="utf-8",
+                encoding=sys.stdout.encoding,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 check=True
@@ -207,7 +207,7 @@ class MbedWindowsTesting(object):
             enable_output = subprocess.run(
                 [self.perl_command, self.config_pl_location, "full"],
                 cwd=git_worktree_path,
-                encoding="utf-8",
+                encoding=sys.stdout.encoding,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 check=True
@@ -218,7 +218,7 @@ class MbedWindowsTesting(object):
                     [self.perl_command, self.config_pl_location,
                      "unset", option],
                     cwd=git_worktree_path,
-                    encoding="utf-8",
+                    encoding=sys.stdout.encoding,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     check=True
@@ -273,7 +273,7 @@ class MbedWindowsTesting(object):
             mingw_clean = subprocess.run(
                 [self.mingw_command, "clean"],
                 env=my_environment,
-                encoding="utf-8",
+                encoding=sys.stdout.encoding,
                 cwd=git_worktree_path,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -283,7 +283,7 @@ class MbedWindowsTesting(object):
             mingw_check = subprocess.run(
                 [self.mingw_command, "CC=gcc", "check"],
                 env=my_environment,
-                encoding="utf-8",
+                encoding=sys.stdout.encoding,
                 cwd=git_worktree_path,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -309,7 +309,7 @@ class MbedWindowsTesting(object):
                 [os.path.join(selftest_dir, self.selftest_exe)],
                 cwd=selftest_dir,
                 input="\n",
-                encoding="utf-8",
+                encoding=sys.stdout.encoding,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 check=True
@@ -334,7 +334,7 @@ class MbedWindowsTesting(object):
         msbuild_test_process = subprocess.Popen(
             ["cmd.exe"],
             env=my_environment,
-            encoding="utf-8",
+            encoding=sys.stdout.encoding,
             cwd=solution_dir,
             stdin=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -393,11 +393,13 @@ class MbedWindowsTesting(object):
                 break
         else:
             logger.error("Solution file missing")
+            self.set_return_code(1)
+            test_run.results[solution_type + " build"] = "Fail"
             return False
         msbuild_process = subprocess.Popen(
             ["cmd.exe"],
             env=my_environment,
-            encoding="utf-8",
+            encoding=sys.stdout.encoding,
             cwd=solution_dir,
             stdin=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -445,7 +447,7 @@ class MbedWindowsTesting(object):
                      self.cmake_architecture_flags[test_run.architecture]),
                  ".."],
                 cwd=solution_dir,
-                encoding="utf-8",
+                encoding=sys.stdout.encoding,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 check=True
