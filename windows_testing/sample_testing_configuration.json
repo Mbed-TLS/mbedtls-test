@@ -1,0 +1,24 @@
+{
+  "visual_studio_versions": {
+    "2010":"C:\\Program Files (x86)\\Microsoft Visual Studio 10.0\\VC\\vcvarsall.bat",
+    "2013":"C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat",
+    "2015":"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\vcvarsall.bat",
+    "2017": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat"
+  },
+  "visual_studio_configurations": [
+    "Release", "Debug"
+  ],
+  "visual_studio_architectures": [
+    "Win32", "x64"
+  ],
+  "config_to_disable": [
+    "MBEDTLS_MEMORY_DEBUG",
+    "MBEDTLS_MEMORY_BACKTRACE",
+    "MBEDTLS_MEMORY_BUFFER_ALLOC_C",
+    "MBEDTLS_THREADING_PTHREAD",
+    "MBEDTLS_THREADING_ALT",
+    "MBEDTLS_THREADING_C",
+    "MBEDTLS_DEPRECATED_WARNING"
+  ],
+  "mingw_directory": "C:\\tools\\mingw64\\bin"
+}
