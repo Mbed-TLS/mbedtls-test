@@ -82,7 +82,6 @@ RUN mkdir temp && cd temp && \
     cd .. && rm -rf temp/
 
 ENV ARMC6_BIN_DIR=/usr/local/ARM_Compiler_6.6/bin/
-ENV PATH=/usr/local/ARM_Compiler_6.6/bin/:$PATH
 
 # Install arm-none-eabi-gcc
 RUN wget -q https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -O gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 && \
@@ -111,6 +110,16 @@ RUN wget -q https://www.openssl.org/source/old/1.0.1/openssl-1.0.1j.tar.gz && \
     rm -rf openssl-1.0.1j*
 
 ENV OPENSSL_LEGACY=/usr/local/openssl-1.0.1j/bin/openssl
+
+
+# Install openssl 1.1.1-pre1 for ARIA cipher testing
+RUN wget -q https://www.openssl.org/source/openssl-1.1.1-pre1.tar.gz && \
+    tar -zxf openssl-1.1.1-pre1.tar.gz && cd openssl-1.1.1-pre1 && \
+    ./config --openssldir=/usr/local/openssl-1.1.1-pre1 && \
+    make clean && make && make install && cd .. && \
+    rm -rf openssl-1.1.1-pre1*
+
+ENV OPENSSL_NEXT=/usr/local/openssl-1.1.1-pre1/bin/openssl
 
 
 # Install Gnu TLS 3.4.10
