@@ -88,10 +88,12 @@ RUN wget -q https://ftp.gnu.org/gnu/libtasn1/libtasn1-4.3.tar.gz && \
     ./configure && make && make install && \
     cd .. && rm -rf libtasn1-4.3*
 
-RUN wget -q https://p11-glue.freedesktop.org/releases/p11-kit-0.23.2.tar.gz && \
-    tar -zxf p11-kit-0.23.2.tar.gz && cd p11-kit-0.23.2 && \
-    ./configure && make && make install && \
-    cd .. && rm -rf p11-kit-0.23.2*
+RUN wget -q https://github.com/p11-glue/p11-kit/releases/download/0.23.10/p11-kit-0.23.10.tar.gz && \
+    tar -zxf p11-kit-0.23.10.tar.gz && cd p11-kit-0.23.10 && \
+    ./configure --prefix=/usr/local/libp11-kit-0.23.10 && make && make install && \
+    cd .. && rm -rf p11-kit-0.23.10*
+
+ENV PKG_CONFIG_PATH=/usr/local/lib/libp11-kit-0.23.10/lib/pkgconfig:/usr/local/lib/libp11-kit-0.23.10/lib64/pkgconfig:$PKG_CONFIG_PATH
 
 RUN wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.4/gnutls-3.4.10.tar.xz && \
     tar -xJf gnutls-3.4.10.tar.xz && cd gnutls-3.4.10 && \
