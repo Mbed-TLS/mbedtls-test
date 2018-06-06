@@ -583,7 +583,8 @@ class MbedWindowsTesting(object):
                     configuration in self.visual_studio_configurations for
                     architecture in self.visual_studio_architectures for
                     retargeted in [False, True] if
-                    (vs_version, architecture) != ("2010", "x64")
+                    ((vs_version, architecture) != ("2010", "x64") and
+                     (vs_version, retargeted) != ("2010", True))
                 ]
                 for vs_test_run in self.vs_test_runs:
                     for solution_type in self.visual_studio_solution_types:
