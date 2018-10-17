@@ -246,6 +246,8 @@ class MbedWindowsTesting(object):
             self.mingw_result = self.build_and_test_using_mingw(
                 git_worktree_path, mingw_logger
             )
+            if not self.mingw_result:
+                self.set_return_code(1)
         except Exception as error:
             self.set_return_code(2)
             mingw_logger.error(error)
@@ -527,7 +529,8 @@ class MbedWindowsTesting(object):
         if self.build_method in ["mingw", "all"]:
             if self.mingw_result is not None:
                 total_test_runs += 1
-                successful_test_runs += 1
+                if self.mingw_result:
+                    successful_test_runs += 1
                 result_logger.info("MingW build {}".format(
                     "passed" if self.mingw_result else "failed"
                 ))
