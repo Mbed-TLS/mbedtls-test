@@ -461,6 +461,20 @@ class MbedWindowsTesting(object):
             logger.error(error.output)
             raise Exception("Building solution using Cmake failed, aborting")
 
+    def generate_psa_constants(self, git_worktree_path, logger):
+        try:
+            subprocess.run(
+                [sys.executable,
+                 os.path.join("scripts", "generate_psa_constants.py")],
+                cwd=git_worktree_path,
+                encoding=sys.stdout.encoding,
+                check=True
+            )
+        except subprocess.CalledProcessError as error:
+            self.set_return_code(2)
+            logger.error(error.output)
+            raise Exception("Generating psa constants failed, aborting")
+
     def test_visual_studio_built_code(self, test_run, solution_type):
         log_name = "VS{} {} {}{} {}".format(
             test_run.vs_version,
@@ -478,6 +492,9 @@ class MbedWindowsTesting(object):
                 vs_logger
             )
             self.set_config_on_code(git_worktree_path, vs_logger)
+            if os.path.exists(os.path.join(git_worktree_path, "scripts",
+                                           "generate_psa_constants.py")):
+                self.generate_psa_constants(git_worktree_path, vs_logger)
             if solution_type == "cmake":
                 solution_dir = self.build_visual_studio_solution_using_cmake(
                     git_worktree_path, test_run, vs_logger
