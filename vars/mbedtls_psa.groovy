@@ -163,7 +163,6 @@ def run_job(){
             def asan_compilers = ['clang'] /* Change to clang once mbed TLS can compile with clang 3.8 */
             def coverity_compilers = ['gcc']
 
-            sh "rm -f ~/.ssh/config"
             checkout scm
             checkout changelog: false, poll: false, 
                 scm: [
