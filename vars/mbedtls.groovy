@@ -146,14 +146,7 @@ def run_job(){
             def gcc_compilers = ['gcc']
             def asan_compilers = ['clang'] /* Change to clang once mbed TLS can compile with clang 3.8 */
         
-            checkout changelog: false, poll: false, scm: [$class: 'GitSCM',
-                branches: [[name: "origin-pull/pull/${params.ghprbPullId}/head"]],
-                doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CloneOption',
-                noTags: false, shallow: false]],
-                extensions: [[$class: 'CheckoutOption', timeout: 20]], submoduleCfg: [],
-                userRemoteConfigs: [[credentialsId: "${env.GIT_CREDENTIALS_ID}",
-                refspec: "+refs/pull/${params.ghprbPullId}/head:refs/remotes/origin-pull/pull/${params.ghprbPullId}/head",
-                url: "${env.MBEDTLS_REPO}"]]]
+            checkout scm
             stash 'src'
 
             /* Linux jobs */
