@@ -135,6 +135,9 @@ def gen_freebsd_jobs_foreach ( label, platforms, compilers, script ){
                     timestamps {
                         deleteDir()
                         unstash 'src'
+                        if ( label == 'coverity' ) {
+                            checkout_coverity_repo()
+                        }
                         shell_script = """
 export PYTHON=/usr/local/bin/python2.7
 """ + shell_script
@@ -180,7 +183,6 @@ def run_job(){
             def coverity_compilers = ['gcc']
 
             checkout scm
-            checkout_coverity_repo()
             stash 'src'
 
             /* Linux jobs */
