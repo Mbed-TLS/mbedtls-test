@@ -147,6 +147,22 @@ export PYTHON=/usr/local/bin/python2.7
     return jobs
 }
 
+def checkout_coverity_repo() {
+    checkout changelog: false, poll: false,
+        scm: [
+            $class: 'GitSCM',
+            branches: [[name: '*/master']],
+            doGenerateSubmoduleConfigurations: false,
+            extensions: [
+                [$class: 'CloneOption', noTags: true, shallow: true],
+                [$class: 'RelativeTargetDirectory', relativeTargetDir: 'coverity-tools']
+                ],
+            submoduleCfg: [],
+            userRemoteConfigs: [[
+                url: 'git@github.com:ARMmbed/coverity-tools.git',
+                credentialsId: "${env.GIT_CREDENTIALS_ID}"]]]
+}
+
 /* main job */
 def run_job(){
     node {
@@ -164,19 +180,7 @@ def run_job(){
             def coverity_compilers = ['gcc']
 
             checkout scm
-            checkout changelog: false, poll: false,
-                scm: [
-                    $class: 'GitSCM',
-                    branches: [[name: '*/master']],
-                    doGenerateSubmoduleConfigurations: false,
-                    extensions: [
-                        [$class: 'CloneOption', noTags: true, shallow: true],
-                        [$class: 'RelativeTargetDirectory', relativeTargetDir: 'coverity-tools']
-                        ],
-                    submoduleCfg: [],
-                    userRemoteConfigs: [[
-                        url: 'git@github.com:ARMmbed/coverity-tools.git',
-                        credentialsId: "${env.GIT_CREDENTIALS_ID}"]]]
+            checkout_coverity_repo()
             stash 'src'
 
             /* Linux jobs */
