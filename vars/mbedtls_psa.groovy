@@ -168,6 +168,19 @@ export PYTHON=/usr/local/bin/python2.7
     return jobs
 }
 
+def gen_windows_jobs ( label, script ) {
+    def jobs = [:]
+
+    jobs[label] = {
+        node ("windows-tls") {
+            deleteDir()
+            checkout scm
+            bat script
+        }
+    }
+    return jobs
+}
+
 def checkout_coverity_repo() {
     checkout changelog: false, poll: false,
         scm: [
@@ -211,34 +224,10 @@ def run_job(){
             jobs = jobs + gen_freebsd_jobs_foreach( 'cmake', bsd_platforms, bsd_compilers, cmake_test_sh )
 
             /* Windows jobs */
-            jobs['win32-mingw'] = {
-                node ("windows-tls") {
-                deleteDir()
-                checkout scm
-                bat win32_mingw_test_bat
-                }
-            }
-            jobs['win32_msvc12_32'] = {
-                node ("windows-tls") {
-                deleteDir()
-                checkout scm
-                bat win32_msvc12_32_test_bat
-                }
-            }
-            jobs['win32_msvc12_64'] = {
-                node ("windows-tls") {
-                deleteDir()
-                checkout scm
-                bat win32_msvc12_64_test_bat
-                }
-            }
-            jobs['iar8-mingw'] = {
-                node ("windows-tls") {
-                deleteDir()
-                checkout scm
-                bat iar8_mingw_test_bat
-                }
-            }
+            jobs = jobs + gen_windows_jobs( 'win32-mingw', win32_mingw_test_bat )
+            jobs = jobs + gen_windows_jobs( 'win32_msvc12_32-mingw', win32_msvc12_32_test_bat )
+            jobs = jobs + gen_windows_jobs( 'win32-win32_msvc12_64', win32_msvc12_64_test_bat )
+            jobs = jobs + gen_windows_jobs( 'iar8-mingw', iar8_mingw_test_bat )
 
             jobs = jobs + gen_freebsd_jobs_foreach( 'coverity', coverity_platforms, coverity_compilers, std_coverity_sh )
 
