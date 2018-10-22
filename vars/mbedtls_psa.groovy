@@ -55,11 +55,29 @@ mingw32-make test
 programs\\test\\selftest.exe
 """
 
-@Field win32_msvc12_32_test_bat = """ cmake . -G Visual Studio 12
+@Field win32_mingw_test_bat = """
+cmake . -G "MinGW Makefiles" -DCMAKE_C_COMPILER="gcc"
+mingw32-make
+ctest -VV
+"""
+
+@Field iar8_mingw_test_bat = """
+perl scripts/config.pl baremetal
+cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
+mingw32-make lib
+"""
+
+@Field win32_msvc12_32_test_bat = """
+if exist scripts\\generate_psa_constants.py scripts\\generate_psa_constants.py
+call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
+cmake . -G "Visual Studio 12"
 MSBuild ALL_BUILD.vcxproj
 """
 
-@Field win32_msvc12_64_test_bat = """ cmake . -G Visual Studio 12 Win64
+@Field win32_msvc12_64_test_bat = """
+if exist scripts\\generate_psa_constants.py scripts\\generate_psa_constants.py
+call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
+cmake . -G "Visual Studio 12 Win64"
 MSBuild ALL_BUILD.vcxproj
 """
 
@@ -197,47 +215,28 @@ def run_job(){
                 node ("windows-tls") {
                 deleteDir()
                 checkout scm
-
-                bat """
-cmake . -G "MinGW Makefiles" -DCMAKE_C_COMPILER="gcc"
-mingw32-make
-ctest -VV
-"""
+                bat win32_mingw_test_bat
                 }
             }
             jobs['win32_msvc12_32'] = {
                 node ("windows-tls") {
                 deleteDir()
                 checkout scm
-                bat """
-if exist scripts\\generate_psa_constants.py scripts\\generate_psa_constants.py
-call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
-cmake . -G "Visual Studio 12"
-MSBuild ALL_BUILD.vcxproj
-"""
+                bat win32_msvc12_32_test_bat
                 }
             }
             jobs['win32_msvc12_64'] = {
                 node ("windows-tls") {
                 deleteDir()
                 checkout scm
-                bat """
-if exist scripts\\generate_psa_constants.py scripts\\generate_psa_constants.py
-call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
-cmake . -G "Visual Studio 12 Win64"
-MSBuild ALL_BUILD.vcxproj
-"""
+                bat win32_msvc12_64_test_bat
                 }
             }
             jobs['iar8-mingw'] = {
                 node ("windows-tls") {
                 deleteDir()
                 checkout scm
-                bat """
-perl scripts/config.pl baremetal
-cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
-mingw32-make lib
-"""
+                bat iar8_mingw_test_bat
                 }
             }
 
