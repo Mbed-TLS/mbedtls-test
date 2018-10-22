@@ -229,6 +229,7 @@ def run_job(){
             jobs = jobs + gen_windows_jobs( 'win32-win32_msvc12_64', win32_msvc12_64_test_bat )
             jobs = jobs + gen_windows_jobs( 'iar8-mingw', iar8_mingw_test_bat )
 
+            /* Coverity jobs */
             jobs = jobs + gen_freebsd_jobs_foreach( 'coverity', coverity_platforms, coverity_compilers, std_coverity_sh )
 
             jobs.failFast = false
