@@ -164,16 +164,16 @@ def run_job(){
             def coverity_compilers = ['gcc']
 
             checkout scm
-            checkout changelog: false, poll: false, 
+            checkout changelog: false, poll: false,
                 scm: [
-                    $class: 'GitSCM', 
-                    branches: [[name: '*/master']], 
-                    doGenerateSubmoduleConfigurations: false, 
+                    $class: 'GitSCM',
+                    branches: [[name: '*/master']],
+                    doGenerateSubmoduleConfigurations: false,
                     extensions: [
                         [$class: 'CloneOption', noTags: true, shallow: true],
                         [$class: 'RelativeTargetDirectory', relativeTargetDir: 'coverity-tools']
-                        ], 
-                    submoduleCfg: [], 
+                        ],
+                    submoduleCfg: [],
                     userRemoteConfigs: [[
                         url: 'git@github.com:ARMmbed/coverity-tools.git',
                         credentialsId: "${env.GIT_CREDENTIALS_ID}"]]]
