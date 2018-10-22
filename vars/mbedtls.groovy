@@ -86,7 +86,7 @@ def gen_jobs_foreach ( label, platforms, compilers, script ){
                         sh 'rm -rf *'
                         deleteDir()
                         dir('src'){
-                            unstash 'src'
+                            checkout scm
                             writeFile file: 'steps.sh', text: """#!/bin/sh
 set -x
 set -v
@@ -121,7 +121,7 @@ def gen_freebsd_jobs_foreach ( label, platforms, compilers, script ){
                 node( node_lbl ){
                     timestamps {
                         deleteDir()
-                        unstash 'src'
+                        checkout scm
                         sh shell_script
                     }
                 }
@@ -145,9 +145,6 @@ def run_job(){
             def all_compilers = ['gcc', 'clang']
             def gcc_compilers = ['gcc']
             def asan_compilers = ['clang'] /* Change to clang once mbed TLS can compile with clang 3.8 */
-        
-            checkout scm
-            stash 'src'
 
             /* Linux jobs */
             def jobs = gen_jobs_foreach( 'std-make', linux_platforms, all_compilers, std_make_test_sh )
@@ -158,7 +155,7 @@ def run_job(){
                 node ("mbedtls && ubuntu-16.10-x64") {
                 deleteDir()
                 dir('src') {
-                    unstash 'src'
+                    checkout scm
                     sh './tests/scripts/doxygen.sh'
                     }
                 }
@@ -172,7 +169,7 @@ def run_job(){
             jobs['win32-mingw'] = {
                 node ("windows-tls") {
                 deleteDir()
-                unstash 'src'
+                checkout scm
                 
                 bat """
 cmake . -G "MinGW Makefiles" -DCMAKE_C_COMPILER="gcc"
@@ -183,7 +180,7 @@ mingw32-make
             jobs['win32_msvc12_32'] = {
                 node ("windows-tls") {
                 deleteDir()
-                unstash 'src'
+                checkout scm
                 bat """
 call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
 cmake . -G "Visual Studio 12"
@@ -194,7 +191,7 @@ MSBuild ALL_BUILD.vcxproj
             jobs['win32_msvc12_64'] = {
                 node ("windows-tls") {
                 deleteDir()
-                unstash 'src'
+                checkout scm
                 bat """
 call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
 cmake . -G "Visual Studio 12 Win64"
@@ -205,7 +202,7 @@ MSBuild ALL_BUILD.vcxproj
             jobs['iar8-mingw'] = {
                 node ("windows-tls") {
                 deleteDir()
-                unstash 'src'
+                checkout scm
                 bat """
 perl scripts/config.pl baremetal
 cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .

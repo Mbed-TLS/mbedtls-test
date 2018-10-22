@@ -99,7 +99,7 @@ def gen_jobs_foreach ( label, platforms, compilers, script ){
                         sh 'rm -rf *'
                         deleteDir()
                         dir('src'){
-                            unstash 'src'
+                            checkout scm
                             writeFile file: 'steps.sh', text: """#!/bin/sh
 set -x
 set -v
@@ -134,7 +134,7 @@ def gen_freebsd_jobs_foreach ( label, platforms, compilers, script ){
                 node( node_lbl ){
                     timestamps {
                         deleteDir()
-                        unstash 'src'
+                        checkout scm
                         if ( label == 'coverity' ) {
                             checkout_coverity_repo()
                         }
@@ -182,9 +182,6 @@ def run_job(){
             def asan_compilers = ['clang'] /* Change to clang once mbed TLS can compile with clang 3.8 */
             def coverity_compilers = ['gcc']
 
-            checkout scm
-            stash 'src'
-
             /* Linux jobs */
             def jobs = gen_jobs_foreach( 'std-make', linux_platforms, all_compilers, std_make_test_sh )
             jobs = jobs + gen_jobs_foreach( 'cmake', linux_platforms, all_compilers, cmake_test_sh )
@@ -199,7 +196,7 @@ def run_job(){
             jobs['win32-mingw'] = {
                 node ("windows-tls") {
                 deleteDir()
-                unstash 'src'
+                checkout scm
 
                 bat """
 cmake . -G "MinGW Makefiles" -DCMAKE_C_COMPILER="gcc"
@@ -211,7 +208,7 @@ ctest -VV
             jobs['win32_msvc12_32'] = {
                 node ("windows-tls") {
                 deleteDir()
-                unstash 'src'
+                checkout scm
                 bat """
 if exist scripts\\generate_psa_constants.py scripts\\generate_psa_constants.py
 call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
@@ -223,7 +220,7 @@ MSBuild ALL_BUILD.vcxproj
             jobs['win32_msvc12_64'] = {
                 node ("windows-tls") {
                 deleteDir()
-                unstash 'src'
+                checkout scm
                 bat """
 if exist scripts\\generate_psa_constants.py scripts\\generate_psa_constants.py
 call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
@@ -235,7 +232,7 @@ MSBuild ALL_BUILD.vcxproj
             jobs['iar8-mingw'] = {
                 node ("windows-tls") {
                 deleteDir()
-                unstash 'src'
+                checkout scm
                 bat """
 perl scripts/config.pl baremetal
 cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
