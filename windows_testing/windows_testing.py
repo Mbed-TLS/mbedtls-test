@@ -123,6 +123,9 @@ class MbedWindowsTesting(object):
             "2017": "Visual Studio 15 2017"
         }
         self.vs_test_runs = []
+        # When parsing mingw_result, None indicates that an exception occurred
+        # during the test run. This could be either CI or the build failing.
+        # True and False indicate success or failure respectively.
         self.mingw_result = None
         self.solution_file_pattern = r"(?i)mbed *TLS\.sln\Z"
         self.visual_studio_build_success_patterns = [
