@@ -123,6 +123,9 @@ class MbedWindowsTesting(object):
             "2017": "Visual Studio 15 2017"
         }
         self.vs_test_runs = []
+        # When parsing mingw_result, None indicates that an exception occurred
+        # during the test run. This could be either CI or the build failing.
+        # True and False indicate success or failure respectively.
         self.mingw_result = None
         self.solution_file_pattern = r"(?i)mbed *TLS\.sln\Z"
         self.visual_studio_build_success_patterns = [
@@ -162,10 +165,10 @@ class MbedWindowsTesting(object):
         logger.info(
             "Checking out git worktree for reference {}".format(self.git_ref)
         )
-        git_worktree_path = tempfile.mkdtemp()
+        git_worktree_path = os.path.abspath(tempfile.mkdtemp(dir="worktrees"))
         try:
             worktree_output = subprocess.run(
-                [self.git_command, "worktree", "add",
+                [self.git_command, "worktree", "add", "--detach",
                  git_worktree_path, self.git_ref],
                 cwd=self.repository_path,
                 encoding=sys.stdout.encoding,
@@ -246,6 +249,8 @@ class MbedWindowsTesting(object):
             self.mingw_result = self.build_and_test_using_mingw(
                 git_worktree_path, mingw_logger
             )
+            if not self.mingw_result:
+                self.set_return_code(1)
         except Exception as error:
             self.set_return_code(2)
             mingw_logger.error(error)
@@ -459,6 +464,20 @@ class MbedWindowsTesting(object):
             logger.error(error.output)
             raise Exception("Building solution using Cmake failed, aborting")
 
+    def generate_psa_constants(self, git_worktree_path, logger):
+        try:
+            subprocess.run(
+                [sys.executable,
+                 os.path.join("scripts", "generate_psa_constants.py")],
+                cwd=git_worktree_path,
+                encoding=sys.stdout.encoding,
+                check=True
+            )
+        except subprocess.CalledProcessError as error:
+            self.set_return_code(2)
+            logger.error(error.output)
+            raise Exception("Generating psa constants failed, aborting")
+
     def test_visual_studio_built_code(self, test_run, solution_type):
         log_name = "VS{} {} {}{} {}".format(
             test_run.vs_version,
@@ -476,6 +495,9 @@ class MbedWindowsTesting(object):
                 vs_logger
             )
             self.set_config_on_code(git_worktree_path, vs_logger)
+            if os.path.exists(os.path.join(git_worktree_path, "scripts",
+                                           "generate_psa_constants.py")):
+                self.generate_psa_constants(git_worktree_path, vs_logger)
             if solution_type == "cmake":
                 solution_dir = self.build_visual_studio_solution_using_cmake(
                     git_worktree_path, test_run, vs_logger
@@ -527,7 +549,8 @@ class MbedWindowsTesting(object):
         if self.build_method in ["mingw", "all"]:
             if self.mingw_result is not None:
                 total_test_runs += 1
-                successful_test_runs += 1
+                if self.mingw_result:
+                    successful_test_runs += 1
                 result_logger.info("MingW build {}".format(
                     "passed" if self.mingw_result else "failed"
                 ))
@@ -583,7 +606,8 @@ class MbedWindowsTesting(object):
                     configuration in self.visual_studio_configurations for
                     architecture in self.visual_studio_architectures for
                     retargeted in [False, True] if
-                    (vs_version, architecture) != ("2010", "x64")
+                    ((vs_version, architecture) != ("2010", "x64") and
+                     (vs_version, retargeted) != ("2010", True))
                 ]
                 for vs_test_run in self.vs_test_runs:
                     for solution_type in self.visual_studio_solution_types:
