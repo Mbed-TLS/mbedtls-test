@@ -49,13 +49,6 @@ export LOG_FAILURE_ON_STDOUT=1
 ./tests/scripts/test-ref-configs.pl
 """
 
-@Field mingw_cmake_test_bat = """cmake . -G MinGW Makefiles
-mingw32-make clean
-mingw32-make
-mingw32-make test
-programs\\test\\selftest.exe
-"""
-
 @Field win32_mingw_test_bat = """
 cmake . -G "MinGW Makefiles" -DCMAKE_C_COMPILER="gcc"
 mingw32-make
