@@ -95,7 +95,7 @@ aws s3 cp coverity-PSA-Crypto-Coverity.tar.gz s3://coverity-reports
     'cc' : 'cc'
 ]
 
-def gen_jobs_foreach ( label, platforms, compilers, script ){
+def gen_docker_jobs_foreach ( label, platforms, compilers, script ){
     def jobs = [:]
 
     for ( platform in platforms ){
@@ -132,7 +132,7 @@ docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh -w /
     return jobs
 }
 
-def gen_freebsd_jobs_foreach ( label, platforms, compilers, script ){
+def gen_node_jobs_foreach ( label, platforms, compilers, script ){
     def jobs = [:]
 
     for ( platform in platforms ){
@@ -207,14 +207,14 @@ def run_job(){
             def coverity_compilers = ['gcc']
 
             /* Linux jobs */
-            def jobs = gen_jobs_foreach( 'std-make', linux_platforms, all_compilers, std_make_test_sh )
-            jobs = jobs + gen_jobs_foreach( 'cmake', linux_platforms, all_compilers, cmake_test_sh )
-            jobs = jobs + gen_jobs_foreach( 'cmake-full', linux_platforms, gcc_compilers, cmake_full_test_sh )
-            jobs = jobs + gen_jobs_foreach( 'cmake-asan', linux_platforms, asan_compilers, cmake_asan_test_sh )
+            def jobs = gen_docker_jobs_foreach( 'std-make', linux_platforms, all_compilers, std_make_test_sh )
+            jobs = jobs + gen_docker_jobs_foreach( 'cmake', linux_platforms, all_compilers, cmake_test_sh )
+            jobs = jobs + gen_docker_jobs_foreach( 'cmake-full', linux_platforms, gcc_compilers, cmake_full_test_sh )
+            jobs = jobs + gen_docker_jobs_foreach( 'cmake-asan', linux_platforms, asan_compilers, cmake_asan_test_sh )
 
             /* BSD jobs */
-            jobs = jobs + gen_freebsd_jobs_foreach( 'gmake', bsd_platforms, bsd_compilers, gmake_test_sh )
-            jobs = jobs + gen_freebsd_jobs_foreach( 'cmake', bsd_platforms, bsd_compilers, cmake_test_sh )
+            jobs = jobs + gen_node_jobs_foreach( 'gmake', bsd_platforms, bsd_compilers, gmake_test_sh )
+            jobs = jobs + gen_node_jobs_foreach( 'cmake', bsd_platforms, bsd_compilers, cmake_test_sh )
 
             /* Windows jobs */
             jobs = jobs + gen_windows_jobs( 'win32-mingw', win32_mingw_test_bat )
@@ -223,7 +223,7 @@ def run_job(){
             jobs = jobs + gen_windows_jobs( 'iar8-mingw', iar8_mingw_test_bat )
 
             /* Coverity jobs */
-            jobs = jobs + gen_freebsd_jobs_foreach( 'coverity', coverity_platforms, coverity_compilers, std_coverity_sh )
+            jobs = jobs + gen_node_jobs_foreach( 'coverity', coverity_platforms, coverity_compilers, std_coverity_sh )
 
             jobs.failFast = false
             parallel jobs
