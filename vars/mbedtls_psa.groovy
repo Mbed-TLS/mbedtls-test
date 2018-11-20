@@ -52,6 +52,7 @@ export LOG_FAILURE_ON_STDOUT=1
 cmake . -G "MinGW Makefiles" -DCMAKE_C_COMPILER="gcc"
 mingw32-make
 ctest -VV
+programs\\test\\selftest.exe
 """
 
 @Field iar8_mingw_test_bat = """
@@ -65,6 +66,7 @@ if exist scripts\\generate_psa_constants.py scripts\\generate_psa_constants.py
 call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
 cmake . -G "Visual Studio 12"
 MSBuild ALL_BUILD.vcxproj
+programs\\test\\Debug\\selftest.exe
 """
 
 @Field win32_msvc12_64_test_bat = """
@@ -72,6 +74,7 @@ if exist scripts\\generate_psa_constants.py scripts\\generate_psa_constants.py
 call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
 cmake . -G "Visual Studio 12 Win64"
 MSBuild ALL_BUILD.vcxproj
+programs\\test\\Debug\\selftest.exe
 """
 
 @Field std_coverity_sh = """
