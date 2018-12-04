@@ -1,0 +1,282 @@
+import groovy.io.FileType
+
+// Keep track of builds that fail
+failedBuilds = [:]
+
+/* Create code coverage job */
+def get_code_coverage_job(){
+    return {
+        node('mbedtls && ubuntu-16.10-x64') {
+            try {
+                deleteDir()
+                dir('src') {
+                    unstash 'src'
+                    writeFile file: 'steps.sh', text: '''#!/bin/sh
+set -e
+set -x
+./tests/scripts/basic-build-test.sh
+'''
+                }
+                sh '''
+chmod +x src/steps.sh
+docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh -w /var/lib/build -v `pwd`/src:/var/lib/build -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh ubuntu-16.04-x64
+'''
+            } catch ( err ) {
+                failedBuilds['basic-build-test'] = true
+                throw( err )
+            }
+        }
+    }
+}
+
+def get_all_sh_job(){
+    return {
+        node('ubuntu-16.10-x64 && mbedtls') {
+            try {
+                deleteDir()
+                dir('src') {
+                    unstash 'src'
+                    writeFile file: 'steps.sh', text: '''#!/bin/sh
+set -eux
+git config --global user.email "you@example.com"
+git config --global user.name "Your Name"
+git init
+git add .
+git commit -m "CI code copy"
+export LOG_FAILURE_ON_STDOUT=1
+set ./tests/scripts/all.sh --seed 4 --keep-going
+#if grep -q no-yotta "$1"; then set -- "$@" --no-yotta; fi
+"$@"
+'''
+                }
+                sh '''
+chmod +x src/steps.sh
+docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh -w /var/lib/build -v `pwd`/src:/var/lib/build -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh --cap-add SYS_PTRACE ubuntu-16.04-x64
+'''
+            } catch ( err ) {
+                failedBuilds['all.sh'] = true
+                throw( err )
+            }
+        }
+    }
+}
+
+def get_windows_tests_job() {
+    return {
+        node ("windows-tls") {
+            try {
+                dir('mbedtls') {
+                    deleteDir()
+                }
+                dir('tools') {
+                    deleteDir()
+                }
+                dir('worktrees') {
+                    deleteDir()
+                }
+                dir('logs') {
+                    deleteDir()
+                }
+                dir("mbedtls") {
+                    checkout([$class: 'GitSCM', branches: [[name: "**"]],
+                        doGenerateSubmoduleConfigurations: false,
+                        extensions: [[$class: 'CloneOption', depth: 0, honorRefspec: true,
+                        noTags: false, reference: '', shallow: false]],
+                        submoduleCfg: [],
+                        userRemoteConfigs: [[credentialsId: "${env.GIT_CREDENTIALS_ID}",
+                        refspec: '+refs/heads/*:refs/remotes/*',
+                        url: MBEDTLS_REPO]]])
+                }
+                
+                dir("tools"){
+                    
+                    checkout changelog: false, poll: false,
+                        scm: [$class: 'GitSCM', branches: [[name: "master"]],
+                        doGenerateSubmoduleConfigurations: false,
+                        extensions: [[$class: 'CloneOption', noTags: false, shallow: false]],
+                        extensions: [[$class: 'CheckoutOption', timeout: 20]],
+                        submoduleCfg: [],
+                        userRemoteConfigs: [[credentialsId: "${env.GIT_CREDENTIALS_ID}",
+                        url: "git@github.com:ARMmbed/mbedtls-test.git"]]]
+                }
+                
+                dir("logs") {
+                    writeFile file:'results.txt', text:''
+                }
+                
+                dir("worktrees") {
+                    writeFile file:'worktrees.txt', text:''
+                }
+                
+                bat "python tools/windows_testing/windows_testing.py mbedtls logs $BRANCH"
+            } catch ( err ) {
+                failedBuilds['Windows tests'] = true
+                throw( err )
+            }
+            
+        }
+    }
+}
+
+def find_examples (){
+    examples = []
+    File[] files = new File(pwd()).listFiles();
+    for (File file: files){
+        if (file.isDirectory()) {
+            File[] subfiles = file.listFiles();
+            for (File subfile: subfiles){
+                if (subfile.getName().equals("mbed-os.lib")) {
+                    examples << file.getName()
+                    echo "found example"
+                    echo file.getName()
+                }
+            }
+        }
+    }
+    return ['authcrypt', 'benchmark', 'hashing', 'tls-client'];
+}
+
+
+def checkout_mbed_os_examples(){
+    def examples = []
+    dir('examples'){
+        git url: 'git@github.com:ARMmbed/mbed-os-example-tls.git', branch: MBED_OS_EXAMPLES_BRANCH
+        examples = find_examples()
+        stash 'examples_src'
+        /* checkout mbed-os */
+        echo examples.join(", ")
+        def oneexample = examples[0]
+        if ( oneexample != null ) {
+            dir( oneexample ){
+                dir('mbed-os'){
+                    git branch: MBEDOS_BRANCH, url: MBEDOS_REPO
+                    dir('features/mbedtls/importer') {
+                        sh """
+make update
+git -C TARGET_IGNORE/mbedtls/crypto checkout $BRANCH
+make all
+"""
+                    }
+                    stash 'mbed-os_src'
+                }
+            }
+        }
+    }
+    return examples
+}
+
+def gen_mbed_os_example_job( example, compiler, platform ){
+    return {
+       node( compiler ){
+            timestamps {
+                deleteDir()
+                unstash "examples_src"
+                dir( example ){
+                sh """
+rm -f mbed-os.lib
+mbed config root .
+mbed deploy -vv
+"""
+                    dir('mbed-os'){
+                        deleteDir()
+                        unstash "mbed-os_src"
+                    }
+                    sh """
+mbed config root .
+mbed compile -m ${platform} -t ${compiler} -DMBEDTLS_PSA_CRYPTO_C
+if [ -e BUILD/${platform}/${compiler}/${example}.bin ]
+then
+    BINARY=BUILD/${platform}/${compiler}/${example}.bin
+else
+    if [ -e BUILD/${platform}/${compiler}/${example}.hex ]
+    then
+        BINARY=BUILD/${platform}/${compiler}/${example}.hex
+    fi
+fi
+
+export RAAS_USERNAME=user
+export RAAS_PASSWORD=user
+export RAAS_PYCLIENT_FORCE_REMOTE_ALLOCATION=1
+export RAAS_PYCLIENT_ALLOCATION_QUEUE_TIMEOUT=3600
+mbedhtrun -m ${platform} -g raas_client:auli.mbedcloudtesting.com:8000 -P 1000 --sync=0 -v --compare-log ../tests/${example}.log -f \$BINARY
+"""
+                }
+            }
+       }
+   }
+}
+
+compilers = ['ARM', 'GCC_ARM', 'IAR']
+platforms = ['K64F', 'NUCLEO_F429ZI', 'UBLOX_EVK_ODIN_W2', 'NUCLEO_F746ZG']
+
+/* main job */
+node {
+    echo "${TEST_MBED_OS_EXAMPLES}"
+    checkout([$class: 'GitSCM', branches: [[name: BRANCH]],
+            doGenerateSubmoduleConfigurations: false,
+            extensions: [[$class: 'CloneOption', honorRefspec: true,
+            noTags: false, reference: '', shallow: true]],
+            submoduleCfg: [],
+            userRemoteConfigs: [[credentialsId: "${env.GIT_CREDENTIALS_ID}",
+            url: MBEDTLS_REPO]]])
+    stash 'src'
+
+    /* Checkout mbed-os-example-tls */
+    parallel_jobs = [:]
+    
+    if (RUN_BASIC_BUILD_TEST == "true") {
+        parallel_jobs['code_coverage'] = get_code_coverage_job();
+    }
+    if (RUN_ALL == "true"){
+        parallel_jobs['all_sh'] = get_all_sh_job();
+    }
+    
+    if (RUN_WINDOWS_TEST == "true"){
+        parallel_jobs['Windows'] = get_windows_tests_job();
+    }
+    
+    if (TEST_MBED_OS_EXAMPLES == "true"){
+        examples = checkout_mbed_os_examples()
+        for( example in examples ) {
+            for( compiler in compilers ) {
+                for( platform in platforms ) {
+                    if (example == 'tls-client' && platform == 'UBLOX_EVK_ODIN_W2') {
+                        continue
+                    }
+                    parallel_jobs["${example}-${platform}-${compiler}"] =
+                        gen_mbed_os_example_job(example, compiler, platform)
+                }
+            }
+        }
+    }
+    parallel_jobs['iar8-mingw'] = {
+        node ("windows-tls") {
+        deleteDir()
+        unstash 'src'
+        bat """
+perl scripts/config.pl baremetal
+cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
+mingw32-make lib
+"""
+        }
+    }
+    
+    parallel_jobs.failFast = false
+    try {
+        parallel parallel_jobs
+    } catch( err ) {
+        if ( currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause') ){
+            keys = failedBuilds.keySet()
+            failures = keys.join(", ")
+            emailbody = """
+Failures: ${failures}
+Logs: ${env.BUILD_URL}
+"""
+            subject = "Mbed Crypto nightly test failed!"
+            echo subject
+            echo emailbody
+            emailext body: emailbody, subject: subject, to: 'mbed-crypto-eng@arm.com', mimeType: 'text/plain'
+        }
+        throw( err );
+    }
+}
