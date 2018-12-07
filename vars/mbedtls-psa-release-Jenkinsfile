@@ -113,27 +113,26 @@ def get_windows_tests_job() {
     }
 }
 
-def checkout_mbed_os_examples() {
-    dir('examples') {
-        git url: 'git@github.com:ARMmbed/mbed-os-example-tls.git', branch: MBED_OS_EXAMPLES_BRANCH
-        stash 'examples_src'
-        /* checkout mbed-os */
-        def oneexample = examples[0]
-        if ( oneexample != null ) {
-            dir( oneexample ) {
-                dir('mbed-os') {
-                    git branch: MBEDOS_BRANCH, url: MBEDOS_REPO
-                    dir('features/mbedtls/importer') {
-                        sh """
+def checkout_mbed_os() {
+    dir('mbed-os') {
+        git branch: MBEDOS_BRANCH,
+            url: MBEDOS_REPO
+        dir('features/mbedtls/importer') {
+            sh """
 make update
 git -C TARGET_IGNORE/mbedtls/crypto checkout $BRANCH
 make all
 """
-                    }
-                    stash 'mbed-os_src'
-                }
-            }
         }
+        stash 'mbed-os_src'
+    }
+}
+
+def checkout_mbed_os_examples() {
+    dir('examples') {
+        git url: 'git@github.com:ARMmbed/mbed-os-example-tls.git',
+            branch: MBED_OS_EXAMPLES_BRANCH
+        stash 'examples_src'
     }
 }
 
@@ -229,6 +228,7 @@ mingw32-make lib
     
     if (TEST_MBED_OS_EXAMPLES == "true") {
         checkout_mbed_os_examples()
+        checkout_mbed_os()
         for( example in examples ) {
             for( compiler in compilers ) {
                 for( platform in platforms ) {
