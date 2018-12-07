@@ -1,5 +1,4 @@
 #!/usr/bin/env groovy
-import groovy.io.FileType
 import groovy.transform.Field
 
 /* Create code coverage job */
@@ -114,32 +113,11 @@ def get_windows_tests_job() {
     }
 }
 
-def find_examples() {
-    examples = []
-    File[] files = new File(pwd()).listFiles();
-    for (File file: files) {
-        if (file.isDirectory()) {
-            File[] subfiles = file.listFiles();
-            for (File subfile: subfiles) {
-                if (subfile.getName().equals("mbed-os.lib")) {
-                    examples << file.getName()
-                    echo "found example"
-                    echo file.getName()
-                }
-            }
-        }
-    }
-    return ['authcrypt', 'benchmark', 'hashing', 'tls-client'];
-}
-
 def checkout_mbed_os_examples() {
-    def examples = []
     dir('examples') {
         git url: 'git@github.com:ARMmbed/mbed-os-example-tls.git', branch: MBED_OS_EXAMPLES_BRANCH
-        examples = find_examples()
         stash 'examples_src'
         /* checkout mbed-os */
-        echo examples.join(", ")
         def oneexample = examples[0]
         if ( oneexample != null ) {
             dir( oneexample ) {
@@ -157,7 +135,6 @@ make all
             }
         }
     }
-    return examples
 }
 
 def gen_mbed_os_example_job( example, compiler, platform ) {
@@ -208,6 +185,8 @@ mbedhtrun -m ${platform} -g raas_client:auli.mbedcloudtesting.com:8000 -P 1000 -
 
 @Field platforms = ['K64F', 'NUCLEO_F429ZI', 'UBLOX_EVK_ODIN_W2', 'NUCLEO_F746ZG']
 
+@Field examples = ['authcrypt', 'benchmark', 'hashing', 'tls-client']
+
 /* main job */
 node {
     echo "${TEST_MBED_OS_EXAMPLES}"
@@ -249,7 +228,7 @@ mingw32-make lib
     }
     
     if (TEST_MBED_OS_EXAMPLES == "true") {
-        examples = checkout_mbed_os_examples()
+        checkout_mbed_os_examples()
         for( example in examples ) {
             for( compiler in compilers ) {
                 for( platform in platforms ) {
