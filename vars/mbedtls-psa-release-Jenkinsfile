@@ -62,19 +62,8 @@ def get_windows_tests_job() {
     return {
         node ("windows-tls") {
             try {
-                dir('mbedtls') {
-                    deleteDir()
-                }
-                dir('tools') {
-                    deleteDir()
-                }
-                dir('worktrees') {
-                    deleteDir()
-                }
-                dir('logs') {
-                    deleteDir()
-                }
                 dir("mbedtls") {
+                    deleteDir()
                     checkout([$class: 'GitSCM', branches: [[name: "**"]],
                         doGenerateSubmoduleConfigurations: false,
                         extensions: [[$class: 'CloneOption', depth: 0, honorRefspec: true,
@@ -86,15 +75,18 @@ def get_windows_tests_job() {
                 }
                 
                 dir("tools") {
+                    deleteDir()
                     git branch: "master",
                         url: "git@github.com:ARMmbed/mbedtls-test.git"
                 }
                 
                 dir("logs") {
+                    deleteDir()
                     writeFile file:'results.txt', text:''
                 }
                 
                 dir("worktrees") {
+                    deleteDir()
                     writeFile file:'worktrees.txt', text:''
                 }
                 
