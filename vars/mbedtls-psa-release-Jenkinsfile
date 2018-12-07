@@ -233,6 +233,20 @@ node {
     
     if (RUN_WINDOWS_TEST == "true") {
         parallel_jobs['Windows'] = get_windows_tests_job();
+
+        parallel_jobs['iar8-mingw'] = {
+            node ("windows-tls") {
+                dir("mbedtls") {
+                    deleteDir()
+                    unstash 'src'
+                    bat """
+perl scripts/config.pl baremetal
+cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
+mingw32-make lib
+"""
+                }
+            }
+        }
     }
     
     if (TEST_MBED_OS_EXAMPLES == "true") {
@@ -250,18 +264,6 @@ node {
         }
     }
 
-    parallel_jobs['iar8-mingw'] = {
-        node ("windows-tls") {
-            deleteDir()
-            unstash 'src'
-            bat """
-perl scripts/config.pl baremetal
-cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
-mingw32-make lib
-"""
-        }
-    }
-    
     parallel_jobs.failFast = false
     try {
         parallel parallel_jobs
