@@ -7,8 +7,8 @@ def get_code_coverage_job() {
         node('mbedtls && ubuntu-16.10-x64') {
             try {
                 deleteDir()
-                dir('src') {
-                    unstash 'src'
+                dir('mbedtls_src') {
+                    unstash 'mbedtls_src'
                     writeFile file: 'steps.sh', text: '''#!/bin/sh
 set -e
 set -x
@@ -16,8 +16,8 @@ set -x
 '''
                 }
                 sh '''
-chmod +x src/steps.sh
-docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh -w /var/lib/build -v `pwd`/src:/var/lib/build -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh ubuntu-16.04-x64
+chmod +x mbedtls_src/steps.sh
+docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh -w /var/lib/build -v `pwd`/mbedtls_src:/var/lib/build -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh ubuntu-16.04-x64
 '''
             } catch ( err ) {
                 failedBuilds['basic-build-test'] = true
@@ -32,8 +32,8 @@ def get_all_sh_job() {
         node('ubuntu-16.10-x64 && mbedtls') {
             try {
                 deleteDir()
-                dir('src') {
-                    unstash 'src'
+                dir('mbedtls_src') {
+                    unstash 'mbedtls_src'
                     writeFile file: 'steps.sh', text: '''#!/bin/sh
 set -eux
 git config --global user.email "you@example.com"
@@ -47,8 +47,8 @@ set ./tests/scripts/all.sh --seed 4 --keep-going
 '''
                 }
                 sh '''
-chmod +x src/steps.sh
-docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh -w /var/lib/build -v `pwd`/src:/var/lib/build -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh --cap-add SYS_PTRACE ubuntu-16.04-x64
+chmod +x mbedtls_src/steps.sh
+docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh -w /var/lib/build -v `pwd`/mbedtls_src:/var/lib/build -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh --cap-add SYS_PTRACE ubuntu-16.04-x64
 '''
             } catch ( err ) {
                 failedBuilds['all.sh'] = true
@@ -110,6 +110,19 @@ def get_windows_tests_job() {
                 throw( err )
             }
         }
+    }
+}
+
+def checkout_mbedtls() {
+    dir('mbedtls') {
+        checkout([$class: 'GitSCM', branches: [[name: BRANCH]],
+            doGenerateSubmoduleConfigurations: false,
+            extensions: [[$class: 'CloneOption', honorRefspec: true,
+            noTags: false, reference: '', shallow: true]],
+            submoduleCfg: [],
+            userRemoteConfigs: [[credentialsId: "${env.GIT_CREDENTIALS_ID}",
+            url: MBEDTLS_REPO]]])
+        stash 'mbedtls_src'
     }
 }
 
@@ -187,14 +200,7 @@ mbedhtrun -m ${platform} -g raas_client:auli.mbedcloudtesting.com:8000 -P 1000 -
 /* main job */
 node {
     echo "${TEST_MBED_OS_EXAMPLES}"
-    checkout([$class: 'GitSCM', branches: [[name: BRANCH]],
-            doGenerateSubmoduleConfigurations: false,
-            extensions: [[$class: 'CloneOption', honorRefspec: true,
-            noTags: false, reference: '', shallow: true]],
-            submoduleCfg: [],
-            userRemoteConfigs: [[credentialsId: "${env.GIT_CREDENTIALS_ID}",
-            url: MBEDTLS_REPO]]])
-    stash 'src'
+    checkout_mbedtls()
 
     /* Checkout mbed-os-example-tls */
     parallel_jobs = [:]
@@ -213,7 +219,7 @@ node {
             node ("windows-tls") {
                 dir("mbedtls") {
                     deleteDir()
-                    unstash 'src'
+                    unstash 'mbedtls_src'
                     bat """
 perl scripts/config.pl baremetal
 cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
