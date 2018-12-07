@@ -86,14 +86,8 @@ def get_windows_tests_job() {
                 }
                 
                 dir("tools") {
-                    checkout changelog: false, poll: false,
-                        scm: [$class: 'GitSCM', branches: [[name: "master"]],
-                        doGenerateSubmoduleConfigurations: false,
-                        extensions: [[$class: 'CloneOption', noTags: false, shallow: false]],
-                        extensions: [[$class: 'CheckoutOption', timeout: 20]],
-                        submoduleCfg: [],
-                        userRemoteConfigs: [[credentialsId: "${env.GIT_CREDENTIALS_ID}",
-                        url: "git@github.com:ARMmbed/mbedtls-test.git"]]]
+                    git branch: "master",
+                        url: "git@github.com:ARMmbed/mbedtls-test.git"
                 }
                 
                 dir("logs") {
@@ -115,13 +109,8 @@ def get_windows_tests_job() {
 
 def checkout_mbedtls() {
     dir('mbedtls') {
-        checkout([$class: 'GitSCM', branches: [[name: BRANCH]],
-            doGenerateSubmoduleConfigurations: false,
-            extensions: [[$class: 'CloneOption', honorRefspec: true,
-            noTags: false, reference: '', shallow: true]],
-            submoduleCfg: [],
-            userRemoteConfigs: [[credentialsId: "${env.GIT_CREDENTIALS_ID}",
-            url: MBEDTLS_REPO]]])
+        git branch: BRANCH,
+            url: MBEDTLS_REPO
         stash 'mbedtls_src'
     }
 }
