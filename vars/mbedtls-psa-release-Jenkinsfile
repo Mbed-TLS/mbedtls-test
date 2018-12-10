@@ -8,7 +8,7 @@ def get_code_coverage_job() {
             try {
                 deleteDir()
                 dir('mbedtls_src') {
-                    unstash 'mbedtls_src'
+                    checkout_mbedtls()
                     writeFile file: 'steps.sh', text: '''#!/bin/sh
 set -e
 set -x
@@ -33,7 +33,7 @@ def get_all_sh_job() {
             try {
                 deleteDir()
                 dir('mbedtls_src') {
-                    unstash 'mbedtls_src'
+                    checkout_mbedtls()
                     writeFile file: 'steps.sh', text: '''#!/bin/sh
 set -eux
 git config --global user.email "you@example.com"
@@ -100,34 +100,25 @@ def get_windows_tests_job() {
 }
 
 def checkout_mbedtls() {
-    dir('mbedtls') {
-        git branch: BRANCH,
-            url: MBEDTLS_REPO
-        stash 'mbedtls_src'
-    }
+    git branch: BRANCH,
+        url: MBEDTLS_REPO
 }
 
 def checkout_mbed_os() {
-    dir('mbed-os') {
-        git branch: MBEDOS_BRANCH,
-            url: MBEDOS_REPO
-        dir('features/mbedtls/importer') {
-            sh """
+    git branch: MBEDOS_BRANCH,
+        url: MBEDOS_REPO
+    dir('features/mbedtls/importer') {
+        sh """
 make update
 git -C TARGET_IGNORE/mbedtls/crypto checkout $BRANCH
 make all
 """
-        }
-        stash 'mbed-os_src'
     }
 }
 
 def checkout_mbed_os_examples() {
-    dir('examples') {
-        git url: 'git@github.com:ARMmbed/mbed-os-example-tls.git',
-            branch: MBED_OS_EXAMPLES_BRANCH
-        stash 'examples_src'
-    }
+    git url: 'git@github.com:ARMmbed/mbed-os-example-tls.git',
+        branch: MBED_OS_EXAMPLES_BRANCH
 }
 
 def gen_mbed_os_example_job( example, compiler, platform ) {
@@ -135,7 +126,7 @@ def gen_mbed_os_example_job( example, compiler, platform ) {
         node( compiler ) {
             timestamps {
                 deleteDir()
-                unstash "examples_src"
+                checkout_mbed_os_examples()
                 dir( example ) {
                     sh """
 rm -f mbed-os.lib
@@ -144,7 +135,7 @@ mbed deploy -vv
 """
                     dir('mbed-os') {
                         deleteDir()
-                        unstash "mbed-os_src"
+                        checkout_mbed_os()
                     }
                     sh """
 mbed config root .
@@ -180,13 +171,12 @@ mbedhtrun -m ${platform} -g raas_client:auli.mbedcloudtesting.com:8000 -P 1000 -
 
 /* main job */
 node {
-    checkout_mbedtls()
-
     parallel_jobs = [:]
     
     if (RUN_BASIC_BUILD_TEST == "true") {
         parallel_jobs['code_coverage'] = get_code_coverage_job();
     }
+
     if (RUN_ALL == "true") {
         parallel_jobs['all_sh'] = get_all_sh_job();
     }
@@ -198,7 +188,7 @@ node {
             node ("windows-tls") {
                 dir("mbedtls") {
                     deleteDir()
-                    unstash 'mbedtls_src'
+                    checkout_mbedtls()
                     bat """
 perl scripts/config.pl baremetal
 cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
@@ -210,8 +200,6 @@ mingw32-make lib
     }
     
     if (TEST_MBED_OS_EXAMPLES == "true") {
-        checkout_mbed_os_examples()
-        checkout_mbed_os()
         for( example in examples ) {
             for( compiler in compilers ) {
                 for( platform in platforms ) {
