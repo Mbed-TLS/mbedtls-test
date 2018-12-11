@@ -124,20 +124,21 @@ def checkout_mbed_os_examples() {
 def gen_mbed_os_example_job( example, compiler, platform ) {
     return {
         node( compiler ) {
-            timestamps {
-                deleteDir()
-                checkout_mbed_os_examples()
-                dir( example ) {
-                    sh """
+            try {
+                timestamps {
+                    deleteDir()
+                    checkout_mbed_os_examples()
+                    dir( example ) {
+                        sh """
 rm -f mbed-os.lib
 mbed config root .
 mbed deploy -vv
 """
-                    dir('mbed-os') {
-                        deleteDir()
-                        checkout_mbed_os()
-                    }
-                    sh """
+                        dir('mbed-os') {
+                            deleteDir()
+                            checkout_mbed_os()
+                        }
+                        sh """
 mbed config root .
 mbed compile -m ${platform} -t ${compiler} -DMBEDTLS_PSA_CRYPTO_C
 if [ -e BUILD/${platform}/${compiler}/${example}.bin ]
@@ -154,7 +155,11 @@ export RAAS_PYCLIENT_FORCE_REMOTE_ALLOCATION=1
 export RAAS_PYCLIENT_ALLOCATION_QUEUE_TIMEOUT=3600
 mbedhtrun -m ${platform} -g raas_client:auli.mbedcloudtesting.com:8000 -P 1000 --sync=0 -v --compare-log ../tests/${example}.log -f \$BINARY
 """
+                    }
                 }
+            } catch ( err ) {
+                failedBuilds["${example}-${platform}-${compiler}"] = true
+                throw( err )
             }
         }
     }
@@ -186,14 +191,19 @@ node {
 
         parallel_jobs['iar8-mingw'] = {
             node ("windows-tls") {
-                dir("mbedtls") {
-                    deleteDir()
-                    checkout_mbedtls()
-                    bat """
+                try {
+                    dir("mbedtls") {
+                        deleteDir()
+                        checkout_mbedtls()
+                        bat """
 perl scripts/config.pl baremetal
 cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
 mingw32-make lib
 """
+                    }
+                } catch ( err ) {
+                    failedBuilds['iar8-mingw'] = true
+                    throw( err )
                 }
             }
         }
