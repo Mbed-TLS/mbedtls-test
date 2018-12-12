@@ -12,16 +12,24 @@ def get_code_coverage_job() {
                     writeFile file: 'steps.sh', text: '''#!/bin/sh
 set -e
 set -x
-./tests/scripts/basic-build-test.sh
+./tests/scripts/basic-build-test.sh 2>&1
 '''
                 }
-                sh '''
+                coverage_log = sh returnStdout: true, script: '''
 chmod +x mbedtls_src/steps.sh
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh -w /var/lib/build -v `pwd`/mbedtls_src:/var/lib/build -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh ubuntu-16.04-x64
 '''
             } catch ( err ) {
                 failedBuilds['basic-build-test'] = true
                 throw( err )
+            } finally {
+                echo coverage_log
+                coverage_details = coverage_log.substring(
+                    coverage_log.indexOf('Test Report Summary')
+                )
+                coverage_details = coverage_details.substring(
+                    coverage_details.indexOf('Coverage')
+                )
             }
         }
     }
@@ -168,6 +176,8 @@ mbedhtrun -m ${platform} -g raas_client:auli.mbedcloudtesting.com:8000 -P 1000 -
 // Keep track of builds that fail
 @Field failedBuilds = [:]
 
+@Field coverage_details = ""
+
 @Field compilers = ['ARM', 'GCC_ARM', 'IAR']
 
 @Field platforms = ['K64F', 'NUCLEO_F429ZI', 'UBLOX_EVK_ODIN_W2', 'NUCLEO_F746ZG']
@@ -231,8 +241,11 @@ mingw32-make lib
             keys = failedBuilds.keySet()
             failures = keys.join(", ")
             emailbody = """
-Failures: ${failures}
+${coverage_details}
+
 Logs: ${env.BUILD_URL}
+
+Failures: ${failures}
 """
             subject = "Mbed Crypto nightly test failed!"
             echo subject
