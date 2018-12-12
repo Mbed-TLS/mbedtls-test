@@ -238,22 +238,34 @@ mingw32-make lib
     parallel_jobs.failFast = false
     try {
         parallel parallel_jobs
-    } catch( err ) {
+    } finally {
         if ( currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause') ) {
-            keys = failedBuilds.keySet()
-            failures = keys.join(", ")
-            emailbody = """
+            if( failedBuilds.size() == 0 ) {
+                emailbody = """
+${coverage_details}
+
+Logs: ${env.BUILD_URL}
+"""
+                subject = "Mbed Crypto nightly test passed!"
+            } else {
+                keys = failedBuilds.keySet()
+                failures = keys.join(", ")
+                emailbody = """
 ${coverage_details}
 
 Logs: ${env.BUILD_URL}
 
 Failures: ${failures}
 """
-            subject = "Mbed Crypto nightly test failed!"
+                subject = "Mbed Crypto nightly test failed!"
+
+            }
             echo subject
             echo emailbody
-            emailext body: emailbody, subject: subject, to: 'mbed-crypto-eng@arm.com', mimeType: 'text/plain'
+            emailext body: emailbody,
+                     subject: subject,
+                     to: 'mbed-crypto-eng@arm.com',
+                     mimeType: 'text/plain'
         }
-        throw( err );
     }
 }
