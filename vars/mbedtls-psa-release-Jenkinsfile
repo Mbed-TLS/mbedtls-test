@@ -247,6 +247,7 @@ ${coverage_details}
 Logs: ${env.BUILD_URL}
 """
                 subject = "Mbed Crypto nightly test passed!"
+                recipients = "jaeden.amero@arm.com; oliver.harper@arm.com"
             } else {
                 keys = failedBuilds.keySet()
                 failures = keys.join(", ")
@@ -258,13 +259,13 @@ Logs: ${env.BUILD_URL}
 Failures: ${failures}
 """
                 subject = "Mbed Crypto nightly test failed!"
-
+                recipients = 'mbed-crypto-eng@arm.com'
             }
             echo subject
             echo emailbody
             emailext body: emailbody,
                      subject: subject,
-                     to: 'mbed-crypto-eng@arm.com',
+                     to: recipients,
                      mimeType: 'text/plain'
         }
     }
