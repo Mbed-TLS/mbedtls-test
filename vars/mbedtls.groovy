@@ -1,5 +1,14 @@
 import groovy.transform.Field
 
+@Field basic_test_sh = """make clean
+./tests/scripts/recursion.pl library/*.c
+./tests/scripts/check-generated-files.sh
+./tests/scripts/check-doxy-blocks.pl
+./tests/scripts/check-names.sh
+./tests/scripts/check-files.py
+./tests/scripts/doxygen.sh
+"""
+
 @Field std_make_test_sh = """make clean
 CC=%s make
 make check
@@ -161,6 +170,7 @@ def run_job(){
     node {
         try {
             deleteDir()
+            def one_platform = [ "debian-x64" ]
             def linux_platforms = [ "debian-i386", "debian-x64" ]
             def bsd_platforms = [ "freebsd" ]
             def bsd_compilers = [ "clang" ]
@@ -171,7 +181,8 @@ def run_job(){
             def asan_compilers = ['clang'] /* Change to clang once mbed TLS can compile with clang 3.8 */
 
             /* Linux jobs */
-            def jobs = gen_docker_jobs_foreach( 'std-make', linux_platforms, all_compilers, std_make_test_sh )
+            def jobs = gen_docker_jobs_foreach( 'basic', one_platform, gcc_compilers, basic_test_sh )
+            jobs = jobs + gen_docker_jobs_foreach( 'std-make', linux_platforms, all_compilers, std_make_test_sh )
             jobs = jobs + gen_docker_jobs_foreach( 'cmake', linux_platforms, all_compilers, cmake_test_sh )
             jobs = jobs + gen_docker_jobs_foreach( 'cmake-full', linux_platforms, gcc_compilers, cmake_full_test_sh )
             jobs = jobs + gen_docker_jobs_foreach( 'cmake-asan', linux_platforms, asan_compilers, cmake_asan_test_sh )
