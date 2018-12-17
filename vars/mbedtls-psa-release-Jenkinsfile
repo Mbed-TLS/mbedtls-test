@@ -1,0 +1,270 @@
+#!/usr/bin/env groovy
+import groovy.transform.Field
+
+/* Create code coverage job */
+def get_code_coverage_job() {
+    return {
+        node('mbedtls && ubuntu-16.10-x64') {
+            try {
+                deleteDir()
+                dir('mbedtls_src') {
+                    checkout_mbedtls()
+                    writeFile file: 'steps.sh', text: '''#!/bin/sh
+set -e
+set -x
+./tests/scripts/basic-build-test.sh 2>&1
+'''
+                }
+                coverage_log = sh returnStdout: true, script: '''
+chmod +x mbedtls_src/steps.sh
+docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh -w /var/lib/build -v `pwd`/mbedtls_src:/var/lib/build -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh ubuntu-16.04-x64
+'''
+            } catch ( err ) {
+                failedBuilds['basic-build-test'] = true
+                throw( err )
+            } finally {
+                echo coverage_log
+                coverage_details = coverage_log.substring(
+                    coverage_log.indexOf('Test Report Summary')
+                )
+                coverage_details = coverage_details.substring(
+                    coverage_details.indexOf('Coverage')
+                )
+            }
+        }
+    }
+}
+
+def get_all_sh_job() {
+    return {
+        node('ubuntu-16.10-x64 && mbedtls') {
+            try {
+                deleteDir()
+                dir('mbedtls_src') {
+                    checkout_mbedtls()
+                    writeFile file: 'steps.sh', text: '''#!/bin/sh
+set -eux
+git config --global user.email "you@example.com"
+git config --global user.name "Your Name"
+git init
+git add .
+git commit -m "CI code copy"
+export LOG_FAILURE_ON_STDOUT=1
+set ./tests/scripts/all.sh --seed 4 --keep-going
+"$@"
+'''
+                }
+                sh '''
+chmod +x mbedtls_src/steps.sh
+docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh -w /var/lib/build -v `pwd`/mbedtls_src:/var/lib/build -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh --cap-add SYS_PTRACE ubuntu-16.04-x64
+'''
+            } catch ( err ) {
+                failedBuilds['all.sh'] = true
+                throw( err )
+            }
+        }
+    }
+}
+
+def get_windows_tests_job() {
+    return {
+        node ("windows-tls") {
+            try {
+                dir("mbedtls") {
+                    deleteDir()
+                    checkout([$class: 'GitSCM', branches: [[name: "**"]],
+                        doGenerateSubmoduleConfigurations: false,
+                        extensions: [[$class: 'CloneOption', depth: 0, honorRefspec: true,
+                        noTags: false, reference: '', shallow: false]],
+                        submoduleCfg: [],
+                        userRemoteConfigs: [[credentialsId: "${env.GIT_CREDENTIALS_ID}",
+                        refspec: '+refs/heads/*:refs/remotes/*',
+                        url: MBEDTLS_REPO]]])
+                }
+                
+                dir("tools") {
+                    deleteDir()
+                    git branch: "master",
+                        url: "git@github.com:ARMmbed/mbedtls-test.git"
+                }
+                
+                dir("logs") {
+                    deleteDir()
+                    writeFile file:'results.txt', text:''
+                }
+                
+                dir("worktrees") {
+                    deleteDir()
+                    writeFile file:'worktrees.txt', text:''
+                }
+                
+                bat "python tools/windows_testing/windows_testing.py mbedtls logs $BRANCH"
+            } catch ( err ) {
+                failedBuilds['Windows tests'] = true
+                throw( err )
+            }
+        }
+    }
+}
+
+def checkout_mbedtls() {
+    git branch: BRANCH,
+        url: MBEDTLS_REPO
+}
+
+def checkout_mbed_os() {
+    git branch: MBEDOS_BRANCH,
+        url: MBEDOS_REPO
+    dir('features/mbedtls/importer') {
+        sh """
+make update
+git -C TARGET_IGNORE/mbedtls/crypto checkout $BRANCH
+make all
+"""
+    }
+}
+
+def checkout_mbed_os_examples() {
+    git url: 'git@github.com:ARMmbed/mbed-os-example-tls.git',
+        branch: MBED_OS_EXAMPLES_BRANCH
+}
+
+def gen_mbed_os_example_job( example, compiler, platform ) {
+    return {
+        node( compiler ) {
+            try {
+                timestamps {
+                    deleteDir()
+                    checkout_mbed_os_examples()
+                    dir( example ) {
+                        sh """
+rm -f mbed-os.lib
+mbed config root .
+mbed deploy -vv
+"""
+                        dir('mbed-os') {
+                            deleteDir()
+                            checkout_mbed_os()
+                        }
+                        sh """
+mbed config root .
+mbed compile -m ${platform} -t ${compiler} -DMBEDTLS_PSA_CRYPTO_C
+if [ -e BUILD/${platform}/${compiler}/${example}.bin ]
+then
+    BINARY=BUILD/${platform}/${compiler}/${example}.bin
+else
+    if [ -e BUILD/${platform}/${compiler}/${example}.hex ]
+    then
+        BINARY=BUILD/${platform}/${compiler}/${example}.hex
+    fi
+fi
+
+export RAAS_PYCLIENT_FORCE_REMOTE_ALLOCATION=1
+export RAAS_PYCLIENT_ALLOCATION_QUEUE_TIMEOUT=3600
+mbedhtrun -m ${platform} -g raas_client:auli.mbedcloudtesting.com:8000 -P 1000 --sync=0 -v --compare-log ../tests/${example}.log -f \$BINARY
+"""
+                    }
+                }
+            } catch ( err ) {
+                failedBuilds["${example}-${platform}-${compiler}"] = true
+                throw( err )
+            }
+        }
+    }
+}
+
+// Keep track of builds that fail
+@Field failedBuilds = [:]
+
+@Field coverage_details = ""
+
+@Field compilers = ['ARM', 'GCC_ARM', 'IAR']
+
+@Field platforms = ['K64F', 'NUCLEO_F429ZI', 'UBLOX_EVK_ODIN_W2', 'NUCLEO_F746ZG']
+
+@Field examples = ['authcrypt', 'benchmark', 'hashing', 'tls-client']
+
+/* main job */
+node {
+    parallel_jobs = [:]
+    
+    if (RUN_BASIC_BUILD_TEST == "true") {
+        parallel_jobs['code_coverage'] = get_code_coverage_job();
+    }
+
+    if (RUN_ALL == "true") {
+        parallel_jobs['all_sh'] = get_all_sh_job();
+    }
+    
+    if (RUN_WINDOWS_TEST == "true") {
+        parallel_jobs['Windows'] = get_windows_tests_job();
+
+        parallel_jobs['iar8-mingw'] = {
+            node ("windows-tls") {
+                try {
+                    dir("mbedtls") {
+                        deleteDir()
+                        checkout_mbedtls()
+                        bat """
+perl scripts/config.pl baremetal
+cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
+mingw32-make lib
+"""
+                    }
+                } catch ( err ) {
+                    failedBuilds['iar8-mingw'] = true
+                    throw( err )
+                }
+            }
+        }
+    }
+    
+    if (TEST_MBED_OS_EXAMPLES == "true") {
+        for( example in examples ) {
+            for( compiler in compilers ) {
+                for( platform in platforms ) {
+                    if (example == 'tls-client' && platform == 'UBLOX_EVK_ODIN_W2') {
+                        continue
+                    }
+                    parallel_jobs["${example}-${platform}-${compiler}"] =
+                        gen_mbed_os_example_job(example, compiler, platform)
+                }
+            }
+        }
+    }
+
+    parallel_jobs.failFast = false
+    try {
+        parallel parallel_jobs
+    } finally {
+        if ( currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause') ) {
+            if( failedBuilds.size() == 0 ) {
+                emailbody = """
+${coverage_details}
+
+Logs: ${env.BUILD_URL}
+"""
+                subject = "Mbed Crypto nightly test passed!"
+                recipients = "jaeden.amero@arm.com; oliver.harper@arm.com"
+            } else {
+                keys = failedBuilds.keySet()
+                failures = keys.join(", ")
+                emailbody = """
+${coverage_details}
+
+Logs: ${env.BUILD_URL}
+
+Failures: ${failures}
+"""
+                subject = "Mbed Crypto nightly test failed!"
+                recipients = 'mbed-crypto-eng@arm.com'
+            }
+            echo subject
+            echo emailbody
+            emailext body: emailbody,
+                     subject: subject,
+                     to: recipients,
+                     mimeType: 'text/plain'
+        }
+    }
+}
