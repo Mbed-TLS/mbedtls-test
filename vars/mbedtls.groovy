@@ -49,19 +49,31 @@ export LOG_FAILURE_ON_STDOUT=1
 ./tests/scripts/test-ref-configs.pl
 """
 
-@Field mingw_cmake_test_bat = """cmake . -G MinGW Makefiles
-mingw32-make clean
+@Field win32_mingw_test_bat = """
+cmake . -G "MinGW Makefiles" -DCMAKE_C_COMPILER="gcc"
 mingw32-make
-mingw32-make test
+ctest -VV
 programs\\test\\selftest.exe
 """
 
-@Field win32_msvc12_32_test_bat = """ cmake . -G Visual Studio 12
-MSBuild ALL_BUILD.vcxproj
+@Field iar8_mingw_test_bat = """
+perl scripts/config.pl baremetal
+cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
+mingw32-make lib
 """
 
-@Field win32_msvc12_64_test_bat = """ cmake . -G Visual Studio 12 Win64
+@Field win32_msvc12_32_test_bat = """
+call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
+cmake . -G "Visual Studio 12"
 MSBuild ALL_BUILD.vcxproj
+programs\\test\\Debug\\selftest.exe
+"""
+
+@Field win32_msvc12_64_test_bat = """
+call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
+cmake . -G "Visual Studio 12 Win64"
+MSBuild ALL_BUILD.vcxproj
+programs\\test\\Debug\\selftest.exe
 """
 
 @Field compiler_paths = [
@@ -71,7 +83,7 @@ MSBuild ALL_BUILD.vcxproj
     'cc' : 'cc'
 ]
 
-def gen_jobs_foreach ( label, platforms, compilers, script ){
+def gen_docker_jobs_foreach ( label, platforms, compilers, script ){
     def jobs = [:]
 
     for ( platform in platforms ){
@@ -86,7 +98,7 @@ def gen_jobs_foreach ( label, platforms, compilers, script ){
                         sh 'rm -rf *'
                         deleteDir()
                         dir('src'){
-                            unstash 'src'
+                            checkout scm
                             writeFile file: 'steps.sh', text: """#!/bin/sh
 set -x
 set -v
@@ -108,7 +120,7 @@ docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh -w /
     return jobs
 }
 
-def gen_freebsd_jobs_foreach ( label, platforms, compilers, script ){
+def gen_node_jobs_foreach ( label, platforms, compilers, script ){
     def jobs = [:]
 
     for ( platform in platforms ){
@@ -121,7 +133,7 @@ def gen_freebsd_jobs_foreach ( label, platforms, compilers, script ){
                 node( node_lbl ){
                     timestamps {
                         deleteDir()
-                        unstash 'src'
+                        checkout scm
                         sh shell_script
                     }
                 }
@@ -131,6 +143,18 @@ def gen_freebsd_jobs_foreach ( label, platforms, compilers, script ){
     return jobs
 }
 
+def gen_windows_jobs ( label, script ) {
+    def jobs = [:]
+
+    jobs[label] = {
+        node ("windows-tls") {
+            deleteDir()
+            checkout scm
+            bat script
+        }
+    }
+    return jobs
+}
 
 /* main job */
 def run_job(){
@@ -145,74 +169,32 @@ def run_job(){
             def all_compilers = ['gcc', 'clang']
             def gcc_compilers = ['gcc']
             def asan_compilers = ['clang'] /* Change to clang once mbed TLS can compile with clang 3.8 */
-        
-            checkout scm
-            stash 'src'
 
             /* Linux jobs */
-            def jobs = gen_jobs_foreach( 'std-make', linux_platforms, all_compilers, std_make_test_sh )
-            jobs = jobs + gen_jobs_foreach( 'cmake', linux_platforms, all_compilers, cmake_test_sh )
-            jobs = jobs + gen_jobs_foreach( 'cmake-full', linux_platforms, gcc_compilers, cmake_full_test_sh )
-            jobs = jobs + gen_jobs_foreach( 'cmake-asan', linux_platforms, asan_compilers, cmake_asan_test_sh )
+            def jobs = gen_docker_jobs_foreach( 'std-make', linux_platforms, all_compilers, std_make_test_sh )
+            jobs = jobs + gen_docker_jobs_foreach( 'cmake', linux_platforms, all_compilers, cmake_test_sh )
+            jobs = jobs + gen_docker_jobs_foreach( 'cmake-full', linux_platforms, gcc_compilers, cmake_full_test_sh )
+            jobs = jobs + gen_docker_jobs_foreach( 'cmake-asan', linux_platforms, asan_compilers, cmake_asan_test_sh )
             jobs['doxygen'] = {
                 node ("mbedtls && ubuntu-16.10-x64") {
                 deleteDir()
                 dir('src') {
-                    unstash 'src'
+                    checkout scm
                     sh './tests/scripts/doxygen.sh'
                     }
                 }
             }
         
             /* BSD jobs */
-            jobs = jobs + gen_freebsd_jobs_foreach( 'gmake', bsd_platforms, bsd_compilers, gmake_test_sh )
-            jobs = jobs + gen_freebsd_jobs_foreach( 'cmake', bsd_platforms, bsd_compilers, cmake_test_sh )
+            jobs = jobs + gen_node_jobs_foreach( 'gmake', bsd_platforms, bsd_compilers, gmake_test_sh )
+            jobs = jobs + gen_node_jobs_foreach( 'cmake', bsd_platforms, bsd_compilers, cmake_test_sh )
         
             /* Windows jobs */
-            jobs['win32-mingw'] = {
-                node ("windows-tls") {
-                deleteDir()
-                unstash 'src'
-                
-                bat """
-cmake . -G "MinGW Makefiles" -DCMAKE_C_COMPILER="gcc"
-mingw32-make
-"""
-                }
-            }
-            jobs['win32_msvc12_32'] = {
-                node ("windows-tls") {
-                deleteDir()
-                unstash 'src'
-                bat """
-call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
-cmake . -G "Visual Studio 12"
-MSBuild ALL_BUILD.vcxproj
-"""
-                }
-            }
-            jobs['win32_msvc12_64'] = {
-                node ("windows-tls") {
-                deleteDir()
-                unstash 'src'
-                bat """
-call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
-cmake . -G "Visual Studio 12 Win64"
-MSBuild ALL_BUILD.vcxproj
-"""
-                }
-            }
-            jobs['iar8-mingw'] = {
-                node ("windows-tls") {
-                deleteDir()
-                unstash 'src'
-                bat """
-perl scripts/config.pl baremetal
-cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
-mingw32-make lib
-"""
-                }
-            }
+            jobs = jobs + gen_windows_jobs( 'win32-mingw', win32_mingw_test_bat )
+            jobs = jobs + gen_windows_jobs( 'win32_msvc12_32-mingw', win32_msvc12_32_test_bat )
+            jobs = jobs + gen_windows_jobs( 'win32-win32_msvc12_64', win32_msvc12_64_test_bat )
+            jobs = jobs + gen_windows_jobs( 'iar8-mingw', iar8_mingw_test_bat )
+
             jobs.failFast = false
             parallel jobs
         } catch ( err ) {
