@@ -1,7 +1,6 @@
+#!/usr/bin/env groovy
 import groovy.io.FileType
-
-// Keep track of builds that fail
-failedBuilds = [:]
+import groovy.transform.Field
 
 /* Create code coverage job */
 def get_code_coverage_job(){
@@ -204,8 +203,12 @@ mbedhtrun -m ${platform} -g raas_client:auli.mbedcloudtesting.com:8000 -P 1000 -
    }
 }
 
-compilers = ['ARM', 'GCC_ARM', 'IAR']
-platforms = ['K64F', 'NUCLEO_F429ZI', 'UBLOX_EVK_ODIN_W2', 'NUCLEO_F746ZG']
+// Keep track of builds that fail
+@Field failedBuilds = [:]
+
+@Field compilers = ['ARM', 'GCC_ARM', 'IAR']
+
+@Field platforms = ['K64F', 'NUCLEO_F429ZI', 'UBLOX_EVK_ODIN_W2', 'NUCLEO_F746ZG']
 
 /* main job */
 node {
