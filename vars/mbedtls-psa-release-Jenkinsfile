@@ -3,7 +3,7 @@ import groovy.io.FileType
 import groovy.transform.Field
 
 /* Create code coverage job */
-def get_code_coverage_job(){
+def get_code_coverage_job() {
     return {
         node('mbedtls && ubuntu-16.10-x64') {
             try {
@@ -28,7 +28,7 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh -w /
     }
 }
 
-def get_all_sh_job(){
+def get_all_sh_job() {
     return {
         node('ubuntu-16.10-x64 && mbedtls') {
             try {
@@ -87,8 +87,7 @@ def get_windows_tests_job() {
                         url: MBEDTLS_REPO]]])
                 }
                 
-                dir("tools"){
-                    
+                dir("tools") {
                     checkout changelog: false, poll: false,
                         scm: [$class: 'GitSCM', branches: [[name: "master"]],
                         doGenerateSubmoduleConfigurations: false,
@@ -112,18 +111,17 @@ def get_windows_tests_job() {
                 failedBuilds['Windows tests'] = true
                 throw( err )
             }
-            
         }
     }
 }
 
-def find_examples (){
+def find_examples() {
     examples = []
     File[] files = new File(pwd()).listFiles();
-    for (File file: files){
+    for (File file: files) {
         if (file.isDirectory()) {
             File[] subfiles = file.listFiles();
-            for (File subfile: subfiles){
+            for (File subfile: subfiles) {
                 if (subfile.getName().equals("mbed-os.lib")) {
                     examples << file.getName()
                     echo "found example"
@@ -135,10 +133,9 @@ def find_examples (){
     return ['authcrypt', 'benchmark', 'hashing', 'tls-client'];
 }
 
-
-def checkout_mbed_os_examples(){
+def checkout_mbed_os_examples() {
     def examples = []
-    dir('examples'){
+    dir('examples') {
         git url: 'git@github.com:ARMmbed/mbed-os-example-tls.git', branch: MBED_OS_EXAMPLES_BRANCH
         examples = find_examples()
         stash 'examples_src'
@@ -146,8 +143,8 @@ def checkout_mbed_os_examples(){
         echo examples.join(", ")
         def oneexample = examples[0]
         if ( oneexample != null ) {
-            dir( oneexample ){
-                dir('mbed-os'){
+            dir( oneexample ) {
+                dir('mbed-os') {
                     git branch: MBEDOS_BRANCH, url: MBEDOS_REPO
                     dir('features/mbedtls/importer') {
                         sh """
@@ -164,19 +161,19 @@ make all
     return examples
 }
 
-def gen_mbed_os_example_job( example, compiler, platform ){
+def gen_mbed_os_example_job( example, compiler, platform ) {
     return {
-       node( compiler ){
+        node( compiler ) {
             timestamps {
                 deleteDir()
                 unstash "examples_src"
-                dir( example ){
-                sh """
+                dir( example ) {
+                    sh """
 rm -f mbed-os.lib
 mbed config root .
 mbed deploy -vv
 """
-                    dir('mbed-os'){
+                    dir('mbed-os') {
                         deleteDir()
                         unstash "mbed-os_src"
                     }
@@ -199,8 +196,8 @@ mbedhtrun -m ${platform} -g raas_client:auli.mbedcloudtesting.com:8000 -P 1000 -
 """
                 }
             }
-       }
-   }
+        }
+    }
 }
 
 // Keep track of builds that fail
@@ -228,15 +225,15 @@ node {
     if (RUN_BASIC_BUILD_TEST == "true") {
         parallel_jobs['code_coverage'] = get_code_coverage_job();
     }
-    if (RUN_ALL == "true"){
+    if (RUN_ALL == "true") {
         parallel_jobs['all_sh'] = get_all_sh_job();
     }
     
-    if (RUN_WINDOWS_TEST == "true"){
+    if (RUN_WINDOWS_TEST == "true") {
         parallel_jobs['Windows'] = get_windows_tests_job();
     }
     
-    if (TEST_MBED_OS_EXAMPLES == "true"){
+    if (TEST_MBED_OS_EXAMPLES == "true") {
         examples = checkout_mbed_os_examples()
         for( example in examples ) {
             for( compiler in compilers ) {
@@ -250,11 +247,12 @@ node {
             }
         }
     }
+
     parallel_jobs['iar8-mingw'] = {
         node ("windows-tls") {
-        deleteDir()
-        unstash 'src'
-        bat """
+            deleteDir()
+            unstash 'src'
+            bat """
 perl scripts/config.pl baremetal
 cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
 mingw32-make lib
@@ -266,7 +264,7 @@ mingw32-make lib
     try {
         parallel parallel_jobs
     } catch( err ) {
-        if ( currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause') ){
+        if ( currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause') ) {
             keys = failedBuilds.keySet()
             failures = keys.join(", ")
             emailbody = """
