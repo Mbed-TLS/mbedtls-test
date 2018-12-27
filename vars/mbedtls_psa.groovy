@@ -32,7 +32,12 @@ make test
 ./programs/test/selftest
 """
 
-@Field cmake_full_test_sh = cmake_test_sh + """\
+@Field cmake_full_test_sh = """\
+CC=%s  cmake -D CMAKE_BUILD_TYPE:String=Check .
+make clean
+make
+make test
+./programs/test/selftest
 export SEED=1
 export LOG_FAILURE_ON_STDOUT=1
 ./tests/scripts/test-ref-configs.pl
