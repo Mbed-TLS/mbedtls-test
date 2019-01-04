@@ -125,7 +125,7 @@ make all
 }
 
 def checkout_mbed_os_examples() {
-    git url: 'git@github.com:ARMmbed/mbed-os-example-tls.git',
+    git url: MBED_OS_EXAMPLES_REPO,
         branch: MBED_OS_EXAMPLES_BRANCH
 }
 
