@@ -223,9 +223,6 @@ mingw32-make lib
         for( example in examples ) {
             for( compiler in compilers ) {
                 for( platform in platforms ) {
-                    if (example == 'tls-client' && platform == 'UBLOX_EVK_ODIN_W2') {
-                        continue
-                    }
                     parallel_jobs["${example}-${platform}-${compiler}"] =
                         gen_mbed_os_example_job(example, compiler, platform)
                 }
