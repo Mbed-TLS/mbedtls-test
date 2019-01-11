@@ -19,9 +19,9 @@ set -x
 chmod +x mbedtls_src/steps.sh
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh -w /var/lib/build -v `pwd`/mbedtls_src:/var/lib/build -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh ubuntu-16.04-x64
 '''
-            } catch ( err ) {
+            } catch (err) {
                 failedBuilds['basic-build-test'] = true
-                throw( err )
+                throw (err)
             } finally {
                 echo coverage_log
                 coverage_details = coverage_log.substring(
@@ -58,9 +58,9 @@ set ./tests/scripts/all.sh --seed 4 --keep-going
 chmod +x mbedtls_src/steps.sh
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh -w /var/lib/build -v `pwd`/mbedtls_src:/var/lib/build -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh --cap-add SYS_PTRACE ubuntu-16.04-x64
 '''
-            } catch ( err ) {
+            } catch (err) {
                 failedBuilds['all.sh'] = true
-                throw( err )
+                throw (err)
             }
         }
     }
@@ -68,7 +68,7 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh -w /
 
 def get_windows_tests_job() {
     return {
-        node ("windows-tls") {
+        node("windows-tls") {
             try {
                 dir("mbedtls") {
                     deleteDir()
@@ -99,9 +99,9 @@ def get_windows_tests_job() {
                 }
                 
                 bat "python tools/windows_testing/windows_testing.py mbedtls logs $MBEDTLS_BRANCH"
-            } catch ( err ) {
+            } catch (err) {
                 failedBuilds['Windows tests'] = true
-                throw( err )
+                throw (err)
             }
         }
     }
@@ -129,14 +129,14 @@ def checkout_mbed_os_examples() {
         branch: MBED_OS_EXAMPLES_BRANCH
 }
 
-def gen_mbed_os_example_job( example, compiler, platform ) {
+def gen_mbed_os_example_job(example, compiler, platform) {
     return {
-        node( compiler ) {
+        node(compiler) {
             try {
                 timestamps {
                     deleteDir()
                     checkout_mbed_os_examples()
-                    dir( example ) {
+                    dir(example) {
                         sh """
 rm -f mbed-os.lib
 mbed config root .
@@ -167,9 +167,9 @@ mbedhtrun -m ${platform} -g raas_client:auli.mbedcloudtesting.com:8000 -P 1000 -
 """
                     }
                 }
-            } catch ( err ) {
+            } catch (err) {
                 failedBuilds["${example}-${platform}-${compiler}"] = true
-                throw( err )
+                throw (err)
             }
         }
     }
@@ -202,7 +202,7 @@ node {
         parallel_jobs['Windows'] = get_windows_tests_job();
 
         parallel_jobs['iar8-mingw'] = {
-            node ("windows-tls") {
+            node("windows-tls") {
                 try {
                     dir("mbedtls") {
                         deleteDir()
@@ -213,18 +213,18 @@ cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Mak
 mingw32-make lib
 """
                     }
-                } catch ( err ) {
+                } catch (err) {
                     failedBuilds['iar8-mingw'] = true
-                    throw( err )
+                    throw (err)
                 }
             }
         }
     }
     
     if (TEST_MBED_OS_EXAMPLES == "true") {
-        for( example in examples ) {
-            for( compiler in compilers ) {
-                for( platform in platforms ) {
+        for (example in examples) {
+            for (compiler in compilers) {
+                for (platform in platforms) {
                     parallel_jobs["${example}-${platform}-${compiler}"] =
                         gen_mbed_os_example_job(example, compiler, platform)
                 }
@@ -236,8 +236,8 @@ mingw32-make lib
     try {
         parallel parallel_jobs
     } finally {
-        if ( currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause') ) {
-            if( failedBuilds.size() == 0 ) {
+        if (currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause')) {
+            if (failedBuilds.size() == 0) {
                 emailbody = """
 ${coverage_details}
 
