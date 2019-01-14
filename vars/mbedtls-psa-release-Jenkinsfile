@@ -196,10 +196,18 @@ node {
         dir('mbedtls') {
             deleteDir()
             checkout_mbedtls()
-            components = sh(
-                script: "./tests/scripts/all.sh --list-components",
+            all_sh_help = sh(
+                script: "./tests/scripts/all.sh --help",
                 returnStdout: true
-            ).trim().split('\n')
+            )
+            if (all_sh_help.contains('list-components')) {
+                components = sh(
+                    script: "./tests/scripts/all.sh --list-components",
+                    returnStdout: true
+                ).trim().split('\n')
+            } else {
+                components = [""]
+            }
         }
         for (component in components) {
             parallel_jobs["all_sh-${component}"] = get_all_sh_job(component);
