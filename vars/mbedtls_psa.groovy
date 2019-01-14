@@ -193,6 +193,56 @@ def gen_windows_jobs(label, script) {
     return jobs
 }
 
+def gen_all_sh_jobs() {
+    def jobs = [:]
+
+    dir('mbedtls') {
+        checkout scm
+        all_sh_help = sh(
+            script: "./tests/scripts/all.sh --help",
+            returnStdout: true
+        )
+        if (all_sh_help.contains('list-components')) {
+            components = sh(
+                script: "./tests/scripts/all.sh --list-components",
+                returnStdout: true
+            ).trim().split('\n')
+            for (component in components) {
+                jobs["all_sh-${component}"] = {
+                    node('ubuntu-16.10-x64 && mbedtls') {
+                        timestamps {
+                            deleteDir()
+                            dir('src') {
+                                checkout scm
+                                writeFile file: 'steps.sh', text: """\
+#!/bin/sh
+set -eux
+git config --global user.email "you@example.com"
+git config --global user.name "Your Name"
+git init
+git add .
+git commit -m 'CI code copy'
+export LOG_FAILURE_ON_STDOUT=1
+set ./tests/scripts/all.sh --seed 4 --keep-going $component
+"\$@"
+"""
+                            }
+                            sh """\
+chmod +x src/steps.sh
+docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
+-w /var/lib/build -v `pwd`/src:/var/lib/build \
+-v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh \
+--cap-add SYS_PTRACE ubuntu-16.04-x64
+"""
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return jobs
+}
+
 def checkout_coverity_repo() {
     checkout changelog: false, poll: false,
         scm: [
@@ -265,6 +315,9 @@ def run_job() {
             jobs = jobs + gen_node_jobs_foreach(
                 'coverity', coverity_platforms, coverity_compilers, std_coverity_sh
             )
+
+            /* All.sh jobs */
+            jobs = jobs + gen_all_sh_jobs()
 
             jobs.failFast = false
             parallel jobs
