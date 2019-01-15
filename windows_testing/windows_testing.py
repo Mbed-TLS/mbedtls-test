@@ -336,6 +336,7 @@ class MbedWindowsTesting(object):
         my_environment = self.get_environment_containing_VSCMD_START_DIR(
             solution_dir
         )
+        my_environment["CTEST_OUTPUT_ON_FAILURE"] = "1"
         msbuild_test_process = subprocess.Popen(
             ["cmd.exe"],
             env=my_environment,
