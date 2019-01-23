@@ -105,16 +105,14 @@ RUN wget -q https://www.openssl.org/source/old/1.0.1/openssl-1.0.1j.tar.gz && \
 
 ENV OPENSSL_LEGACY=/usr/local/openssl-1.0.1j/bin/openssl
 
-
-# Install openssl 1.1.1-pre1 for ARIA cipher testing
-RUN wget -q https://www.openssl.org/source/openssl-1.1.1-pre1.tar.gz && \
-    tar -zxf openssl-1.1.1-pre1.tar.gz && cd openssl-1.1.1-pre1 && \
-    ./config --openssldir=/usr/local/openssl-1.1.1-pre1 && \
+# Install openssl 1.1.1a for ARIA cipher testing
+RUN wget -q https://www.openssl.org/source/openssl-1.1.1a.tar.gz && \
+    tar -zxf openssl-1.1.1a.tar.gz && cd openssl-1.1.1a && \
+    ./config --prefix=/usr/local/openssl-1.1.1a -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' && \
     make clean && make && make install && cd .. && \
-    rm -rf openssl-1.1.1-pre1*
+    rm -rf openssl-1.1.1a*
 
-ENV OPENSSL_NEXT=/usr/local/openssl-1.1.1-pre1/bin/openssl
-
+ENV OPENSSL_NEXT=/usr/local/openssl-1.1.1a/bin/openssl
 
 # Install Gnu TLS 3.4.10
 RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.1.tar.gz && \
