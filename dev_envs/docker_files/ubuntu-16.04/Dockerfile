@@ -197,6 +197,8 @@ RUN apt-get purge -y unattended-upgrades
 
 
 # Install Python pip packages
+RUN pip install pip setuptools --upgrade > /dev/null
+
 RUN pip install yotta matplotlib > /dev/null
 
 # Set the locale
