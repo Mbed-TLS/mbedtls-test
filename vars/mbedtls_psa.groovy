@@ -1,6 +1,7 @@
 import groovy.transform.Field
 
-@Field basic_test_sh = """make clean
+@Field basic_test_sh = """\
+make clean
 ./tests/scripts/recursion.pl library/*.c
 ./tests/scripts/check-generated-files.sh
 ./tests/scripts/check-doxy-blocks.pl
@@ -9,26 +10,29 @@ import groovy.transform.Field
 ./tests/scripts/doxygen.sh
 """
 
-@Field std_make_test_sh = """make clean
+@Field std_make_test_sh = """\
+make clean
 CC=%s make
 make check
 ./programs/test/selftest
 """
 
-@Field gmake_test_sh = """gmake clean
+@Field gmake_test_sh = """\
+gmake clean
 CC=%s gmake
 gmake check
 ./programs/test/selftest
 """
 
-@Field cmake_test_sh = """CC=%s  cmake -D CMAKE_BUILD_TYPE:String=Check .
+@Field cmake_test_sh = """\
+CC=%s  cmake -D CMAKE_BUILD_TYPE:String=Check .
 make clean
 make
 make test
 ./programs/test/selftest
 """
 
-@Field cmake_full_test_sh = cmake_test_sh + """
+@Field cmake_full_test_sh = cmake_test_sh + """\
 openssl version
 gnutls-serv -v
 export PATH=/usr/local/openssl-1.0.2g/bin:/usr/local/gnutls-3.4.10/bin:\$PATH
@@ -40,7 +44,7 @@ export LOG_FAILURE_ON_STDOUT=1
 """
 
 
-@Field cmake_asan_test_sh = """
+@Field cmake_asan_test_sh = """\
 if grep 'fno-sanitize-recover[^=]' CMakeLists.txt
 then
     sed -i 's/fno-sanitize-recover/fno-sanitize-recover=undefined,integer/' CMakeLists.txt;
@@ -57,20 +61,20 @@ export LOG_FAILURE_ON_STDOUT=1
 ./tests/scripts/test-ref-configs.pl
 """
 
-@Field win32_mingw_test_bat = """
+@Field win32_mingw_test_bat = """\
 cmake . -G "MinGW Makefiles" -DCMAKE_C_COMPILER="gcc"
 mingw32-make
 ctest -VV
 programs\\test\\selftest.exe
 """
 
-@Field iar8_mingw_test_bat = """
+@Field iar8_mingw_test_bat = """\
 perl scripts/config.pl baremetal
 cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
 mingw32-make lib
 """
 
-@Field win32_msvc12_32_test_bat = """
+@Field win32_msvc12_32_test_bat = """\
 if exist scripts\\generate_psa_constants.py scripts\\generate_psa_constants.py
 call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
 cmake . -G "Visual Studio 12"
@@ -78,7 +82,7 @@ MSBuild ALL_BUILD.vcxproj
 programs\\test\\Debug\\selftest.exe
 """
 
-@Field win32_msvc12_64_test_bat = """
+@Field win32_msvc12_64_test_bat = """\
 if exist scripts\\generate_psa_constants.py scripts\\generate_psa_constants.py
 call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
 cmake . -G "Visual Studio 12 Win64"
@@ -86,7 +90,7 @@ MSBuild ALL_BUILD.vcxproj
 programs\\test\\Debug\\selftest.exe
 """
 
-@Field std_coverity_sh = """
+@Field std_coverity_sh = """\
 python coverity-tools/coverity_build.py \
 --dir coverity \
 -v \
@@ -107,23 +111,24 @@ aws s3 cp coverity-PSA-Crypto-Coverity.tar.gz s3://coverity-reports
     'cc' : 'cc'
 ]
 
-def gen_docker_jobs_foreach ( label, platforms, compilers, script ){
+def gen_docker_jobs_foreach(label, platforms, compilers, script) {
     def jobs = [:]
 
-    for ( platform in platforms ){
-        for ( compiler in compilers ){
+    for (platform in platforms) {
+        for (compiler in compilers) {
             def job_name = "${label}-${compiler}-${platform}"
             def docker_image_tag = "${platform}"
             def compiler_path = compiler_paths["${compiler}"]
-            def shell_script = sprintf( "${script}", "${compiler_path}" )
+            def shell_script = sprintf("${script}", "${compiler_path}")
             jobs[job_name] = {
-                node( "mbedtls && ubuntu-16.10-x64" ){
+                node("mbedtls && ubuntu-16.10-x64") {
                     timestamps {
                         sh 'rm -rf *'
                         deleteDir()
-                        dir('src'){
+                        dir('src') {
                             checkout scm
-                            writeFile file: 'steps.sh', text: """#!/bin/sh
+                            writeFile file: 'steps.sh', text: """\
+#!/bin/sh
 set -x
 set -v
 set -e
@@ -132,9 +137,11 @@ chmod -R 777 .
 exit
 """
                         }
-                        sh """
+                        sh """\
 chmod +x src/steps.sh
-docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh -w /var/lib/build -v `pwd`/src:/var/lib/build -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh ${docker_image_tag}
+docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
+-w /var/lib/build -v `pwd`/src:/var/lib/build \
+-v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh ${docker_image_tag}
 """
                     }
                 }
@@ -144,21 +151,21 @@ docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh -w /
     return jobs
 }
 
-def gen_node_jobs_foreach ( label, platforms, compilers, script ){
+def gen_node_jobs_foreach(label, platforms, compilers, script) {
     def jobs = [:]
 
-    for ( platform in platforms ){
-        for ( compiler in compilers ){
+    for (platform in platforms) {
+        for (compiler in compilers) {
             def job_name = "${label}-${compiler}-${platform}"
             def node_lbl = "${platform}"
             def compiler_path = compiler_paths["${compiler}"]
-            def shell_script = sprintf( "${script}", "${compiler_path}" )
+            def shell_script = sprintf("${script}", "${compiler_path}")
             jobs[job_name] = {
-                node( node_lbl ){
+                node(node_lbl) {
                     timestamps {
                         deleteDir()
                         checkout scm
-                        if ( label == 'coverity' ) {
+                        if (label == 'coverity') {
                             checkout_coverity_repo()
                         }
                         shell_script = """
@@ -173,14 +180,64 @@ export PYTHON=/usr/local/bin/python2.7
     return jobs
 }
 
-def gen_windows_jobs ( label, script ) {
+def gen_windows_jobs(label, script) {
     def jobs = [:]
 
     jobs[label] = {
-        node ("windows-tls") {
+        node("windows-tls") {
             deleteDir()
             checkout scm
             bat script
+        }
+    }
+    return jobs
+}
+
+def gen_all_sh_jobs() {
+    def jobs = [:]
+
+    dir('mbedtls') {
+        checkout scm
+        all_sh_help = sh(
+            script: "./tests/scripts/all.sh --help",
+            returnStdout: true
+        )
+        if (all_sh_help.contains('list-components')) {
+            components = sh(
+                script: "./tests/scripts/all.sh --list-components",
+                returnStdout: true
+            ).trim().split('\n')
+            for (component in components) {
+                jobs["all_sh-${component}"] = {
+                    node('ubuntu-16.10-x64 && mbedtls') {
+                        timestamps {
+                            deleteDir()
+                            dir('src') {
+                                checkout scm
+                                writeFile file: 'steps.sh', text: """\
+#!/bin/sh
+set -eux
+git config --global user.email "you@example.com"
+git config --global user.name "Your Name"
+git init
+git add .
+git commit -m 'CI code copy'
+export LOG_FAILURE_ON_STDOUT=1
+set ./tests/scripts/all.sh --seed 4 --keep-going $component
+"\$@"
+"""
+                            }
+                            sh """\
+chmod +x src/steps.sh
+docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
+-w /var/lib/build -v `pwd`/src:/var/lib/build \
+-v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh \
+--cap-add SYS_PTRACE ubuntu-16.04-x64
+"""
+                        }
+                    }
+                }
+            }
         }
     }
     return jobs
@@ -203,14 +260,14 @@ def checkout_coverity_repo() {
 }
 
 /* main job */
-def run_job(){
+def run_job() {
     node {
         try {
             deleteDir()
-            def one_platform = [ "debian-x64" ]
-            def linux_platforms = [ "debian-i386", "debian-x64" ]
-            def bsd_platforms = [ "freebsd" ]
-            def bsd_compilers = [ "clang" ]
+            def one_platform = ["debian-x64"]
+            def linux_platforms = ["debian-i386", "debian-x64"]
+            def bsd_platforms = ["freebsd"]
+            def bsd_compilers = ["clang"]
             def windows_platforms = ['windows']
             def coverity_platforms = ['coverity && gcc']
             def windows_compilers = ['cc']
@@ -220,29 +277,52 @@ def run_job(){
             def coverity_compilers = ['gcc']
 
             /* Linux jobs */
-            def jobs = gen_docker_jobs_foreach( 'basic', one_platform, gcc_compilers, basic_test_sh )
-            jobs = jobs + gen_docker_jobs_foreach( 'std-make', linux_platforms, all_compilers, std_make_test_sh )
-            jobs = jobs + gen_docker_jobs_foreach( 'cmake', linux_platforms, all_compilers, cmake_test_sh )
-            jobs = jobs + gen_docker_jobs_foreach( 'cmake-full', linux_platforms, gcc_compilers, cmake_full_test_sh )
-            jobs = jobs + gen_docker_jobs_foreach( 'cmake-asan', linux_platforms, asan_compilers, cmake_asan_test_sh )
+            def jobs = gen_docker_jobs_foreach(
+                'basic', one_platform, gcc_compilers, basic_test_sh
+            )
+            jobs = jobs + gen_docker_jobs_foreach(
+                'std-make', linux_platforms, all_compilers, std_make_test_sh
+            )
+            jobs = jobs + gen_docker_jobs_foreach(
+                'cmake', linux_platforms, all_compilers, cmake_test_sh
+            )
+            jobs = jobs + gen_docker_jobs_foreach(
+                'cmake-full', linux_platforms, gcc_compilers, cmake_full_test_sh
+            )
+            jobs = jobs + gen_docker_jobs_foreach(
+                'cmake-asan', linux_platforms, asan_compilers, cmake_asan_test_sh
+            )
 
             /* BSD jobs */
-            jobs = jobs + gen_node_jobs_foreach( 'gmake', bsd_platforms, bsd_compilers, gmake_test_sh )
-            jobs = jobs + gen_node_jobs_foreach( 'cmake', bsd_platforms, bsd_compilers, cmake_test_sh )
+            jobs = jobs + gen_node_jobs_foreach(
+                'gmake', bsd_platforms, bsd_compilers, gmake_test_sh
+            )
+            jobs = jobs + gen_node_jobs_foreach(
+                'cmake', bsd_platforms, bsd_compilers, cmake_test_sh
+            )
 
             /* Windows jobs */
-            jobs = jobs + gen_windows_jobs( 'win32-mingw', win32_mingw_test_bat )
-            jobs = jobs + gen_windows_jobs( 'win32_msvc12_32-mingw', win32_msvc12_32_test_bat )
-            jobs = jobs + gen_windows_jobs( 'win32-win32_msvc12_64', win32_msvc12_64_test_bat )
-            jobs = jobs + gen_windows_jobs( 'iar8-mingw', iar8_mingw_test_bat )
+            jobs = jobs + gen_windows_jobs('win32-mingw', win32_mingw_test_bat)
+            jobs = jobs + gen_windows_jobs(
+                'win32_msvc12_32-mingw', win32_msvc12_32_test_bat
+            )
+            jobs = jobs + gen_windows_jobs(
+                'win32-win32_msvc12_64', win32_msvc12_64_test_bat
+            )
+            jobs = jobs + gen_windows_jobs('iar8-mingw', iar8_mingw_test_bat)
 
             /* Coverity jobs */
-            jobs = jobs + gen_node_jobs_foreach( 'coverity', coverity_platforms, coverity_compilers, std_coverity_sh )
+            jobs = jobs + gen_node_jobs_foreach(
+                'coverity', coverity_platforms, coverity_compilers, std_coverity_sh
+            )
+
+            /* All.sh jobs */
+            jobs = jobs + gen_all_sh_jobs()
 
             jobs.failFast = false
             parallel jobs
-        } catch ( err ) {
-            throw( err );
+        } catch (err) {
+            throw (err);
         }
     }
 }
