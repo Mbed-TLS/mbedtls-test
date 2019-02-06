@@ -185,7 +185,7 @@ RUN wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.6/gnutls-3.6.5.tar.xz && 
     rm -rf gnutls-3.6.5*
 
 ENV GNUTLS_NEXT_CLI=/usr/local/gnutls-3.6.5/bin/gnutls-cli
-ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.4.5/bin/gnutls-serv
+ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.6.5/bin/gnutls-serv
 
 # Install version control systems
 RUN apt-get update > /dev/null && \
