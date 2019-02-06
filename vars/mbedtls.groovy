@@ -39,6 +39,18 @@ find . -name c-srv-1.log|xargs cat
 ./tests/scripts/test-ref-configs.pl
 """
 
+@Field std_make_full_config_test_sh = """make clean
+scripts/config.pl full
+scripts/config.pl unset MBEDTLS_MEMORY_BUFFER_ALLOC_C
+CC=%s make
+make check
+export PATH=/usr/local/openssl-1.0.2g/bin:/usr/local/gnutls-3.4.10/bin:\$PATH
+export SEED=1
+export LOG_FAILURE_ON_STDOUT=1
+./tests/ssl-opt.sh
+./tests/compat.sh
+"""
+
 @Field cmake_asan_test_sh = """
 set +e
 if grep 'fno-sanitize-recover[^=]' CMakeLists.txt
@@ -183,6 +195,7 @@ def run_job(){
             /* Linux jobs */
             def jobs = gen_docker_jobs_foreach( 'basic', one_platform, gcc_compilers, basic_test_sh )
             jobs = jobs + gen_docker_jobs_foreach( 'std-make', linux_platforms, all_compilers, std_make_test_sh )
+            jobs = jobs + gen_docker_jobs_foreach( 'std-make-full-config', linux_platforms, all_compilers, std_make_full_config_test_sh )
             jobs = jobs + gen_docker_jobs_foreach( 'cmake', linux_platforms, all_compilers, cmake_test_sh )
             jobs = jobs + gen_docker_jobs_foreach( 'cmake-full', linux_platforms, gcc_compilers, cmake_full_test_sh )
             jobs = jobs + gen_docker_jobs_foreach( 'cmake-asan', linux_platforms, asan_compilers, cmake_asan_test_sh )
