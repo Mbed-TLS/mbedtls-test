@@ -105,16 +105,14 @@ RUN wget -q https://www.openssl.org/source/old/1.0.1/openssl-1.0.1j.tar.gz && \
 
 ENV OPENSSL_LEGACY=/usr/local/openssl-1.0.1j/bin/openssl
 
-
-# Install openssl 1.1.1-pre1 for ARIA cipher testing
-RUN wget -q https://www.openssl.org/source/openssl-1.1.1-pre1.tar.gz && \
-    tar -zxf openssl-1.1.1-pre1.tar.gz && cd openssl-1.1.1-pre1 && \
-    ./config --openssldir=/usr/local/openssl-1.1.1-pre1 && \
+# Install openssl 1.1.1a for ARIA cipher testing
+RUN wget -q https://www.openssl.org/source/openssl-1.1.1a.tar.gz && \
+    tar -zxf openssl-1.1.1a.tar.gz && cd openssl-1.1.1a && \
+    ./config --prefix=/usr/local/openssl-1.1.1a -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' && \
     make clean && make && make install && cd .. && \
-    rm -rf openssl-1.1.1-pre1*
+    rm -rf openssl-1.1.1a*
 
-ENV OPENSSL_NEXT=/usr/local/openssl-1.1.1-pre1/bin/openssl
-
+ENV OPENSSL_NEXT=/usr/local/openssl-1.1.1a/bin/openssl
 
 # Install Gnu TLS 3.4.10
 RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.1.tar.gz && \
@@ -163,6 +161,33 @@ RUN wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.3/gnutls-3.3.8.tar.xz && 
 ENV GNUTLS_LEGACY_CLI=/usr/local/gnutls-3.3.8/bin/gnutls-cli
 ENV GNUTLS_LEGACY_SERV=/usr/local/gnutls-3.3.8/bin/gnutls-serv
 
+# Instal GNU TLS 3.6.5 for broader interoperability testing
+RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.4.1.tar.gz && \
+    tar -zxf nettle-3.4.1.tar.gz && cd nettle-3.4.1 && \
+    ./configure --prefix=/usr/local/libnettle-3.4.1 --exec_prefix=/usr/local/libnettle-3.4.1  --disable-shared && \
+    make && make install && cd .. && rm -rf nettle-3.4.1*
+
+RUN wget -q https://ftp.gnu.org/gnu/libtasn1/libtasn1-4.9.tar.gz && \
+    tar -zxf libtasn1-4.9.tar.gz && cd libtasn1-4.9 && \
+    ./configure && make && make install && \
+    cd .. && rm -rf libtasn1-4.9*
+
+ENV PKG_CONFIG_PATH=/usr/local/libnettle-3.4.1/lib/pkgconfig:/usr/local/libnettle-3.4.1/lib64/pkgconfig:/usr/local/lib/pkgconfig
+
+RUN apt-get update > /dev/null && \
+    apt-get install -y libunistring-dev > /dev/null && \
+    apt-get clean && rm -rf /var/lib/apt/lists/
+
+RUN wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.6/gnutls-3.6.5.tar.xz && \
+    tar -xJf gnutls-3.6.5.tar.xz && cd gnutls-3.6.5 && \
+    ./configure --prefix=/usr/local/gnutls-3.6.5 --exec_prefix=/usr/local/gnutls-3.6.5 --disable-shared && \
+    make && make install && cat config.log && cd .. && \
+    rm -rf gnutls-3.6.5*
+
+ENV GNUTLS_NEXT_CLI=/usr/local/gnutls-3.6.5/bin/gnutls-cli
+ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.6.5/bin/gnutls-serv
+
+# Install version control systems
 RUN apt-get update > /dev/null && \
     apt-get install -y git mercurial subversion zip python-tk wget  > /dev/null && \
     apt-get clean && rm -rf /var/lib/apt/lists/
@@ -172,6 +197,8 @@ RUN apt-get purge -y unattended-upgrades
 
 
 # Install Python pip packages
+RUN pip install pip setuptools --upgrade > /dev/null
+
 RUN pip install yotta matplotlib > /dev/null
 
 # Set the locale
