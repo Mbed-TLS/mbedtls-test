@@ -111,6 +111,8 @@ aws s3 cp coverity-PSA-Crypto-Coverity.tar.gz s3://coverity-reports
     'cc' : 'cc'
 ]
 
+@Field docker_repo = '853142832404.dkr.ecr.eu-west-1.amazonaws.com/jenkins-mbedtls'
+
 def gen_docker_jobs_foreach(label, platforms, compilers, script) {
     def jobs = [:]
 
@@ -125,6 +127,7 @@ def gen_docker_jobs_foreach(label, platforms, compilers, script) {
                     timestamps {
                         sh 'rm -rf *'
                         deleteDir()
+                        get_docker_image(platform)
                         dir('src') {
                             checkout scm
                             writeFile file: 'steps.sh', text: """\
@@ -141,7 +144,7 @@ exit
 chmod +x src/steps.sh
 docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
 -w /var/lib/build -v `pwd`/src:/var/lib/build \
--v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh ${docker_image_tag}
+-v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $docker_repo:$docker_image_tag
 """
                     }
                 }
@@ -193,13 +196,14 @@ def gen_windows_jobs(label, script) {
     return jobs
 }
 
-def gen_all_sh_jobs(component) {
+def gen_all_sh_jobs(platform, component) {
     def jobs = [:]
 
     jobs["all_sh-${component}"] = {
         node('ubuntu-16.10-x64 && mbedtls') {
             timestamps {
                 deleteDir()
+                get_docker_image(platform)
                 dir('src') {
                     checkout scm
                     writeFile file: 'steps.sh', text: """\
@@ -220,7 +224,7 @@ chmod +x src/steps.sh
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
 -w /var/lib/build -v `pwd`/src:/var/lib/build \
 -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh \
---cap-add SYS_PTRACE ubuntu-16.04-x64
+--cap-add SYS_PTRACE $docker_repo:$platform
 """
             }
         }
@@ -244,13 +248,17 @@ def checkout_coverity_repo() {
                 credentialsId: "${env.GIT_CREDENTIALS_ID}"]]]
 }
 
+def get_docker_image(docker_image) {
+    sh "\$(aws ecr get-login) && docker pull $docker_repo:$docker_image"
+}
+
 /* main job */
 def run_job() {
     node {
         try {
             deleteDir()
-            def one_platform = ["debian-x64"]
-            def linux_platforms = ["debian-i386", "debian-x64"]
+            def one_platform = ["debian-9-x64"]
+            def linux_platforms = ["debian-9-i386", "debian-9-x64"]
             def bsd_platforms = ["freebsd"]
             def bsd_compilers = ["clang"]
             def windows_platforms = ['windows']
@@ -315,7 +323,9 @@ def run_job() {
                         returnStdout: true
                     ).trim().split('\n')
                     for (component in components) {
-                        jobs = jobs + gen_all_sh_jobs(component)
+                        jobs = jobs + gen_all_sh_jobs(
+                            'ubuntu-16.04', component
+                        )
                     }
                 }
             }

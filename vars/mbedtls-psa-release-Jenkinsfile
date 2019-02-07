@@ -2,11 +2,12 @@
 import groovy.transform.Field
 
 /* Create code coverage job */
-def get_code_coverage_job() {
+def get_code_coverage_job(platform) {
     return {
         node('mbedtls && ubuntu-16.10-x64') {
             try {
                 deleteDir()
+                get_docker_image(platform)
                 dir('mbedtls_src') {
                     checkout_mbedtls()
                     writeFile file: 'steps.sh', text: '''#!/bin/sh
@@ -15,10 +16,12 @@ set -x
 ./tests/scripts/basic-build-test.sh 2>&1
 '''
                 }
-                coverage_log = sh returnStdout: true, script: '''
+                coverage_log = sh returnStdout: true, script: """
 chmod +x mbedtls_src/steps.sh
-docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh -w /var/lib/build -v `pwd`/mbedtls_src:/var/lib/build -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh ubuntu-16.04-x64
-'''
+docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
+-w /var/lib/build -v `pwd`/mbedtls_src:/var/lib/build \
+-v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $docker_repo:$platform
+"""
             } catch (err) {
                 failedBuilds['basic-build-test'] = true
                 throw (err)
@@ -35,11 +38,12 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh -w /
     }
 }
 
-def get_all_sh_job(component) {
+def get_all_sh_job(component, platform) {
     return {
         node('ubuntu-16.10-x64 && mbedtls') {
             try {
                 deleteDir()
+                get_docker_image(platform)
                 dir('mbedtls_src') {
                     checkout_mbedtls()
                     writeFile file: 'steps.sh', text: """#!/bin/sh
@@ -54,10 +58,13 @@ set ./tests/scripts/all.sh --seed 4 --keep-going $component
 "\$@"
 """
                 }
-                sh '''
+                sh """
 chmod +x mbedtls_src/steps.sh
-docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh -w /var/lib/build -v `pwd`/mbedtls_src:/var/lib/build -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh --cap-add SYS_PTRACE ubuntu-16.04-x64
-'''
+docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
+-w /var/lib/build -v `pwd`/mbedtls_src:/var/lib/build \
+-v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh --cap-add SYS_PTRACE \
+$docker_repo:$platform
+"""
             } catch (err) {
                 failedBuilds['all.sh'] = true
                 throw (err)
@@ -129,6 +136,10 @@ def checkout_mbed_os_examples() {
         branch: MBED_OS_EXAMPLES_BRANCH
 }
 
+def get_docker_image(platform) {
+    sh "\$(aws ecr get-login) && docker pull $docker_repo:$platform"
+}
+
 def gen_mbed_os_example_job(example, compiler, platform) {
     return {
         node(compiler) {
@@ -186,12 +197,15 @@ mbedhtrun -m ${platform} -g raas_client:auli.mbedcloudtesting.com:8000 -P 1000 -
 
 @Field examples = ['authcrypt', 'benchmark', 'hashing', 'tls-client']
 
+@Field docker_repo = '853142832404.dkr.ecr.eu-west-1.amazonaws.com/jenkins-mbedtls'
+
 /* main job */
 node {
     parallel_jobs = [:]
+    platform = 'ubuntu-16.04'
     
     if (RUN_BASIC_BUILD_TEST == "true") {
-        parallel_jobs['code_coverage'] = get_code_coverage_job();
+        parallel_jobs['code_coverage'] = get_code_coverage_job(platform);
     }
 
     if (RUN_ALL == "true") {
@@ -212,7 +226,7 @@ node {
             }
         }
         for (component in components) {
-            parallel_jobs["all_sh-${component}"] = get_all_sh_job(component);
+            parallel_jobs["all_sh-${component}"] = get_all_sh_job(component, platform);
         }
     }
     
