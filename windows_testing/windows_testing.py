@@ -496,14 +496,14 @@ class MbedWindowsTesting(object):
                 vs_logger
             )
             self.set_config_on_code(git_worktree_path, vs_logger)
-            if os.path.exists(os.path.join(git_worktree_path, "scripts",
-                                           "generate_psa_constants.py")):
-                self.generate_psa_constants(git_worktree_path, vs_logger)
             if solution_type == "cmake":
                 solution_dir = self.build_visual_studio_solution_using_cmake(
                     git_worktree_path, test_run, vs_logger
                 )
             else:
+                if os.path.exists(os.path.join(git_worktree_path, "scripts",
+                                               "generate_psa_constants.py")):
+                    self.generate_psa_constants(git_worktree_path, vs_logger)
                 solution_dir = os.path.join(
                     git_worktree_path, "visualc", "VS2010"
                 )
