@@ -122,10 +122,11 @@ def checkout_mbedtls() {
 def checkout_mbed_os() {
     git branch: MBEDOS_BRANCH,
         url: MBEDOS_REPO
-    dir('features/mbedtls/importer') {
-        sh """
+    dir('features/mbedtls/mbed-crypto/importer') {
+        sh """\
+export CRYPTO_RELEASE=$MBEDTLS_BRANCH
+export CRYPTO_REPO_URL=$MBEDTLS_REPO
 make update
-git -C TARGET_IGNORE/mbedtls/crypto checkout $MBEDTLS_BRANCH
 make all
 """
     }
