@@ -91,8 +91,7 @@ def get_windows_tests_job() {
                 
                 dir("tools") {
                     deleteDir()
-                    git branch: "master",
-                        url: "git@github.com:ARMmbed/mbedtls-test.git"
+                    checkout scm
                 }
                 
                 dir("logs") {
