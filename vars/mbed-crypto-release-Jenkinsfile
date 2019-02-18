@@ -121,6 +121,16 @@ def checkout_mbed_crypto() {
 def checkout_mbed_os() {
     git branch: MBEDOS_BRANCH,
         url: MBEDOS_REPO
+    if (MBED_TLS_BRANCH) {
+        dir('features/mbedtls/importer') {
+            sh """\
+export MBED_TLS_RELEASE=$MBED_TLS_BRANCH
+export MBED_TLS_REPO_URL=$MBED_TLS_REPO
+make update
+make all
+"""
+        }
+    }
     dir('features/mbedtls/mbed-crypto/importer') {
         sh """\
 export CRYPTO_RELEASE=$MBED_CRYPTO_BRANCH
