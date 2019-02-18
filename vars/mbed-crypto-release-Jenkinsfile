@@ -119,8 +119,8 @@ def checkout_mbed_crypto() {
 }
 
 def checkout_mbed_os() {
-    git branch: MBEDOS_BRANCH,
-        url: MBEDOS_REPO
+    git branch: MBED_OS_BRANCH,
+        url: MBED_OS_REPO
     if (MBED_TLS_BRANCH) {
         dir('features/mbedtls/importer') {
             sh """\
