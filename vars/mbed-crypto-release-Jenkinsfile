@@ -8,8 +8,8 @@ def get_code_coverage_job(platform) {
             try {
                 deleteDir()
                 get_docker_image(platform)
-                dir('mbedtls_src') {
-                    checkout_mbedtls()
+                dir('mbed-crypto') {
+                    checkout_mbed_crypto()
                     writeFile file: 'steps.sh', text: '''#!/bin/sh
 set -e
 set -x
@@ -17,9 +17,9 @@ set -x
 '''
                 }
                 coverage_log = sh returnStdout: true, script: """
-chmod +x mbedtls_src/steps.sh
+chmod +x mbed-crypto/steps.sh
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
--w /var/lib/build -v `pwd`/mbedtls_src:/var/lib/build \
+-w /var/lib/build -v `pwd`/mbed-crypto:/var/lib/build \
 -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $docker_repo:$platform
 """
             } catch (err) {
@@ -44,8 +44,8 @@ def get_all_sh_job(component, platform) {
             try {
                 deleteDir()
                 get_docker_image(platform)
-                dir('mbedtls_src') {
-                    checkout_mbedtls()
+                dir('mbed-crypto') {
+                    checkout_mbed_crypto()
                     writeFile file: 'steps.sh', text: """#!/bin/sh
 set -eux
 git config --global user.email "you@example.com"
@@ -59,9 +59,9 @@ set ./tests/scripts/all.sh --seed 4 --keep-going $component
 """
                 }
                 sh """
-chmod +x mbedtls_src/steps.sh
+chmod +x mbed-crypto/steps.sh
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
--w /var/lib/build -v `pwd`/mbedtls_src:/var/lib/build \
+-w /var/lib/build -v `pwd`/mbed-crypto:/var/lib/build \
 -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh --cap-add SYS_PTRACE \
 $docker_repo:$platform
 """
@@ -77,7 +77,7 @@ def get_windows_tests_job() {
     return {
         node("windows-tls") {
             try {
-                dir("mbedtls") {
+                dir("mbed-crypto") {
                     deleteDir()
                     checkout([$class: 'GitSCM', branches: [[name: "**"]],
                         doGenerateSubmoduleConfigurations: false,
@@ -86,7 +86,7 @@ def get_windows_tests_job() {
                         submoduleCfg: [],
                         userRemoteConfigs: [[credentialsId: "${env.GIT_CREDENTIALS_ID}",
                         refspec: '+refs/heads/*:refs/remotes/*',
-                        url: MBEDTLS_REPO]]])
+                        url: MBED_CRYPTO_REPO]]])
                 }
                 
                 dir("tools") {
@@ -104,7 +104,7 @@ def get_windows_tests_job() {
                     writeFile file:'worktrees.txt', text:''
                 }
                 
-                bat "python tools/windows_testing/windows_testing.py mbedtls logs $MBEDTLS_BRANCH"
+                bat "python tools/windows_testing/windows_testing.py mbed-crypto logs $MBED_CRYPTO_BRANCH"
             } catch (err) {
                 failedBuilds['Windows tests'] = true
                 throw (err)
@@ -113,18 +113,28 @@ def get_windows_tests_job() {
     }
 }
 
-def checkout_mbedtls() {
-    git branch: MBEDTLS_BRANCH,
-        url: MBEDTLS_REPO
+def checkout_mbed_crypto() {
+    git branch: MBED_CRYPTO_BRANCH,
+        url: MBED_CRYPTO_REPO
 }
 
 def checkout_mbed_os() {
-    git branch: MBEDOS_BRANCH,
-        url: MBEDOS_REPO
+    git branch: MBED_OS_BRANCH,
+        url: MBED_OS_REPO
+    if (MBED_TLS_BRANCH) {
+        dir('features/mbedtls/importer') {
+            sh """\
+export MBED_TLS_RELEASE=$MBED_TLS_BRANCH
+export MBED_TLS_REPO_URL=$MBED_TLS_REPO
+make update
+make all
+"""
+        }
+    }
     dir('features/mbedtls/mbed-crypto/importer') {
         sh """\
-export CRYPTO_RELEASE=$MBEDTLS_BRANCH
-export CRYPTO_REPO_URL=$MBEDTLS_REPO
+export CRYPTO_RELEASE=$MBED_CRYPTO_BRANCH
+export CRYPTO_REPO_URL=$MBED_CRYPTO_REPO
 make update
 make all
 """
@@ -207,9 +217,9 @@ node {
     }
 
     if (RUN_ALL == "true") {
-        dir('mbedtls') {
+        dir('mbed-crypto') {
             deleteDir()
-            checkout_mbedtls()
+            checkout_mbed_crypto()
             all_sh_help = sh(
                 script: "./tests/scripts/all.sh --help",
                 returnStdout: true
@@ -234,9 +244,9 @@ node {
         parallel_jobs['iar8-mingw'] = {
             node("windows-tls") {
                 try {
-                    dir("mbedtls") {
+                    dir("mbed-crypto") {
                         deleteDir()
-                        checkout_mbedtls()
+                        checkout_mbed_crypto()
                         bat """
 perl scripts/config.pl baremetal
 cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
