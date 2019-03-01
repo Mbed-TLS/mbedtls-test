@@ -1,42 +1,78 @@
-import groovy.io.FileType
+#!/usr/bin/env groovy
+import groovy.transform.Field
 
-// Keep track of builds that fail
-failedBuilds = [:]
+/*
+ * This script takes the following parameters:
+ *
+ * Repos and branches
+ *  - MBED_TLS_REPO
+ *  - MBED_TLS_BRANCH
+ *  - MBED_CRYPTO_REPO - optional
+ *  - MBED_CRYPTO_BRANCH - optional
+ *  - MBED_OS_REPO
+ *  - MBED_OS_BRANCH
+ *  - MBED_OS_EXAMPLES_REPO
+ *  - MBED_OS_EXAMPLES_BRANCH
+ *
+ * Test options
+ *  - RUN_BASIC_BUILD_TEST
+ *  - RUN_ALL
+ *  - RUN_WINDOWS_TEST
+ *  - TEST_MBED_OS_EXAMPLES
+ *
+ * Environment variables:
+ *  - GIT_CREDENTIALS_ID
+ *  - TEST_FAIL_EMAIL_ADDRESS - (used for scheduled jobs)
+ *  - TEST_PASS_EMAIL_ADDRESS - (used for scheduled jobs)
+ */
+
 
 /* Create code coverage job */
-def get_code_coverage_job(){
+def get_code_coverage_job(platform) {
     return {
         node('mbedtls && ubuntu-16.10-x64') {
             try {
                 deleteDir()
-                dir('src') {
-                    unstash 'src'
+                get_docker_image(platform)
+                dir('mbedtls') {
+                    checkout_mbed_tls()
                     writeFile file: 'steps.sh', text: '''#!/bin/sh
 set -e
 set -x
-./tests/scripts/basic-build-test.sh
+./tests/scripts/basic-build-test.sh 2>&1
 '''
                 }
-                sh '''
-chmod +x src/steps.sh
-docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh -w /var/lib/build -v `pwd`/src:/var/lib/build -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh ubuntu-16.04-x64
-'''
-            } catch ( err ) {
+                coverage_log = sh returnStdout: true, script: """
+chmod +x mbedtls/steps.sh
+docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
+-w /var/lib/build -v `pwd`/mbedtls:/var/lib/build \
+-v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $docker_repo:$platform
+"""
+            } catch (err) {
                 failedBuilds['basic-build-test'] = true
-                throw( err )
+                throw (err)
+            } finally {
+                echo coverage_log
+                coverage_details = coverage_log.substring(
+                    coverage_log.indexOf('Test Report Summary')
+                )
+                coverage_details = coverage_details.substring(
+                    coverage_details.indexOf('Coverage')
+                )
             }
         }
     }
 }
 
-def get_all_sh_job(){
+def get_all_sh_job(component, platform) {
     return {
         node('ubuntu-16.10-x64 && mbedtls') {
             try {
                 deleteDir()
-                dir('src') {
-                    unstash 'src'
-                    writeFile file: 'steps.sh', text: '''#!/bin/sh
+                get_docker_image(platform)
+                dir('mbedtls') {
+                    checkout_mbed_tls()
+                    writeFile file: 'steps.sh', text: """#!/bin/sh
 set -eux
 git config --global user.email "you@example.com"
 git config --global user.name "Your Name"
@@ -44,18 +80,20 @@ git init
 git add .
 git commit -m "CI code copy"
 export LOG_FAILURE_ON_STDOUT=1
-set ./tests/scripts/all.sh --seed 1 --keep-going
-#if grep -q no-yotta "$1"; then set -- "$@" --no-yotta; fi
-"$@"
-'''
+set ./tests/scripts/all.sh --seed 1 --keep-going $component
+"\$@"
+"""
                 }
-                sh '''
-chmod +x src/steps.sh
-docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh -w /var/lib/build -v `pwd`/src:/var/lib/build -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh --cap-add SYS_PTRACE --security-opt seccomp=unconfined ubuntu-16.04-x64
-'''
-            } catch ( err ) {
-                failedBuilds['all.h'] = true
-                throw( err )
+                sh """
+chmod +x mbedtls/steps.sh
+docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
+-w /var/lib/build -v `pwd`/mbedtls:/var/lib/build \
+-v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh --cap-add SYS_PTRACE \
+$docker_repo:$platform
+"""
+            } catch (err) {
+                failedBuilds['all.sh'] = true
+                throw (err)
             }
         }
     }
@@ -63,21 +101,10 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh -w /
 
 def get_windows_tests_job() {
     return {
-        node ("windows-tls") {
+        node("windows-tls") {
             try {
-                dir('mbedtls') {
-                    deleteDir()
-                }
-                dir('tools') {
-                    deleteDir()
-                }
-                dir('worktrees') {
-                    deleteDir()
-                }
-                dir('logs') {
-                    deleteDir()
-                }
                 dir("mbedtls") {
+                    deleteDir()
                     checkout([$class: 'GitSCM', branches: [[name: "**"]],
                         doGenerateSubmoduleConfigurations: false,
                         extensions: [[$class: 'CloneOption', depth: 0, honorRefspec: true,
@@ -85,185 +112,234 @@ def get_windows_tests_job() {
                         submoduleCfg: [],
                         userRemoteConfigs: [[credentialsId: "${env.GIT_CREDENTIALS_ID}",
                         refspec: '+refs/heads/*:refs/remotes/*',
-                        url: MBEDTLS_REPO]]])
+                        url: MBED_TLS_REPO]]])
                 }
-                
-                dir("tools"){
-                    
-                    checkout changelog: false, poll: false,
-                        scm: [$class: 'GitSCM', branches: [[name: "master"]],
-                        doGenerateSubmoduleConfigurations: false,
-                        extensions: [[$class: 'CloneOption', noTags: false, shallow: false]],
-                        extensions: [[$class: 'CheckoutOption', timeout: 20]],
-                        submoduleCfg: [],
-                        userRemoteConfigs: [[credentialsId: "${env.GIT_CREDENTIALS_ID}",
-                        url: "git@github.com:ARMmbed/mbedtls-test.git"]]]
+
+                dir("tools") {
+                    deleteDir()
+                    checkout scm
                 }
-                
+
                 dir("logs") {
+                    deleteDir()
                     writeFile file:'results.txt', text:''
                 }
-                
+
                 dir("worktrees") {
+                    deleteDir()
                     writeFile file:'worktrees.txt', text:''
                 }
-                
-                bat "python tools/windows_testing/windows_testing.py mbedtls logs $BRANCH"
-            } catch ( err ) {
+
+                bat "python tools/windows_testing/windows_testing.py mbedtls logs $MBED_TLS_BRANCH"
+            } catch (err) {
                 failedBuilds['Windows tests'] = true
-                throw( err )
-            }
-            
-        }
-    }
-}
-
-def find_examples (){
-    examples = []
-    File[] files = new File(pwd()).listFiles();
-    for (File file: files){
-        if (file.isDirectory()) {
-            File[] subfiles = file.listFiles();
-            for (File subfile: subfiles){
-                if (subfile.getName().equals("mbed-os.lib")) {
-                    examples << file.getName()
-                    echo "found example"
-                    echo file.getName()
-                }
+                throw (err)
             }
         }
     }
-    return ['authcrypt', 'benchmark', 'hashing', 'tls-client'];
 }
 
+def checkout_mbed_tls() {
+    git branch: MBED_TLS_BRANCH,
+        url: MBED_TLS_REPO
 
-def checkout_mbed_os_examples(){
-    def examples = []
-    dir('examples'){
-        git 'git@github.com:ARMmbed/mbed-os-example-tls.git'
-        examples = find_examples()
-        stash 'examples_src'
-        /* checkout mbed-os */
-        echo examples.join(", ")
-    }
-    return examples
-}
-
-def gen_mbed_os_example_job( example, compiler, platform ){
-    return {
-       node( compiler ){
-            timestamps {
-                deleteDir()
-                unstash "examples_src"
-                dir( example ){
-                sh """
-mbed config root .
-mbed deploy -vv
+    /* If the submodule exists, initialise it */
+    sh """\
+if [ -d "crypto" ]; then
+    git submodule init
+    git submodule update
+fi
 """
-                /* Deploy mbedtls src into mbed-os */
-                dir('mbed-os/features/mbedtls/importer') {
-                    dir('TARGET_IGNORE/mbedtls'){
-                        unstash('src')
-                        sh 'ls -ltr'
-                    }
-                    sh 'make clean; MBED_TLS_RELEASE=$BRANCH MBED_TLS_REPO_URL=$MBEDTLS_REPO make update; make'
-                }
-                
-                sh """
+}
+
+def checkout_mbed_os() {
+    git branch: MBED_OS_BRANCH,
+        url: MBED_OS_REPO
+
+    dir('features/mbedtls/importer') {
+        sh """\
+export MBED_TLS_RELEASE=$MBED_TLS_BRANCH
+export MBED_TLS_REPO_URL=$MBED_TLS_REPO
+make update
+make all
+"""
+    }
+
+    /* Optional Crypto branch */
+    if (MBED_CRYPTO_BRANCH) {
+        dir('features/mbedtls/mbed-crypto/importer') {
+            sh """\
+export CRYPTO_RELEASE=$MBED_CRYPTO_BRANCH
+export CRYPTO_REPO_URL=$MBED_CRYPTO_REPO
+make update
+make all
+"""
+        }
+    }
+}
+
+def checkout_mbed_os_examples() {
+    git url: MBED_OS_EXAMPLES_REPO,
+        branch: MBED_OS_EXAMPLES_BRANCH
+}
+
+def get_docker_image(platform) {
+    sh "\$(aws ecr get-login) && docker pull $docker_repo:$platform"
+}
+
+def gen_mbed_os_example_job(example, compiler, platform) {
+    return {
+        node(compiler) {
+            try {
+                timestamps {
+                    deleteDir()
+                    checkout_mbed_os_examples()
+                    dir(example) {
+                        dir('mbed-os') {
+                            deleteDir()
+                            checkout_mbed_os()
+                        }
+                        sh """
 mbed config root .
 mbed compile -m ${platform} -t ${compiler}
 if [ -e BUILD/${platform}/${compiler}/${example}.bin ]
 then
-	BINARY=BUILD/${platform}/${compiler}/${example}.bin
+    BINARY=BUILD/${platform}/${compiler}/${example}.bin
 else
-	if [ -e BUILD/${platform}/${compiler}/${example}.hex ]
-	then
-		BINARY=BUILD/${platform}/${compiler}/${example}.hex
-	fi
+    if [ -e BUILD/${platform}/${compiler}/${example}.hex ]
+    then
+        BINARY=BUILD/${platform}/${compiler}/${example}.hex
+    fi
 fi
 
 export RAAS_PYCLIENT_FORCE_REMOTE_ALLOCATION=1
 export RAAS_PYCLIENT_ALLOCATION_QUEUE_TIMEOUT=3600
-mbedhtrun -m ${platform} -g raas_client:auli.mbedcloudtesting.com:80 -P 600 --sync=0 -v --compare-log ../tests/${example}.log -f \$BINARY
+mbedhtrun -m ${platform} -g raas_client:auli.mbedcloudtesting.com:8000 -P 1000 --sync=0 -v --compare-log ../tests/${example}.log -f \$BINARY
 """
+                    }
                 }
+            } catch (err) {
+                failedBuilds["${example}-${platform}-${compiler}"] = true
+                throw (err)
             }
-       }
-   }
+        }
+    }
 }
 
-compilers = ['ARM', 'GCC_ARM', 'IAR']
-platforms = ['K64F', 'NUCLEO_F429ZI', 'UBLOX_EVK_ODIN_W2', 'NUCLEO_F746ZG']
+// Keep track of builds that fail
+@Field failedBuilds = [:]
+
+@Field coverage_details = ""
+
+@Field compilers = ['ARM', 'GCC_ARM', 'IAR']
+
+@Field platforms = ['K64F', 'NUCLEO_F429ZI', 'UBLOX_EVK_ODIN_W2', 'NUCLEO_F746ZG']
+
+@Field examples = ['authcrypt', 'benchmark', 'hashing', 'tls-client']
+
+@Field docker_repo = '853142832404.dkr.ecr.eu-west-1.amazonaws.com/jenkins-mbedtls'
 
 /* main job */
 node {
-    deleteDir()
-    echo "${TEST_MBED_OS_EXAMPLES}"
-    checkout([$class: 'GitSCM', branches: [[name: BRANCH]],
-            doGenerateSubmoduleConfigurations: false,
-            extensions: [[$class: 'CloneOption', honorRefspec: true,
-            noTags: false, reference: '', shallow: true],
-            [$class: 'SubmoduleOption', disableSubmodules: false,
-            recursiveSubmodules: true, reference: '', trackingSubmodules: false]],
-            submoduleCfg: [],
-            userRemoteConfigs: [[credentialsId: "${env.GIT_CREDENTIALS_ID}",
-            url: MBEDTLS_REPO]]])
-    stash 'src'
-
-    /* Checkout mbed-os-example-tls */
     parallel_jobs = [:]
-    
+    platform = 'ubuntu-16.04'
+
     if (RUN_BASIC_BUILD_TEST == "true") {
-        parallel_jobs['code_coverage'] = get_code_coverage_job();
+        parallel_jobs['code_coverage'] = get_code_coverage_job(platform);
     }
-    if (RUN_ALL == "true"){
-        parallel_jobs['all_sh'] = get_all_sh_job();
+
+    if (RUN_ALL == "true") {
+        dir('mbedtls') {
+            deleteDir()
+            checkout_mbed_tls()
+            all_sh_help = sh(
+                script: "./tests/scripts/all.sh --help",
+                returnStdout: true
+            )
+            if (all_sh_help.contains('list-components')) {
+                components = sh(
+                    script: "./tests/scripts/all.sh --list-components",
+                    returnStdout: true
+                ).trim().split('\n')
+            } else {
+                components = [""]
+            }
+        }
+        for (component in components) {
+            parallel_jobs["all_sh-${component}"] = get_all_sh_job(component, platform);
+        }
     }
-    
-    if (RUN_WINDOWS_TEST == "true"){
+
+    if (RUN_WINDOWS_TEST == "true") {
         parallel_jobs['Windows'] = get_windows_tests_job();
     }
-    
-    if (TEST_MBED_OS_EXAMPLES == "true"){
-        examples = checkout_mbed_os_examples()
-        for( example in examples ) {
-            for( compiler in compilers ) {
-                for( platform in platforms ) {
+
+    /* Run the IAR Compiler job unconditionally */
+    parallel_jobs['iar8-mingw'] = {
+        node("windows-tls") {
+            try {
+                dir("mbedtls") {
+                    deleteDir()
+
+                    git branch: MBED_TLS_BRANCH,
+                        url: MBED_TLS_REPO
+
+                    bat """
+perl scripts/config.pl baremetal
+cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
+mingw32-make lib
+"""
+                }
+            } catch (err) {
+                failedBuilds['iar8-mingw'] = true
+                throw (err)
+            }
+        }
+    }
+
+    if (TEST_MBED_OS_EXAMPLES == "true") {
+        for (example in examples) {
+            for (compiler in compilers) {
+                for (platform in platforms) {
                     parallel_jobs["${example}-${platform}-${compiler}"] =
                         gen_mbed_os_example_job(example, compiler, platform)
                 }
             }
         }
     }
-    parallel_jobs['iar8-mingw'] = {
-        node ("windows-tls") {
-        deleteDir()
-        unstash 'src'
-        bat """
-perl scripts/config.pl baremetal
-cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
-mingw32-make lib
-"""
-        }
-    }
-    
+
     parallel_jobs.failFast = false
     try {
         parallel parallel_jobs
-    } catch( err ) {
-		if ( currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause') ){
-            keys = failedBuilds.keySet()
-            failures = keys.join(", ")
-    		emailbody = """
-Failures: ${failures}
+    } finally {
+        if (currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause')) {
+            if (failedBuilds.size() == 0) {
+                emailbody = """
+${coverage_details}
+
 Logs: ${env.BUILD_URL}
 """
-        	subject = "Mbed TLS nightly test failed!"
-        	echo subject
-    		echo emailbody
-    		emailext body: emailbody, subject: subject, to: 'mbed-tls-eng@arm.com', mimeType: 'text/plain'
+                subject = "Mbed TLS nightly test passed!"
+                recipients = ${env.TEST_PASS_EMAIL_ADDRESS}
+            } else {
+                keys = failedBuilds.keySet()
+                failures = keys.join(", ")
+                emailbody = """
+${coverage_details}
+
+Logs: ${env.BUILD_URL}
+
+Failures: ${failures}
+"""
+                subject = "Mbed TLS nightly test failed!"
+                recipients = ${env.TEST_FAIL_EMAIL_ADDRESS}
+            }
+            echo subject
+            echo emailbody
+            emailext body: emailbody,
+                     subject: subject,
+                     to: recipients,
+                     mimeType: 'text/plain'
         }
-		throw( err );
     }
 }
-
