@@ -255,90 +255,101 @@ def get_docker_image(docker_image) {
 
 /* main job */
 def run_job() {
-    node {
-        try {
-            deleteDir()
-            def one_platform = ["debian-9-x64"]
-            def linux_platforms = ["debian-9-i386", "debian-9-x64"]
-            def bsd_platforms = ["freebsd"]
-            def bsd_compilers = ["clang"]
-            def windows_platforms = ['windows']
-            def coverity_platforms = ['coverity && gcc']
-            def windows_compilers = ['cc']
-            def all_compilers = ['gcc', 'clang']
-            def gcc_compilers = ['gcc']
-            def asan_compilers = ['clang'] /* Change to clang once mbed TLS can compile with clang 3.8 */
-            def coverity_compilers = ['gcc']
-
-            /* Linux jobs */
-            def jobs = gen_docker_jobs_foreach(
-                'basic', one_platform, gcc_compilers, basic_test_sh
-            )
-            jobs = jobs + gen_docker_jobs_foreach(
-                'std-make', linux_platforms, all_compilers, std_make_test_sh
-            )
-            jobs = jobs + gen_docker_jobs_foreach(
-                'std-make-full-config', linux_platforms, all_compilers,
-                std_make_full_config_test_sh
-            )
-            jobs = jobs + gen_docker_jobs_foreach(
-                'cmake', linux_platforms, all_compilers, cmake_test_sh
-            )
-            jobs = jobs + gen_docker_jobs_foreach(
-                'cmake-full', linux_platforms, gcc_compilers, cmake_full_test_sh
-            )
-            jobs = jobs + gen_docker_jobs_foreach(
-                'cmake-asan', linux_platforms, asan_compilers, cmake_asan_test_sh
-            )
-
-            /* BSD jobs */
-            jobs = jobs + gen_node_jobs_foreach(
-                'gmake', bsd_platforms, bsd_compilers, gmake_test_sh
-            )
-            jobs = jobs + gen_node_jobs_foreach(
-                'cmake', bsd_platforms, bsd_compilers, cmake_test_sh
-            )
-
-            /* Windows jobs */
-            jobs = jobs + gen_windows_jobs('win32-mingw', win32_mingw_test_bat)
-            jobs = jobs + gen_windows_jobs(
-                'win32_msvc12_32-mingw', win32_msvc12_32_test_bat
-            )
-            jobs = jobs + gen_windows_jobs(
-                'win32-win32_msvc12_64', win32_msvc12_64_test_bat
-            )
-            jobs = jobs + gen_windows_jobs('iar8-mingw', iar8_mingw_test_bat)
-
-            /* Coverity jobs */
-            jobs = jobs + gen_node_jobs_foreach(
-                'coverity', coverity_platforms, coverity_compilers, std_coverity_sh
-            )
-
-            /* All.sh jobs */
-            dir('mbedtls') {
+    stage('crypto-testing') {
+        node {
+            try {
+                githubNotify context: 'Crypto Testing',
+                             description: 'In progress',
+                             status: 'PENDING'
                 deleteDir()
-                checkout scm
-                all_sh_help = sh(
-                    script: "./tests/scripts/all.sh --help",
-                    returnStdout: true
+                def one_platform = ["debian-9-x64"]
+                def linux_platforms = ["debian-9-i386", "debian-9-x64"]
+                def bsd_platforms = ["freebsd"]
+                def bsd_compilers = ["clang"]
+                def windows_platforms = ['windows']
+                def coverity_platforms = ['coverity && gcc']
+                def windows_compilers = ['cc']
+                def all_compilers = ['gcc', 'clang']
+                def gcc_compilers = ['gcc']
+                def asan_compilers = ['clang'] /* Change to clang once mbed TLS can compile with clang 3.8 */
+                def coverity_compilers = ['gcc']
+
+                /* Linux jobs */
+                def jobs = gen_docker_jobs_foreach(
+                    'basic', one_platform, gcc_compilers, basic_test_sh
                 )
-                if (all_sh_help.contains('list-components')) {
-                    components = sh(
-                        script: "./tests/scripts/all.sh --list-components",
+                jobs = jobs + gen_docker_jobs_foreach(
+                    'std-make', linux_platforms, all_compilers, std_make_test_sh
+                )
+                jobs = jobs + gen_docker_jobs_foreach(
+                    'std-make-full-config', linux_platforms, all_compilers,
+                    std_make_full_config_test_sh
+                )
+                jobs = jobs + gen_docker_jobs_foreach(
+                    'cmake', linux_platforms, all_compilers, cmake_test_sh
+                )
+                jobs = jobs + gen_docker_jobs_foreach(
+                    'cmake-full', linux_platforms, gcc_compilers, cmake_full_test_sh
+                )
+                jobs = jobs + gen_docker_jobs_foreach(
+                    'cmake-asan', linux_platforms, asan_compilers, cmake_asan_test_sh
+                )
+
+                /* BSD jobs */
+                jobs = jobs + gen_node_jobs_foreach(
+                    'gmake', bsd_platforms, bsd_compilers, gmake_test_sh
+                )
+                jobs = jobs + gen_node_jobs_foreach(
+                    'cmake', bsd_platforms, bsd_compilers, cmake_test_sh
+                )
+
+                /* Windows jobs */
+                jobs = jobs + gen_windows_jobs('win32-mingw', win32_mingw_test_bat)
+                jobs = jobs + gen_windows_jobs(
+                    'win32_msvc12_32-mingw', win32_msvc12_32_test_bat
+                )
+                jobs = jobs + gen_windows_jobs(
+                    'win32-win32_msvc12_64', win32_msvc12_64_test_bat
+                )
+                jobs = jobs + gen_windows_jobs('iar8-mingw', iar8_mingw_test_bat)
+
+                /* Coverity jobs */
+                jobs = jobs + gen_node_jobs_foreach(
+                    'coverity', coverity_platforms, coverity_compilers, std_coverity_sh
+                )
+
+                /* All.sh jobs */
+                dir('mbedtls') {
+                    deleteDir()
+                    checkout scm
+                    all_sh_help = sh(
+                        script: "./tests/scripts/all.sh --help",
                         returnStdout: true
-                    ).trim().split('\n')
-                    for (component in components) {
-                        jobs = jobs + gen_all_sh_jobs(
-                            'ubuntu-16.04', component
-                        )
+                    )
+                    if (all_sh_help.contains('list-components')) {
+                        components = sh(
+                            script: "./tests/scripts/all.sh --list-components",
+                            returnStdout: true
+                        ).trim().split('\n')
+                        for (component in components) {
+                            jobs = jobs + gen_all_sh_jobs(
+                                'ubuntu-16.04', component
+                            )
+                        }
                     }
                 }
-            }
 
-            jobs.failFast = false
-            parallel jobs
-        } catch (err) {
-            throw (err);
+                jobs.failFast = false
+                parallel jobs
+                githubNotify context: 'Crypto Testing',
+                             description: 'All tests passed',
+                             status: 'SUCCESS'
+            } catch (err) {
+                githubNotify context: 'Crypto Testing',
+                             description: 'Test failure',
+                             status: 'FAILURE'
+                throw (err);
+            }
         }
     }
 }
