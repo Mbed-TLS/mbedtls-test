@@ -265,6 +265,9 @@ def run_job() {
     githubNotify context: 'Crypto Testing',
                  description: 'Not started',
                  status: 'PENDING'
+    githubNotify context: 'TLS Testing',
+                 description: 'Not started',
+                 status: 'PENDING'
     stage('pre-test-checks') {
         node {
             try {
@@ -287,6 +290,9 @@ def run_job() {
                                      description: message,
                                      status: 'FAILURE'
                         githubNotify context: 'Crypto Testing',
+                                     description: 'Not run',
+                                     status: 'FAILURE'
+                        githubNotify context: 'TLS Testing',
                                      description: 'Not run',
                                      status: 'FAILURE'
                         error(message)
@@ -379,6 +385,21 @@ def run_job() {
                              description: 'Test failure',
                              status: 'FAILURE'
             }
+        }
+    }
+    stage('tls-testing') {
+        try {
+            githubNotify context: 'TLS Testing',
+                         description: 'In progress',
+                         status: 'PENDING'
+            mbedtls.run_job_with_crypto_pr()
+            githubNotify context: 'TLS Testing',
+                         description: 'All tests passed',
+                         status: 'SUCCESS'
+        } catch (err) {
+            githubNotify context: 'TLS Testing',
+                         description: 'Test failure',
+                         status: 'FAILURE'
         }
     }
 }
