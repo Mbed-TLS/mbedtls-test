@@ -259,12 +259,15 @@ def get_docker_image(docker_image) {
 
 /* main job */
 def run_job() {
+    githubNotify context: 'Pre Test Checks',
+                 description: 'Checking if all PR tests can be run',
+                 status: 'PENDING'
+    githubNotify context: 'Crypto Testing',
+                 description: 'Not started',
+                 status: 'PENDING'
     stage('pre-test-checks') {
         node {
             try {
-                githubNotify context: 'Pre Test Checks',
-                             description: 'Checking if all PR tests can be run',
-                             status: 'PENDING'
                 /* Get components of all.sh */
                 dir('mbedtls') {
                     deleteDir()
