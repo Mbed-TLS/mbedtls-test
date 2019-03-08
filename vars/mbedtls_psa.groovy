@@ -373,10 +373,11 @@ def run_job() {
                              description: 'All tests passed',
                              status: 'SUCCESS'
             } catch (err) {
+                echo "Caught: ${err}"
+                currentBuild.result = 'FAILURE'
                 githubNotify context: 'Crypto Testing',
                              description: 'Test failure',
                              status: 'FAILURE'
-                throw (err);
             }
         }
     }
