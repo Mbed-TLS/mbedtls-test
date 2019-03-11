@@ -320,7 +320,7 @@ ${coverage_details}
 Logs: ${env.BUILD_URL}
 """
                 subject = "Mbed TLS nightly test passed!"
-                recipients = ${env.TEST_PASS_EMAIL_ADDRESS}
+                recipients = "$env.TEST_PASS_EMAIL_ADDRESS"
             } else {
                 keys = failedBuilds.keySet()
                 failures = keys.join(", ")
@@ -332,7 +332,7 @@ Logs: ${env.BUILD_URL}
 Failures: ${failures}
 """
                 subject = "Mbed TLS nightly test failed!"
-                recipients = ${env.TEST_FAIL_EMAIL_ADDRESS}
+                recipients = "$env.TEST_FAIL_EMAIL_ADDRESS"
             }
             echo subject
             echo emailbody
