@@ -114,6 +114,8 @@ aws s3 cp coverity-PSA-Crypto-Coverity.tar.gz s3://coverity-reports
 
 @Field docker_repo = '853142832404.dkr.ecr.eu-west-1.amazonaws.com/jenkins-mbedtls'
 
+@Field all_sh_components = []
+
 def gen_docker_jobs_foreach(label, platforms, compilers, script) {
     def jobs = [:]
 
@@ -197,17 +199,18 @@ def gen_windows_jobs(label, script) {
     return jobs
 }
 
-def gen_all_sh_jobs(platform, component) {
+def gen_all_sh_jobs(platform) {
     def jobs = [:]
 
-    jobs["all_sh-${component}"] = {
-        node('ubuntu-16.10-x64 && mbedtls') {
-            timestamps {
-                deleteDir()
-                get_docker_image(platform)
-                dir('src') {
-                    checkout scm
-                    writeFile file: 'steps.sh', text: """\
+    for (component in all_sh_components) {
+        jobs["all_sh-${component}"] = {
+            node('ubuntu-16.10-x64 && mbedtls') {
+                timestamps {
+                    deleteDir()
+                    get_docker_image(platform)
+                    dir('src') {
+                        checkout scm
+                        writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
 git config --global user.email "you@example.com"
@@ -219,14 +222,15 @@ export LOG_FAILURE_ON_STDOUT=1
 set ./tests/scripts/all.sh --seed 4 --keep-going $component
 "\$@"
 """
-                }
-                sh """\
+                    }
+                    sh """\
 chmod +x src/steps.sh
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
 -w /var/lib/build -v `pwd`/src:/var/lib/build \
 -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh \
 --cap-add SYS_PTRACE $docker_repo:$platform
 """
+                }
             }
         }
     }
@@ -255,6 +259,45 @@ def get_docker_image(docker_image) {
 
 /* main job */
 def run_job() {
+    stage('pre-test-checks') {
+        node {
+            try {
+                githubNotify context: 'Pre Test Checks',
+                             description: 'Checking if all PR tests can be run',
+                             status: 'PENDING'
+                /* Get components of all.sh */
+                dir('mbedtls') {
+                    deleteDir()
+                    checkout scm
+                    all_sh_help = sh(
+                        script: "./tests/scripts/all.sh --help",
+                        returnStdout: true
+                    )
+                    if (all_sh_help.contains('list-components')) {
+                        all_sh_components = sh(
+                            script: "./tests/scripts/all.sh --list-components",
+                            returnStdout: true
+                        ).trim().split('\n')
+                    } else {
+                        def message = 'Base branch out of date. Please rebase'
+                        githubNotify context: 'Pre Test Checks',
+                                     description: message,
+                                     status: 'FAILURE'
+                        githubNotify context: 'Crypto Testing',
+                                     description: 'Not run',
+                                     status: 'FAILURE'
+                        error(message)
+                    }
+                }
+
+                githubNotify context: 'Pre Test Checks',
+                             description: 'OK',
+                             status: 'SUCCESS'
+            } catch (err) {
+                throw (err)
+            }
+        }
+    }
     stage('crypto-testing') {
         node {
             try {
@@ -319,25 +362,7 @@ def run_job() {
                 )
 
                 /* All.sh jobs */
-                dir('mbedtls') {
-                    deleteDir()
-                    checkout scm
-                    all_sh_help = sh(
-                        script: "./tests/scripts/all.sh --help",
-                        returnStdout: true
-                    )
-                    if (all_sh_help.contains('list-components')) {
-                        components = sh(
-                            script: "./tests/scripts/all.sh --list-components",
-                            returnStdout: true
-                        ).trim().split('\n')
-                        for (component in components) {
-                            jobs = jobs + gen_all_sh_jobs(
-                                'ubuntu-16.04', component
-                            )
-                        }
-                    }
-                }
+                jobs = jobs + gen_all_sh_jobs('ubuntu-16.04')
 
                 jobs.failFast = false
                 parallel jobs
