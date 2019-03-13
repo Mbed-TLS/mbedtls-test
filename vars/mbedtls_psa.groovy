@@ -33,13 +33,8 @@ make test
 """
 
 @Field cmake_full_test_sh = cmake_test_sh + """\
-openssl version
-gnutls-serv -v
-export PATH=/usr/local/openssl-1.0.2g/bin:/usr/local/gnutls-3.4.10/bin:\$PATH
 export SEED=1
 export LOG_FAILURE_ON_STDOUT=1
-./tests/compat.sh
-./tests/ssl-opt.sh
 ./tests/scripts/test-ref-configs.pl
 """
 
@@ -53,11 +48,8 @@ CC=%s cmake -D CMAKE_BUILD_TYPE:String=ASan .
 make
 make test
 ./programs/test/selftest
-export PATH=/usr/local/openssl-1.0.2g/bin:/usr/local/gnutls-3.4.10/bin:\$PATH
 export SEED=1
 export LOG_FAILURE_ON_STDOUT=1
-./tests/compat.sh
-./tests/ssl-opt.sh
 ./tests/scripts/test-ref-configs.pl
 """
 
