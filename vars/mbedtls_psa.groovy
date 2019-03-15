@@ -44,11 +44,6 @@ scripts/config.pl full
 scripts/config.pl unset MBEDTLS_MEMORY_BUFFER_ALLOC_C
 CC=%s make
 make check
-export PATH=/usr/local/openssl-1.0.2g/bin:/usr/local/gnutls-3.4.10/bin:\$PATH
-export SEED=1
-export LOG_FAILURE_ON_STDOUT=1
-./tests/ssl-opt.sh
-./tests/compat.sh
 """
 
 @Field cmake_asan_test_sh = """\
