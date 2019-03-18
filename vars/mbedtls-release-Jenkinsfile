@@ -130,7 +130,7 @@ def get_windows_tests_job() {
                     writeFile file:'worktrees.txt', text:''
                 }
 
-                bat "python tools/windows_testing/windows_testing.py mbedtls logs $MBED_TLS_BRANCH"
+                bat "python tools/resources/windows/windows_testing.py mbedtls logs $MBED_TLS_BRANCH"
             } catch (err) {
                 failedBuilds['Windows tests'] = true
                 throw (err)
