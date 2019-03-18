@@ -73,7 +73,7 @@ $docker_repo:$platform
     }
 }
 
-def get_windows_tests_job() {
+def get_windows_tests_job(build) {
     return {
         node("windows-tls") {
             try {
@@ -104,9 +104,9 @@ def get_windows_tests_job() {
                     writeFile file:'worktrees.txt', text:''
                 }
                 
-                bat "python tools/resources/windows/windows_testing.py mbed-crypto logs $MBED_CRYPTO_BRANCH"
+                bat "python tools/resources/windows/windows_testing.py mbed-crypto logs $MBED_CRYPTO_BRANCH -b $build"
             } catch (err) {
-                failedBuilds['Windows tests'] = true
+                failedBuilds["Windows ${build} tests"] = true
                 throw (err)
             }
         }
@@ -239,7 +239,9 @@ node {
     }
     
     if (RUN_WINDOWS_TEST == "true") {
-        parallel_jobs['Windows'] = get_windows_tests_job();
+        for (build in ['mingw', '2010', '2013', '2015', '2017']) {
+            parallel_jobs["Windows-${build}"] = get_windows_tests_job(build);
+        }
 
         parallel_jobs['iar8-mingw'] = {
             node("windows-tls") {
