@@ -45,26 +45,35 @@ RUN apt-get update > /dev/null && \
 
 # Install Python 2.7
 RUN apt-get update > /dev/null && \
-    apt-get install -y python2.7 python-dev python-pip python-setuptools python-distutils-extra > /dev/null && \
-    apt-get clean && rm -rf /var/lib/apt/lists/
-
-RUN apt-get update > /dev/null && \
-    apt-get install -y libffi-dev > /dev/null && \
+    apt-get install -y python2.7 \
+                       libffi-dev \
+                       python-dev \
+                       python-pip \
+                       python-setuptools \
+                       python-distutils-extra > /dev/null && \
     apt-get clean && rm -rf /var/lib/apt/lists/
 
 # Install build tools
 RUN apt-get update > /dev/null && \
-    apt-get install -y cmake make valgrind doxygen graphviz lcov abi-dumper clang wget lsof > /dev/null && \
-    apt-get clean && rm -rf /var/lib/apt/lists/
-
-RUN apt-get update > /dev/null && \
-    apt-get install -y gcc-mingw-w64-i686 > /dev/null && \
+    apt-get install -y cmake \
+                       make \
+                       valgrind \
+                       doxygen \
+                       graphviz \
+                       lcov \
+                       abi-dumper \
+                       gcc-mingw-w64-i686 \
+                       clang \
+                       wget \
+                       lsof > /dev/null && \
     apt-get clean && rm -rf /var/lib/apt/lists/
 
 # Install ARM Compiler 5.06
 RUN dpkg --add-architecture i386 && \
     apt-get update > /dev/null && \
-    apt-get install -y libc6-i386 libc6:i386 libstdc++6:i386 > /dev/null && \
+    apt-get install -y libc6-i386 \
+                       libc6:i386 \
+                       libstdc++6:i386 > /dev/null && \
     apt-get clean && rm -rf /var/lib/apt/lists/
 
 RUN wget -q https://developer.arm.com/-/media/Files/downloads/compiler/DS500-PA-00003-r5p0-22rel0.tgz && \
@@ -93,7 +102,14 @@ ENV PATH=/opt/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH
 
 # Install openssl 1.0.2g
 RUN apt-get update > /dev/null && \
-    apt-get install -y gcc-multilib p11-kit libgmp10 libgmp-dev pkg-config m4 libp11-kit-dev > /dev/null && apt-get clean && rm -rf /var/lib/apt/lists/
+    apt-get install -y gcc-multilib \
+                       p11-kit \
+                       libgmp10 \
+                       libgmp-dev \
+                       pkg-config \
+                       m4 \
+                       libp11-kit-dev > /dev/null && \
+    apt-get clean && rm -rf /var/lib/apt/lists/
 
 RUN wget -q https://www.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz && \
     tar -zxf openssl-1.0.2g.tar.gz && cd openssl-1.0.2g && \
