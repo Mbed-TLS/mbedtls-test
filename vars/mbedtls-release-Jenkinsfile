@@ -140,8 +140,10 @@ def get_windows_tests_job() {
 }
 
 def checkout_mbed_tls() {
-    git branch: MBED_TLS_BRANCH,
-        url: MBED_TLS_REPO
+    checkout scm: [$class: 'GitSCM',
+                   userRemoteConfigs: [[url: MBED_TLS_REPO,
+                                        credentialsId: env.GIT_CREDENTIALS_ID]],
+                   branches: [[name: MBED_TLS_BRANCH]]]
 
     /* If the submodule exists, initialise it */
     sh """\
@@ -153,8 +155,10 @@ fi
 }
 
 def checkout_mbed_os() {
-    git branch: MBED_OS_BRANCH,
-        url: MBED_OS_REPO
+    checkout scm: [$class: 'GitSCM',
+                   userRemoteConfigs: [[url: MBED_OS_REPO,
+                                        credentialsId: env.GIT_CREDENTIALS_ID]],
+                   branches: [[name: MBED_OS_BRANCH]]]
 
     dir('features/mbedtls/importer') {
         sh """\
@@ -179,8 +183,10 @@ make all
 }
 
 def checkout_mbed_os_examples() {
-    git url: MBED_OS_EXAMPLES_REPO,
-        branch: MBED_OS_EXAMPLES_BRANCH
+    checkout scm: [$class: 'GitSCM',
+                   userRemoteConfigs: [[url: MBED_OS_EXAMPLES_REPO,
+                                        credentialsId: env.GIT_CREDENTIALS_ID]],
+                   branches: [[name: MBED_OS_EXAMPLES_BRANCH]]]
 }
 
 def get_docker_image(platform) {
@@ -281,8 +287,10 @@ node {
                 dir("mbedtls") {
                     deleteDir()
 
-                    git branch: MBED_TLS_BRANCH,
-                        url: MBED_TLS_REPO
+                    checkout scm: [$class: 'GitSCM',
+                                   userRemoteConfigs: [[url: MBED_TLS_REPO,
+                                                        credentialsId: env.GIT_CREDENTIALS_ID]],
+                                   branches: [[name: MBED_TLS_BRANCH]]]
 
                     bat """
 perl scripts/config.pl baremetal

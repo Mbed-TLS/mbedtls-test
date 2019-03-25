@@ -114,13 +114,17 @@ def get_windows_tests_job() {
 }
 
 def checkout_mbed_crypto() {
-    git branch: MBED_CRYPTO_BRANCH,
-        url: MBED_CRYPTO_REPO
+    checkout scm: [$class: 'GitSCM',
+                   userRemoteConfigs: [[url: MBED_CRYPTO_REPO,
+                                        credentialsId: env.GIT_CREDENTIALS_ID]],
+                   branches: [[name: MBED_CRYPTO_BRANCH]]]
 }
 
 def checkout_mbed_os() {
-    git branch: MBED_OS_BRANCH,
-        url: MBED_OS_REPO
+    checkout scm: [$class: 'GitSCM',
+                   userRemoteConfigs: [[url: MBED_OS_REPO,
+                                        credentialsId: env.GIT_CREDENTIALS_ID]],
+                   branches: [[name: MBED_OS_BRANCH]]]
     if (MBED_TLS_BRANCH) {
         dir('features/mbedtls/importer') {
             sh """\
@@ -142,8 +146,10 @@ make all
 }
 
 def checkout_mbed_os_examples() {
-    git url: MBED_OS_EXAMPLES_REPO,
-        branch: MBED_OS_EXAMPLES_BRANCH
+    checkout scm: [$class: 'GitSCM',
+                   userRemoteConfigs: [[url: MBED_OS_EXAMPLES_REPO,
+                                        credentialsId: env.GIT_CREDENTIALS_ID]],
+                   branches: [[name: MBED_OS_EXAMPLES_BRANCH]]]
 }
 
 def get_docker_image(platform) {
