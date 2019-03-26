@@ -233,7 +233,8 @@ mbedhtrun -m ${platform} -g raas_client:auli.mbedcloudtesting.com:8000 -P 1000 -
 
 @Field compilers = ['ARM', 'GCC_ARM', 'IAR']
 
-@Field platforms = ['K64F', 'NUCLEO_F429ZI', 'UBLOX_EVK_ODIN_W2', 'NUCLEO_F746ZG']
+@Field platforms = ['K64F', 'NUCLEO_F429ZI', 'UBLOX_EVK_ODIN_W2',
+                    'NUCLEO_F746ZG', 'CY8CKIT_062_WIFI_BT']
 
 @Field examples = ['authcrypt', 'benchmark', 'hashing', 'tls-client']
 
@@ -301,6 +302,10 @@ mingw32-make lib
         for (example in examples) {
             for (compiler in compilers) {
                 for (platform in platforms) {
+                    if (platform == 'CY8CKIT_062_WIFI_BT'
+                            && example == 'tls-client') {
+                        continue
+                    }
                     parallel_jobs["${example}-${platform}-${compiler}"] =
                         gen_mbed_os_example_job(example, compiler, platform)
                 }
