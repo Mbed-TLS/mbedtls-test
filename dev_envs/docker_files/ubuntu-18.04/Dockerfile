@@ -146,10 +146,10 @@ RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.1.tar.gz && \
 
 ENV PKG_CONFIG_PATH=/usr/local/libnettle-3.1/lib/pkgconfig:/usr/local/libnettle-3.1/lib64/pkgconfig:/usr/local/lib/pkgconfig
 
-RUN wget -q https://ftp.gnu.org/gnu/libtasn1/libtasn1-4.3.tar.gz && \
-    tar -zxf libtasn1-4.3.tar.gz && cd libtasn1-4.3 && \
+RUN wget -q https://ftp.gnu.org/gnu/libtasn1/libtasn1-4.13.tar.gz && \
+    tar -zxf libtasn1-4.13.tar.gz && cd libtasn1-4.13 && \
     ./configure && make && make install && \
-    cd .. && rm -rf libtasn1-4.3*
+    cd .. && rm -rf libtasn1-4.13*
 
 RUN wget -q https://github.com/p11-glue/p11-kit/releases/download/0.23.10/p11-kit-0.23.10.tar.gz && \
     tar -zxf p11-kit-0.23.10.tar.gz && cd p11-kit-0.23.10 && \
@@ -190,11 +190,6 @@ RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.4.1.tar.gz && \
     tar -zxf nettle-3.4.1.tar.gz && cd nettle-3.4.1 && \
     ./configure --prefix=/usr/local/libnettle-3.4.1 --exec_prefix=/usr/local/libnettle-3.4.1  --disable-shared && \
     make && make install && cd .. && rm -rf nettle-3.4.1*
-
-RUN wget -q https://ftp.gnu.org/gnu/libtasn1/libtasn1-4.9.tar.gz && \
-    tar -zxf libtasn1-4.9.tar.gz && cd libtasn1-4.9 && \
-    ./configure && make && make install && \
-    cd .. && rm -rf libtasn1-4.9*
 
 ENV PKG_CONFIG_PATH=/usr/local/libnettle-3.4.1/lib/pkgconfig:/usr/local/libnettle-3.4.1/lib64/pkgconfig:/usr/local/lib/pkgconfig
 
