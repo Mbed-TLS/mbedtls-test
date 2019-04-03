@@ -201,30 +201,28 @@ def gen_simple_windows_jobs(label, script) {
     return jobs
 }
 
-def gen_windows_tests_jobs() {
+def gen_windows_tests_jobs(build) {
     def jobs = [:]
 
-    for (build in ['mingw', '2013']) {
-        jobs["Windows-${build}"] = {
-            node("windows-tls") {
-                dir("mbed-crypto") {
-                    deleteDir()
-                    checkout scm
-                }
-
-                dir("logs") {
-                    deleteDir()
-                    writeFile file:'results.txt', text:''
-                }
-
-                dir("worktrees") {
-                    deleteDir()
-                    writeFile file:'worktrees.txt', text:''
-                }
-                def windows_testing = libraryResource 'windows/windows_testing.py'
-                writeFile file: 'windows_testing.py', text: windows_testing
-                bat "python windows_testing.py mbed-crypto logs $scm_vars.GIT_COMMIT -b $build"
+    jobs["Windows-${build}"] = {
+        node("windows-tls") {
+            dir("mbed-crypto") {
+                deleteDir()
+                checkout scm
             }
+
+            dir("logs") {
+                deleteDir()
+                writeFile file:'results.txt', text:''
+            }
+
+            dir("worktrees") {
+                deleteDir()
+                writeFile file:'worktrees.txt', text:''
+            }
+            def windows_testing = libraryResource 'windows/windows_testing.py'
+            writeFile file: 'windows_testing.py', text: windows_testing
+            bat "python windows_testing.py mbed-crypto logs $scm_vars.GIT_COMMIT -b $build"
         }
     }
     return jobs
@@ -393,7 +391,9 @@ def run_job() {
                 jobs = jobs + gen_simple_windows_jobs(
                     'iar8-mingw', iar8_mingw_test_bat
                 )
-                jobs = jobs + gen_windows_tests_jobs()
+                for (build in ['mingw', '2013']) {
+                    jobs = jobs + gen_windows_tests_jobs(build)
+                }
 
                 /* Coverity jobs */
                 jobs = jobs + gen_node_jobs_foreach(
