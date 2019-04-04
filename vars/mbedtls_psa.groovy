@@ -210,16 +210,19 @@ def gen_windows_tests_jobs(build) {
                 deleteDir()
                 checkout scm
             }
-
+            /* The empty files are created to re-create the directory after it
+             * and its contents have been removed by deleteDir. */
             dir("logs") {
                 deleteDir()
-                writeFile file:'results.txt', text:''
+                writeFile file:'_do_not_delete_this_directory.txt', text:''
             }
 
             dir("worktrees") {
                 deleteDir()
-                writeFile file:'worktrees.txt', text:''
+                writeFile file:'_do_not_delete_this_directory.txt', text:''
             }
+            /* libraryResource loads the file as a string. This is then
+             * written to a file so that it can be run on a node. */
             def windows_testing = libraryResource 'windows/windows_testing.py'
             writeFile file: 'windows_testing.py', text: windows_testing
             bat "python windows_testing.py mbed-crypto logs $scm_vars.GIT_COMMIT -b $build"
