@@ -143,15 +143,9 @@ def checkout_mbed_tls() {
     checkout scm: [$class: 'GitSCM',
                    userRemoteConfigs: [[url: MBED_TLS_REPO,
                                         credentialsId: env.GIT_CREDENTIALS_ID]],
+                   extensions: [[$class: 'SubmoduleOption',
+                                 recursiveSubmodules: true]],
                    branches: [[name: MBED_TLS_BRANCH]]]
-
-    /* If the submodule exists, initialise it */
-    sh """\
-if [ -d "crypto" ]; then
-    git submodule init
-    git submodule update
-fi
-"""
 }
 
 def checkout_mbed_os() {
