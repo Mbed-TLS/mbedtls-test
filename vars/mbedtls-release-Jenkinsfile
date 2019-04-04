@@ -282,12 +282,7 @@ node {
             try {
                 dir("mbedtls") {
                     deleteDir()
-
-                    checkout scm: [$class: 'GitSCM',
-                                   userRemoteConfigs: [[url: MBED_TLS_REPO,
-                                                        credentialsId: env.GIT_CREDENTIALS_ID]],
-                                   branches: [[name: MBED_TLS_BRANCH]]]
-
+                    checkout_mbed_tls()
                     bat """
 perl scripts/config.pl baremetal
 cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
