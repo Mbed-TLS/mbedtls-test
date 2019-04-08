@@ -392,10 +392,10 @@ def run_job() {
                     'win32-mingw', win32_mingw_test_bat
                 )
                 jobs = jobs + gen_simple_windows_jobs(
-                    'win32_msvc12_32-mingw', win32_msvc12_32_test_bat
+                    'win32_msvc12_32', win32_msvc12_32_test_bat
                 )
                 jobs = jobs + gen_simple_windows_jobs(
-                    'win32-win32_msvc12_64', win32_msvc12_64_test_bat
+                    'win32-msvc12_64', win32_msvc12_64_test_bat
                 )
                 jobs = jobs + gen_simple_windows_jobs(
                     'iar8-mingw', iar8_mingw_test_bat
