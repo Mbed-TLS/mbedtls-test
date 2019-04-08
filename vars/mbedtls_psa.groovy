@@ -65,6 +65,7 @@ export LOG_FAILURE_ON_STDOUT=1
 @Field win32_mingw_test_bat = """\
 cmake . -G "MinGW Makefiles" -DCMAKE_C_COMPILER="gcc"
 mingw32-make
+mingw32-make test
 ctest -VV
 programs\\test\\selftest.exe
 """
