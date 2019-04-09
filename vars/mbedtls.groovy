@@ -112,6 +112,8 @@ programs\\test\\Debug\\selftest.exe
 
 @Field docker_repo = '853142832404.dkr.ecr.eu-west-1.amazonaws.com/jenkins-mbedtls'
 
+@Field crypto_pr = false
+
 def gen_docker_jobs_foreach(label, platforms, compilers, script) {
     def jobs = [:]
 
@@ -128,7 +130,7 @@ def gen_docker_jobs_foreach(label, platforms, compilers, script) {
                         deleteDir()
                         get_docker_image(platform)
                         dir('src') {
-                            checkout scm
+                            checkout_mbed_tls()
                             writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -x
@@ -166,7 +168,7 @@ def gen_node_jobs_foreach(label, platforms, compilers, script) {
                 node(node_lbl) {
                     timestamps {
                         deleteDir()
-                        checkout scm
+                        checkout_mbed_tls()
                         shell_script = """
 export PYTHON=/usr/local/bin/python2.7
 """ + shell_script
@@ -185,7 +187,7 @@ def gen_windows_jobs(label, script) {
     jobs[label] = {
         node("windows-tls") {
             deleteDir()
-            checkout scm
+            checkout_mbed_tls()
             bat script
         }
     }
@@ -201,7 +203,7 @@ def gen_all_sh_jobs(platform, component) {
                 deleteDir()
                 get_docker_image(platform)
                 dir('src') {
-                    checkout scm
+                    checkout_mbed_tls()
                     writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
@@ -230,6 +232,37 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
 
 def get_docker_image(docker_image) {
     sh "\$(aws ecr get-login) && docker pull $docker_repo:$docker_image"
+}
+
+/* If testing an Mbed TLS PR, checkout the Mbed TLS PR branch.
+   If testing an Mbed Crypto PR, checkout the Mbed TLS development branch
+   and update the Crypto submodule to the Mbed Crypto PR branch */
+def checkout_mbed_tls() {
+    if (crypto_pr) {
+        checkout([$class: 'GitSCM',
+                  branches: [[name: 'development']],
+                  doGenerateSubmoduleConfigurations: false,
+                  extensions: [[$class: 'SubmoduleOption',
+                                disableSubmodules: false,
+                                parentCredentials: false,
+                                recursiveSubmodules: true,
+                                reference: '',
+                                trackingSubmodules: false]],
+                  submoduleCfg: [],
+                  userRemoteConfigs: [[credentialsId: "${env.GIT_CREDENTIALS_ID}",
+                                       url: "git@github.com:ARMmbed/mbedtls.git"]]])
+        dir('crypto') {
+            checkout scm
+        }
+    } else {
+        checkout scm
+    }
+}
+
+/* This runs the job using the main TLS development branch and a Mbed Crypto PR */
+def run_job_with_crypto_pr() {
+    crypto_pr = true
+    run_job()
 }
 
 /* main job */
@@ -289,7 +322,7 @@ def run_job() {
             /* All.sh jobs */
             dir('mbedtls') {
                 deleteDir()
-                checkout scm
+                checkout_mbed_tls()
                 all_sh_help = sh(
                     script: "./tests/scripts/all.sh --help",
                     returnStdout: true
@@ -310,7 +343,8 @@ def run_job() {
             jobs.failFast = false
             parallel jobs
         } catch (err) {
-            throw (err);
+            echo "Caught: ${err}"
+            currentBuild.result = 'FAILURE'
         }
     }
 }
