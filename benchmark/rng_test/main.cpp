@@ -20,6 +20,9 @@ int main()
     printf("RNG test\n");
 	uint8_t private1[NUM_ECC_BYTES] = {0};
 	uint8_t public1[2*NUM_ECC_BYTES] = {0};
+    uint8_t private2[NUM_ECC_BYTES] = {0};
+    uint8_t public2[2*NUM_ECC_BYTES] = {0};
+    uint8_t secret[NUM_ECC_BYTES] = {0};
 	uint8_t hash[NUM_ECC_BYTES];
 	unsigned int hash_words[NUM_ECC_WORDS];
     uint8_t sig[2*NUM_ECC_BYTES];
@@ -64,6 +67,28 @@ int main()
         printf("uECC_verify() failed\n");
     }
 
+    t.stop();
+    printf("Time taken: %d milliseconds\n", t.read_ms());
+    printf("\n");
+
+    t.reset();
+    printf("Generate a second keypair (for shared secret)\n");
+    t.start();
+
+    if (!uECC_make_key(public2, private2, curve)) {
+        printf("uECC_make_key() failed\n");
+    }
+    t.stop();
+    printf("Time taken: %d milliseconds\n", t.read_ms());
+    printf("\n");
+
+    t.reset();
+    printf("Generate a shared secret\n");
+    t.start();
+
+    if (!uECC_shared_secret(public2, private1, secret, curve)) {
+        printf("uECC_shared_secret() failed\n");
+    }
     t.stop();
     printf("Time taken: %d milliseconds\n", t.read_ms());
     printf("\n");
