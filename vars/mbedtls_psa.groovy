@@ -232,18 +232,17 @@ def gen_windows_tests_jobs(build) {
     return jobs
 }
 
-def gen_all_sh_jobs(platform) {
+def gen_all_sh_jobs(platform, component) {
     def jobs = [:]
 
-    for (component in all_sh_components) {
-        jobs["all_sh-${component}"] = {
-            node('ubuntu-16.10-x64 && mbedtls') {
-                timestamps {
-                    deleteDir()
-                    get_docker_image(platform)
-                    dir('src') {
-                        checkout scm
-                        writeFile file: 'steps.sh', text: """\
+    jobs["all_sh-${component}"] = {
+        node('ubuntu-16.10-x64 && mbedtls') {
+            timestamps {
+                deleteDir()
+                get_docker_image(platform)
+                dir('src') {
+                    checkout scm
+                    writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
 git config --global user.email "you@example.com"
@@ -255,15 +254,14 @@ export LOG_FAILURE_ON_STDOUT=1
 set ./tests/scripts/all.sh --seed 4 --keep-going $component
 "\$@"
 """
-                    }
-                    sh """\
+                }
+                sh """\
 chmod +x src/steps.sh
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
 -w /var/lib/build -v `pwd`/src:/var/lib/build \
 -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh \
 --cap-add SYS_PTRACE $docker_repo:$platform
 """
-                }
             }
         }
     }
@@ -411,7 +409,9 @@ def run_job() {
                 )
 
                 /* All.sh jobs */
-                jobs = jobs + gen_all_sh_jobs('ubuntu-16.04')
+                for (component in all_sh_components) {
+                    jobs = jobs + gen_all_sh_jobs('ubuntu-16.04', component)
+                }
 
                 jobs.failFast = false
                 parallel jobs
