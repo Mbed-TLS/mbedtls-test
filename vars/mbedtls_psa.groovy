@@ -65,6 +65,7 @@ export LOG_FAILURE_ON_STDOUT=1
 @Field win32_mingw_test_bat = """\
 cmake . -G "MinGW Makefiles" -DCMAKE_C_COMPILER="gcc"
 mingw32-make
+mingw32-make test
 ctest -VV
 programs\\test\\selftest.exe
 """
@@ -392,10 +393,10 @@ def run_job() {
                     'win32-mingw', win32_mingw_test_bat
                 )
                 jobs = jobs + gen_simple_windows_jobs(
-                    'win32_msvc12_32-mingw', win32_msvc12_32_test_bat
+                    'win32_msvc12_32', win32_msvc12_32_test_bat
                 )
                 jobs = jobs + gen_simple_windows_jobs(
-                    'win32-win32_msvc12_64', win32_msvc12_64_test_bat
+                    'win32-msvc12_64', win32_msvc12_64_test_bat
                 )
                 jobs = jobs + gen_simple_windows_jobs(
                     'iar8-mingw', iar8_mingw_test_bat
