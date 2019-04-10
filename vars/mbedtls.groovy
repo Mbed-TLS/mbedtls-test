@@ -79,6 +79,7 @@ export LOG_FAILURE_ON_STDOUT=1
 @Field win32_mingw_test_bat = """\
 cmake . -G "MinGW Makefiles" -DCMAKE_C_COMPILER="gcc"
 mingw32-make
+mingw32-make test
 ctest -VV
 programs\\test\\selftest.exe
 """
@@ -213,7 +214,7 @@ git init
 git add .
 git commit -m 'CI code copy'
 export LOG_FAILURE_ON_STDOUT=1
-set ./tests/scripts/all.sh --seed 4 --keep-going $component
+set ./tests/scripts/all.sh -m --release-test --keep-going $component
 "\$@"
 """
                 }
@@ -312,10 +313,10 @@ def run_job() {
             /* Windows jobs */
             jobs = jobs + gen_windows_jobs('win32-mingw', win32_mingw_test_bat)
             jobs = jobs + gen_windows_jobs(
-                'win32_msvc12_32-mingw', win32_msvc12_32_test_bat
+                'win32_msvc12_32', win32_msvc12_32_test_bat
             )
             jobs = jobs + gen_windows_jobs(
-                'win32-win32_msvc12_64', win32_msvc12_64_test_bat
+                'win32-msvc12_64', win32_msvc12_64_test_bat
             )
             jobs = jobs + gen_windows_jobs('iar8-mingw', iar8_mingw_test_bat)
 
