@@ -50,7 +50,6 @@ class MbedWindowsTesting(object):
         self.repository_path = repository_path
         self.log_dir = logging_directory
         self.git_ref = git_ref
-        self.build_method = build_method
         self.return_code = 0
         if "config_to_disable" in testing_config.keys():
             self.config_to_disable = testing_config["config_to_disable"]
@@ -123,6 +122,10 @@ class MbedWindowsTesting(object):
             "2017": "Visual Studio 15 2017"
         }
         self.vs_test_runs = []
+        self.build_mingw = "mingw" in build_method
+        self.vs_versions_to_build = list(
+            set(build_method) & set(self.visual_studio_versions)
+        )
         # When parsing mingw_result, None indicates that an exception occurred
         # during the test run. This could be either CI or the build failing.
         # True and False indicate success or failure respectively.
@@ -547,7 +550,7 @@ class MbedWindowsTesting(object):
         result_logger.info("{} results\n".format(self.git_ref))
         total_test_runs = 0
         successful_test_runs = 0
-        if self.build_method in ["mingw", "all"]:
+        if self.build_mingw:
             if self.mingw_result is not None:
                 total_test_runs += 1
                 if self.mingw_result:
@@ -559,7 +562,7 @@ class MbedWindowsTesting(object):
                 result_logger.info(
                     "An error occurred while testing MinGW build"
                 )
-        if self.build_method in ["vs", "all"]:
+        if self.vs_versions_to_build:
             total_test_runs += len(self.vs_test_runs)
             result_table = PrettyTable([
                 "Version",
@@ -597,13 +600,13 @@ class MbedWindowsTesting(object):
 
     def run_all_tests(self):
         try:
-            if self.build_method in ["mingw", "all"]:
+            if self.build_mingw:
                 self.test_mingw_built_code()
-            if self.build_method in ["vs", "all"]:
+            if self.vs_versions_to_build:
                 self.vs_test_runs = [
                     VStestrun(vs_version, configuration,
                               architecture, retargeted) for
-                    vs_version in self.visual_studio_versions for
+                    vs_version in self.vs_versions_to_build for
                     configuration in self.visual_studio_configurations for
                     architecture in self.visual_studio_architectures for
                     retargeted in [False, True] if
@@ -642,9 +645,10 @@ def run_main():
         "git_ref", type=str, help="which git reference to test"
     )
     parser.add_argument(
-        "-b", "--build-method", type=str,
-        choices=["mingw", "vs", "all"], default="all",
-        help="which build methods to test, either mingw, visual studio or both"
+        "-b", "--build-method", type=str, nargs="+",
+        choices=["mingw", "2010", "2013", "2015", "2017"],
+        default=["mingw", "2010", "2013", "2015", "2017"],
+        help="which build methods to test"
     )
     parser.add_argument(
         "-c", "--configuration-file", type=str,

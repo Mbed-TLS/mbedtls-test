@@ -116,6 +116,8 @@ aws s3 cp coverity-PSA-Crypto-Coverity.tar.gz s3://coverity-reports
 
 @Field all_sh_components = []
 
+@Field scm_vars
+
 def gen_docker_jobs_foreach(label, platforms, compilers, script) {
     def jobs = [:]
 
@@ -186,7 +188,7 @@ export PYTHON=/usr/local/bin/python2.7
     return jobs
 }
 
-def gen_windows_jobs(label, script) {
+def gen_simple_windows_jobs(label, script) {
     def jobs = [:]
 
     jobs[label] = {
@@ -194,6 +196,36 @@ def gen_windows_jobs(label, script) {
             deleteDir()
             checkout scm
             bat script
+        }
+    }
+    return jobs
+}
+
+def gen_windows_tests_jobs(build) {
+    def jobs = [:]
+
+    jobs["Windows-${build}"] = {
+        node("windows-tls") {
+            dir("mbed-crypto") {
+                deleteDir()
+                checkout scm
+            }
+            /* The empty files are created to re-create the directory after it
+             * and its contents have been removed by deleteDir. */
+            dir("logs") {
+                deleteDir()
+                writeFile file:'_do_not_delete_this_directory.txt', text:''
+            }
+
+            dir("worktrees") {
+                deleteDir()
+                writeFile file:'_do_not_delete_this_directory.txt', text:''
+            }
+            /* libraryResource loads the file as a string. This is then
+             * written to a file so that it can be run on a node. */
+            def windows_testing = libraryResource 'windows/windows_testing.py'
+            writeFile file: 'windows_testing.py', text: windows_testing
+            bat "python windows_testing.py mbed-crypto logs $scm_vars.GIT_COMMIT -b $build"
         }
     }
     return jobs
@@ -274,7 +306,7 @@ def run_job() {
                 /* Get components of all.sh */
                 dir('mbedtls') {
                     deleteDir()
-                    checkout scm
+                    scm_vars = checkout scm
                     all_sh_help = sh(
                         script: "./tests/scripts/all.sh --help",
                         returnStdout: true
@@ -356,14 +388,21 @@ def run_job() {
                 )
 
                 /* Windows jobs */
-                jobs = jobs + gen_windows_jobs('win32-mingw', win32_mingw_test_bat)
-                jobs = jobs + gen_windows_jobs(
+                jobs = jobs + gen_simple_windows_jobs(
+                    'win32-mingw', win32_mingw_test_bat
+                )
+                jobs = jobs + gen_simple_windows_jobs(
                     'win32_msvc12_32-mingw', win32_msvc12_32_test_bat
                 )
-                jobs = jobs + gen_windows_jobs(
+                jobs = jobs + gen_simple_windows_jobs(
                     'win32-win32_msvc12_64', win32_msvc12_64_test_bat
                 )
-                jobs = jobs + gen_windows_jobs('iar8-mingw', iar8_mingw_test_bat)
+                jobs = jobs + gen_simple_windows_jobs(
+                    'iar8-mingw', iar8_mingw_test_bat
+                )
+                for (build in ['mingw', '2013']) {
+                    jobs = jobs + gen_windows_tests_jobs(build)
+                }
 
                 /* Coverity jobs */
                 jobs = jobs + gen_node_jobs_foreach(
