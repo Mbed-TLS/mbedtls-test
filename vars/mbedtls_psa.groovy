@@ -14,14 +14,14 @@ make clean
 make clean
 CC=%s make
 make check
-./programs/test/selftest
+./programs/test/selftest -x timing
 """
 
 @Field gmake_test_sh = """\
 gmake clean
 CC=%s gmake
 gmake check
-./programs/test/selftest
+./programs/test/selftest -x timing
 """
 
 @Field cmake_test_sh = """\
@@ -29,7 +29,7 @@ CC=%s  cmake -D CMAKE_BUILD_TYPE:String=Check .
 make clean
 make
 make test
-./programs/test/selftest
+./programs/test/selftest -x timing
 """
 
 @Field cmake_full_test_sh = """\
@@ -37,7 +37,7 @@ CC=%s  cmake -D CMAKE_BUILD_TYPE:String=Check .
 make clean
 make
 make test
-./programs/test/selftest
+./programs/test/selftest -x timing
 export SEED=1
 export LOG_FAILURE_ON_STDOUT=1
 ./tests/scripts/test-ref-configs.pl
@@ -61,7 +61,7 @@ set -e
 CC=%s cmake -D CMAKE_BUILD_TYPE:String=ASan .
 make
 make test
-./programs/test/selftest
+./programs/test/selftest -x timing
 export SEED=1
 export LOG_FAILURE_ON_STDOUT=1
 ./tests/scripts/test-ref-configs.pl
