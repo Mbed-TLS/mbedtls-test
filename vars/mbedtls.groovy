@@ -338,6 +338,7 @@ def run_job() {
                             'ubuntu-16.04', component
                         )
                     }
+                    jobs = jobs + gen_all_sh_jobs('ubuntu-18.04', 'build_mingw')
                 }
             }
 
