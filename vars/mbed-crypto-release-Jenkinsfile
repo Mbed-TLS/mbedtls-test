@@ -241,7 +241,9 @@ node {
             }
         }
         for (component in components) {
-            parallel_jobs["all_sh-${component}"] = get_all_sh_job(component, platform);
+            parallel_jobs["all_sh-${platform}-${component}"] = get_all_sh_job(
+                component, platform
+            );
         }
     }
     

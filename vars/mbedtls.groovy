@@ -198,7 +198,7 @@ def gen_windows_jobs(label, script) {
 def gen_all_sh_jobs(platform, component) {
     def jobs = [:]
 
-    jobs["all_sh-${component}"] = {
+    jobs["all_sh-${platform}-${component}"] = {
         node('ubuntu-16.10-x64 && mbedtls') {
             timestamps {
                 deleteDir()
