@@ -412,6 +412,7 @@ def run_job() {
                 for (component in all_sh_components) {
                     jobs = jobs + gen_all_sh_jobs('ubuntu-16.04', component)
                 }
+                jobs = jobs + gen_all_sh_jobs('ubuntu-18.04', 'build_mingw')
 
                 jobs.failFast = false
                 parallel jobs
