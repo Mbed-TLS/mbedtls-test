@@ -36,6 +36,12 @@ find . -name c-srv-1.log|xargs cat
 
 @Field std_make_full_config_test_sh = """\
 make clean
+if [ ! -f "./tests/seedfile" ]; then
+    dd if=/dev/urandom of=./tests/seedfile bs=32 count=1
+fi
+if [ ! -f "./crypto/tests/seedfile" ]; then
+    dd if=/dev/urandom of=./crypto/tests/seedfile bs=32 count=1
+fi
 scripts/config.pl full
 scripts/config.pl unset MBEDTLS_MEMORY_BUFFER_ALLOC_C
 CC=%s make
