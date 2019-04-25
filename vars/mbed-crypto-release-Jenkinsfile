@@ -241,8 +241,13 @@ node {
             }
         }
         for (component in components) {
-            parallel_jobs["all_sh-${component}"] = get_all_sh_job(component, platform);
+            parallel_jobs["all_sh-${platform}-${component}"] = get_all_sh_job(
+                component, platform
+            );
         }
+        parallel_jobs["all_sh-ubuntu-18.04-build_mingw"] = get_all_sh_job(
+            'build_mingw', 'ubuntu-18.04'
+        );
     }
     
     if (RUN_WINDOWS_TEST == "true") {
