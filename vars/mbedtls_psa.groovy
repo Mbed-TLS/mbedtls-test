@@ -221,7 +221,7 @@ def gen_windows_tests_jobs(build) {
              * written to a file so that it can be run on a node. */
             def windows_testing = libraryResource 'windows/windows_testing.py'
             writeFile file: 'windows_testing.py', text: windows_testing
-            bat "python windows_testing.py mbed-crypto logs $scm_vars.GIT_COMMIT -b $build"
+            bat "python windows_testing.py mbed-crypto logs $scm_vars.GIT_BRANCH -b $build"
         }
     }
     return jobs
