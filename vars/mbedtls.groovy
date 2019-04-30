@@ -41,7 +41,7 @@ make clean
 if [ ! -f "./tests/seedfile" ]; then
     dd if=/dev/urandom of=./tests/seedfile bs=32 count=1
 fi
-if [ ! -f "./crypto/tests/seedfile" ]; then
+if [ -d ./crypto -a ! -f "./crypto/tests/seedfile" ]; then
     dd if=/dev/urandom of=./crypto/tests/seedfile bs=32 count=1
 fi
 scripts/config.pl full
