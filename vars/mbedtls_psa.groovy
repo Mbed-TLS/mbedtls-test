@@ -142,7 +142,6 @@ set -x
 set -v
 set -e
 ${shell_script}
-chmod -R 777 .
 exit
 """
                         }
