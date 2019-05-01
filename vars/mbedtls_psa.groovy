@@ -137,7 +137,6 @@ set -x
 set -v
 set -e
 ${shell_script}
-chmod -R 777 .
 exit
 """
                         }
@@ -256,6 +255,42 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
 -w /var/lib/build -v `pwd`/src:/var/lib/build \
 -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh \
 --cap-add SYS_PTRACE $docker_repo:$platform
+"""
+            }
+        }
+    }
+    return jobs
+}
+
+def gen_abi_api_checking_job(platform) {
+    def jobs = [:]
+
+    jobs["ABI/API checking"] = {
+        node('ubuntu-16.10-x64 && mbedtls') {
+            timestamps {
+                deleteDir()
+                get_docker_image(platform)
+                dir('src') {
+                    checkout scm
+                    sh(
+                        returnStdout: true,
+                        script: "git fetch origin ${CHANGE_TARGET}"
+                    ).trim()
+                    writeFile file: 'steps.sh', text: """\
+#!/bin/sh
+set -x
+set -v
+set -e
+tests/scripts/list-identifiers.sh --internal
+scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
+exit
+"""
+                }
+                sh """\
+chmod +x src/steps.sh
+docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
+-w /var/lib/build -v `pwd`/src:/var/lib/build \
+-v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $docker_repo:$platform
 """
             }
         }
@@ -405,6 +440,8 @@ def run_job() {
                     jobs = jobs + gen_all_sh_jobs('ubuntu-16.04', component)
                 }
                 jobs = jobs + gen_all_sh_jobs('ubuntu-18.04', 'build_mingw')
+
+                jobs = jobs + gen_abi_api_checking_job('ubuntu-16.04')
 
                 jobs.failFast = false
                 parallel jobs

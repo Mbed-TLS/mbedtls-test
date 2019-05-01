@@ -192,6 +192,16 @@ RUN apt-get update > /dev/null && \
     apt-get install -y git mercurial subversion zip python-tk wget  > /dev/null && \
     apt-get clean && rm -rf /var/lib/apt/lists/
 
+# Install abi-compliance-checker
+RUN wget -q https://github.com/lvc/abi-compliance-checker/archive/2.3.tar.gz && \
+    tar -zxf 2.3.tar.gz && cd abi-compliance-checker-2.3 && \
+    make clean && make && make install prefix=/usr && cd .. && \
+    rm -rf openssl-1.0.2g* && rm 2.3.tar.gz
+
+# Install abi-dumper
+RUN git clone --branch 1.1 https://github.com/lvc/abi-dumper.git && \
+    cd abi-dumper && make install prefix=/usr && cd .. && rm -rf abi-dumper
+
 # Remove Ubuntu unattended-upgrades to prevent unwanted changes to system while it is running
 RUN apt-get purge -y unattended-upgrades
 
