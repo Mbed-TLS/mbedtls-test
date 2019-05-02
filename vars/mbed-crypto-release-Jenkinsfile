@@ -190,7 +190,7 @@ export RAAS_USERNAME=user
 export RAAS_PASSWORD=user
 export RAAS_PYCLIENT_FORCE_REMOTE_ALLOCATION=1
 export RAAS_PYCLIENT_ALLOCATION_QUEUE_TIMEOUT=3600
-mbedhtrun -m ${platform} -g raas_client:auli.mbedcloudtesting.com:8000 -P 1000 --sync=0 -v --compare-log ../tests/${example}.log -f \$BINARY
+mbedhtrun -m ${platform} -g raas_client:https://auli.mbedcloudtesting.com:443 -P 1000 --sync=0 -v --compare-log ../tests/${example}.log -f \$BINARY
 """
                     }
                 }
