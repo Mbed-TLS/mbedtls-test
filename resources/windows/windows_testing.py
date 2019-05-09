@@ -180,6 +180,15 @@ class MbedWindowsTesting(object):
                 check=True
             )
             logger.info(worktree_output.stdout)
+            submodule_output = subprocess.run(
+                [self.git_command, "submodule", "update", "--init"],
+                cwd=git_worktree_path,
+                encoding=sys.stdout.encoding,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=True
+            )
+            logger.info(submodule_output.stdout)
             return git_worktree_path
         except subprocess.CalledProcessError as error:
             self.set_return_code(2)
@@ -235,6 +244,25 @@ class MbedWindowsTesting(object):
             logger.error(error.output)
             raise Exception("Setting config failed, aborting")
 
+    def generate_seedfile(self, filename):
+        """This tests if a file exists, and if not - creates it with 32 bytes
+        of random data."""
+        exists = os.path.isfile(filename)
+        if not exists:
+            file = open(filename, "wb+")
+            file.write(os.urandom(32))
+            file.close()
+
+    def generate_seedfiles(self, git_worktree_path):
+        """This ensures that seedfiles in both mbedtls and crypto directory
+        are present, and if not - creates them."""
+        seed_filename = os.path.join(git_worktree_path, "tests/seedfile")
+        self.generate_seedfile(seed_filename)
+        if os.path.isdir(os.path.join(git_worktree_path, "crypto")):
+            crypto_seed_filename = os.path.join(git_worktree_path,
+                "crypto/tests/seedfile")
+            self.generate_seedfile(crypto_seed_filename)
+
     def test_mingw_built_code(self):
         """This checks out the git reference in a worktree, sets the necessary
         config and then builds and tests using MinGW. The result is determined
@@ -249,6 +277,7 @@ class MbedWindowsTesting(object):
                 mingw_logger
             )
             self.set_config_on_code(git_worktree_path, mingw_logger)
+            self.generate_seedfiles(git_worktree_path)
             self.mingw_result = self.build_and_test_using_mingw(
                 git_worktree_path, mingw_logger
             )
@@ -499,6 +528,7 @@ class MbedWindowsTesting(object):
                 vs_logger
             )
             self.set_config_on_code(git_worktree_path, vs_logger)
+            self.generate_seedfiles(git_worktree_path)
             if solution_type == "cmake":
                 solution_dir = self.build_visual_studio_solution_using_cmake(
                     git_worktree_path, test_run, vs_logger
