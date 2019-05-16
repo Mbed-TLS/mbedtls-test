@@ -107,12 +107,15 @@ def get_windows_tests_job(build) {
                     deleteDir()
                     checkout([$class: 'GitSCM', branches: [[name: "**"]],
                         extensions: [
+                            [$class: 'CloneOption',
+                                     timeout: 60],
                             [$class: 'SubmoduleOption',
-                                disableSubmodules: false,
-                                parentCredentials: false,
-                                recursiveSubmodules: true,
-                                reference: '',
-                                trackingSubmodules: false]],
+                                     disableSubmodules: false,
+                                     parentCredentials: false,
+                                     recursiveSubmodules: true,
+                                     reference: '',
+                                     trackingSubmodules: false],
+                        ],
                         userRemoteConfigs: [[credentialsId: "${env.GIT_CREDENTIALS_ID}",
                         refspec: '+refs/heads/*:refs/remotes/*',
                         url: MBED_TLS_REPO]]])
@@ -146,16 +149,26 @@ def checkout_mbed_tls() {
     checkout scm: [$class: 'GitSCM',
                    userRemoteConfigs: [[url: MBED_TLS_REPO,
                                         credentialsId: env.GIT_CREDENTIALS_ID]],
-                   extensions: [[$class: 'SubmoduleOption',
-                                 recursiveSubmodules: true]],
-                   branches: [[name: MBED_TLS_BRANCH]]]
+                   extensions: [
+                       [$class: 'CloneOption',
+                                timeout: 60],
+                       [$class: 'SubmoduleOption',
+                                recursiveSubmodules: true],
+                   ],
+                   branches: [[name: MBED_TLS_BRANCH]],
+                  ]
 }
 
 def checkout_mbed_os() {
     checkout scm: [$class: 'GitSCM',
                    userRemoteConfigs: [[url: MBED_OS_REPO,
                                         credentialsId: env.GIT_CREDENTIALS_ID]],
-                   branches: [[name: MBED_OS_BRANCH]]]
+                   branches: [[name: MBED_OS_BRANCH]],
+                   extensions: [
+                       [$class: 'CloneOption',
+                                timeout: 60],
+                   ],
+                  ]
 
     dir('features/mbedtls/importer') {
         sh """\
@@ -183,7 +196,12 @@ def checkout_mbed_os_examples() {
     checkout scm: [$class: 'GitSCM',
                    userRemoteConfigs: [[url: MBED_OS_EXAMPLES_REPO,
                                         credentialsId: env.GIT_CREDENTIALS_ID]],
-                   branches: [[name: MBED_OS_EXAMPLES_BRANCH]]]
+                   branches: [[name: MBED_OS_EXAMPLES_BRANCH]],
+                   extensions: [
+                       [$class: 'CloneOption',
+                                timeout: 60],
+                   ],
+                  ]
 }
 
 def get_docker_image(platform) {
