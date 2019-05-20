@@ -140,7 +140,9 @@ def checkout_mbed_os() {
                    branches: [[name: MBED_OS_BRANCH]],
                    extensions: [
                        [$class: 'CloneOption',
-                                timeout: 60],
+                                timeout: 60,
+                                shallow: true,
+                                ],
                    ],
                   ]
     if (MBED_TLS_BRANCH) {
