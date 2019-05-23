@@ -87,7 +87,7 @@ def get_windows_tests_job(build) {
                                      honorRefspec: true,
                                      noTags: false,
                                      reference: '',
-                                     shallow: false
+                                     shallow: false,
                                      timeout: 60,
                                      ],
                         ],
