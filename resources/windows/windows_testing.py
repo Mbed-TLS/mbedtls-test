@@ -245,17 +245,17 @@ class MbedWindowsTesting(object):
             raise Exception("Setting config failed, aborting")
 
     def generate_seedfile(self, filename):
-        """This tests if a file exists, and if not - creates it with 32 bytes
-        of random data."""
+        """This tests if a file exists, and if not, creates it with 64 bytes
+        of random data, which is large enough for all configurations."""
         exists = os.path.isfile(filename)
         if not exists:
             file = open(filename, "wb+")
-            file.write(os.urandom(32))
+            file.write(os.urandom(64))
             file.close()
 
     def generate_seedfiles(self, git_worktree_path):
         """This ensures that seedfiles in both mbedtls and crypto directory
-        are present, and if not - creates them."""
+        are present, and if not, creates them."""
         seed_filename = os.path.join(git_worktree_path, "tests/seedfile")
         self.generate_seedfile(seed_filename)
         if os.path.isdir(os.path.join(git_worktree_path, "crypto")):
