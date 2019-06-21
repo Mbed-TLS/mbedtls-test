@@ -111,6 +111,12 @@ programs\\test\\Debug\\selftest.exe
 
 @Field docker_repo = '853142832404.dkr.ecr.eu-west-1.amazonaws.com/jenkins-mbedtls'
 
+/*
+ * This controls the timeout each job has. It does not count the time spent in
+ * waiting queues and setting up the environment.
+ */
+@Field perJobTimeout = [time: 30, unit: 'MINUTES']
+
 @Field crypto_pr = false
 
 def gen_docker_jobs_foreach(label, platforms, compilers, script) {
@@ -140,12 +146,15 @@ chmod -R 777 .
 exit
 """
                         }
-                        sh """\
+                        timeout(time: perJobTimeout.time,
+                                unit: perJobTimeout.unit) {
+                            sh """\
 chmod +x src/steps.sh
 docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
 -w /var/lib/build -v `pwd`/src:/var/lib/build \
 -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $docker_repo:$docker_image_tag
 """
+                        }
                     }
                 }
             }
@@ -171,7 +180,10 @@ def gen_node_jobs_foreach(label, platforms, compilers, script) {
                         shell_script = """
 export PYTHON=/usr/local/bin/python2.7
 """ + shell_script
-                        sh shell_script
+                        timeout(time: perJobTimeout.time,
+                                unit: perJobTimeout.unit) {
+                            sh shell_script
+                        }
                     }
                 }
             }
@@ -187,7 +199,9 @@ def gen_windows_jobs(label, script) {
         node("windows-tls") {
             deleteDir()
             checkout_mbed_tls()
-            bat script
+            timeout(time: perJobTimeout.time, unit: perJobTimeout.unit) {
+                bat script
+            }
         }
     }
     return jobs
@@ -216,13 +230,15 @@ set ./tests/scripts/all.sh -m --release-test --keep-going $component
 "\$@"
 """
                 }
-                sh """\
+                timeout(time: perJobTimeout.time, unit: perJobTimeout.unit) {
+                    sh """\
 chmod +x src/steps.sh
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
 -w /var/lib/build -v `pwd`/src:/var/lib/build \
 -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh \
 --cap-add SYS_PTRACE $docker_repo:$platform
 """
+                }
             }
         }
     }
