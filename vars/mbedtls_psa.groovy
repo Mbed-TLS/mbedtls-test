@@ -110,6 +110,12 @@ aws s3 cp coverity-PSA-Crypto-Coverity.tar.gz s3://coverity-reports
 
 @Field docker_repo = '853142832404.dkr.ecr.eu-west-1.amazonaws.com/jenkins-mbedtls'
 
+/*
+ * This controls the timeout each job has. It does not count the time spent in
+ * waiting queues and setting up the environment.
+ */
+@Field perJobTimeout = [time: 30, unit: 'MINUTES']
+
 @Field all_sh_components = []
 
 @Field scm_vars
@@ -140,12 +146,15 @@ ${shell_script}
 exit
 """
                         }
-                        sh """\
+                        timeout(time: perJobTimeout.time,
+                                unit: perJobTimeout.unit) {
+                            sh """\
 chmod +x src/steps.sh
 docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
 -w /var/lib/build -v `pwd`/src:/var/lib/build \
 -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $docker_repo:$docker_image_tag
 """
+                        }
                     }
                 }
             }
@@ -174,7 +183,10 @@ def gen_node_jobs_foreach(label, platforms, compilers, script) {
                         shell_script = """
 export PYTHON=/usr/local/bin/python2.7
 """ + shell_script
-                        sh shell_script
+                        timeout(time: perJobTimeout.time,
+                                unit: perJobTimeout.unit) {
+                            sh shell_script
+                        }
                     }
                 }
             }
@@ -190,7 +202,9 @@ def gen_simple_windows_jobs(label, script) {
         node("windows-tls") {
             deleteDir()
             checkout scm
-            bat script
+            timeout(time: perJobTimeout.time, unit: perJobTimeout.unit) {
+                bat script
+            }
         }
     }
     return jobs
@@ -220,7 +234,9 @@ def gen_windows_tests_jobs(build) {
              * written to a file so that it can be run on a node. */
             def windows_testing = libraryResource 'windows/windows_testing.py'
             writeFile file: 'windows_testing.py', text: windows_testing
-            bat "python windows_testing.py mbed-crypto logs $scm_vars.GIT_BRANCH -b $build"
+            timeout(time: perJobTimeout.time, unit: perJobTimeout.unit) {
+                bat "python windows_testing.py mbed-crypto logs $scm_vars.GIT_BRANCH -b $build"
+            }
         }
     }
     return jobs
@@ -249,13 +265,15 @@ set ./tests/scripts/all.sh --seed 4 --keep-going $component
 "\$@"
 """
                 }
-                sh """\
+                timeout(time: perJobTimeout.time, unit: perJobTimeout.unit) {
+                    sh """\
 chmod +x src/steps.sh
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
 -w /var/lib/build -v `pwd`/src:/var/lib/build \
 -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh \
 --cap-add SYS_PTRACE $docker_repo:$platform
 """
+                }
             }
         }
     }
@@ -286,12 +304,14 @@ scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
 exit
 """
                 }
-                sh """\
+                timeout(time: perJobTimeout.time, unit: perJobTimeout.unit) {
+                    sh """\
 chmod +x src/steps.sh
 docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
 -w /var/lib/build -v `pwd`/src:/var/lib/build \
 -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $docker_repo:$platform
 """
+                }
             }
         }
     }
