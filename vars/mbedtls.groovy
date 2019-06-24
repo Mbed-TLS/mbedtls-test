@@ -115,7 +115,7 @@ programs\\test\\Debug\\selftest.exe
  * This controls the timeout each job has. It does not count the time spent in
  * waiting queues and setting up the environment.
  */
-@Field perJobTimeout = [time: 30, unit: 'MINUTES']
+@Field perJobTimeout = [time: 45, unit: 'MINUTES']
 
 @Field crypto_pr = false
 

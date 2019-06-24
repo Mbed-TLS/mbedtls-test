@@ -280,7 +280,7 @@ mbedhtrun -m ${platform} -g raas_client:https://auli.mbedcloudtesting.com:443 -P
  * Raas has its own resource queue with the timeout of 1000s, we need to take
  * it into account for the on-target test jobs.
  */
-@Field perJobTimeout = [time: 30, raasOffset: 17, unit: 'MINUTES']
+@Field perJobTimeout = [time: 45, raasOffset: 17, unit: 'MINUTES']
 
 /* main job */
 node {
