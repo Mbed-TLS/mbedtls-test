@@ -16,12 +16,14 @@ set -x
 ./tests/scripts/basic-build-test.sh 2>&1
 '''
                 }
-                coverage_log = sh returnStdout: true, script: """
+                timeout(time: perJobTimeout.time, unit: perJobTimeout.unit) {
+                    coverage_log = sh returnStdout: true, script: """
 chmod +x mbed-crypto/steps.sh
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
 -w /var/lib/build -v `pwd`/mbed-crypto:/var/lib/build \
 -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $docker_repo:$platform
 """
+                }
             } catch (err) {
                 failedBuilds['basic-build-test'] = true
                 throw (err)
@@ -58,13 +60,15 @@ set ./tests/scripts/all.sh --seed 4 --keep-going $component
 "\$@"
 """
                 }
-                sh """
+                timeout(time: perJobTimeout.time, unit: perJobTimeout.unit) {
+                    sh """
 chmod +x mbed-crypto/steps.sh
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
 -w /var/lib/build -v `pwd`/mbed-crypto:/var/lib/build \
 -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh --cap-add SYS_PTRACE \
 $docker_repo:$platform
 """
+                }
             } catch (err) {
                 failedBuilds['all.sh'] = true
                 throw (err)
@@ -96,23 +100,25 @@ def get_windows_tests_job(build) {
                         refspec: '+refs/heads/*:refs/remotes/*',
                         url: MBED_CRYPTO_REPO]]])
                 }
-                
+
                 dir("tools") {
                     deleteDir()
                     checkout scm
                 }
-                
+
                 dir("logs") {
                     deleteDir()
                     writeFile file:'results.txt', text:''
                 }
-                
+
                 dir("worktrees") {
                     deleteDir()
                     writeFile file:'worktrees.txt', text:''
                 }
-                
-                bat "python tools/resources/windows/windows_testing.py mbed-crypto logs $MBED_CRYPTO_BRANCH -b $build"
+
+                timeout(time: perJobTimeout.time, unit: perJobTimeout.unit) {
+                    bat "python tools/resources/windows/windows_testing.py mbed-crypto logs $MBED_CRYPTO_BRANCH -b $build"
+                }
             } catch (err) {
                 failedBuilds["Windows ${build} tests"] = true
                 throw (err)
@@ -199,6 +205,9 @@ mbed deploy -vv
                             deleteDir()
                             checkout_mbed_os()
                         }
+                    timeout(time: perJobTimeout.time +
+                                    perJobTimeout.raasOffset,
+                            unit: perJobTimeout.unit) {
                         sh """
 mbed config root .
 mbed compile -m ${platform} -t ${compiler} -DMBEDTLS_PSA_CRYPTO_C
@@ -216,6 +225,7 @@ export RAAS_PYCLIENT_FORCE_REMOTE_ALLOCATION=1
 export RAAS_PYCLIENT_ALLOCATION_QUEUE_TIMEOUT=3600
 mbedhtrun -m ${platform} -g raas_client:https://auli.mbedcloudtesting.com:443 -P 1000 --sync=0 -v --compare-log ../tests/${example}.log -f \$BINARY
 """
+                        }
                     }
                 }
             } catch (err) {
@@ -240,11 +250,20 @@ mbedhtrun -m ${platform} -g raas_client:https://auli.mbedcloudtesting.com:443 -P
 
 @Field docker_repo = '853142832404.dkr.ecr.eu-west-1.amazonaws.com/jenkins-mbedtls'
 
+/*
+ * This controls the timeout each job has. It does not count the time spent in
+ * waiting queues and setting up the environment.
+ *
+ * Raas has its own resource queue with the timeout of 1000s, we need to take
+ * it into account for the on-target test jobs.
+ */
+@Field perJobTimeout = [time: 45, raasOffset: 17, unit: 'MINUTES']
+
 /* main job */
 node {
     parallel_jobs = [:]
     platform = 'ubuntu-16.04'
-    
+
     if (RUN_BASIC_BUILD_TEST == "true") {
         parallel_jobs['code_coverage'] = get_code_coverage_job(platform);
     }
@@ -275,7 +294,7 @@ node {
             'build_mingw', 'ubuntu-18.04'
         );
     }
-    
+
     if (RUN_WINDOWS_TEST == "true") {
         for (build in ['mingw', '2010', '2013', '2015', '2017']) {
             parallel_jobs["Windows-${build}"] = get_windows_tests_job(build);
@@ -287,11 +306,13 @@ node {
                     dir("mbed-crypto") {
                         deleteDir()
                         checkout_mbed_crypto()
-                        bat """
+                        timeout(time: perJobTimeout.time, unit: perJobTimeout.unit) {
+                            bat """
 perl scripts/config.pl baremetal
 cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
 mingw32-make lib
 """
+                        }
                     }
                 } catch (err) {
                     failedBuilds['iar8-mingw'] = true
@@ -300,7 +321,7 @@ mingw32-make lib
             }
         }
     }
-    
+
     if (TEST_MBED_OS_EXAMPLES == "true") {
         for (example in examples) {
             for (compiler in compilers) {
