@@ -276,8 +276,6 @@ mbedhtrun -m ${platform} -g raas_client:https://auli.mbedcloudtesting.com:443 -P
 @Field platforms = ['K64F', 'NUCLEO_F429ZI', 'UBLOX_EVK_ODIN_W2',
                     'NUCLEO_F746ZG', 'CY8CKIT_062_WIFI_BT']
 
-@Field examples = ['authcrypt', 'benchmark', 'hashing', 'tls-client']
-
 @Field docker_repo = '853142832404.dkr.ecr.eu-west-1.amazonaws.com/jenkins-mbedtls'
 
 /*
@@ -291,6 +289,34 @@ mbedhtrun -m ${platform} -g raas_client:https://auli.mbedcloudtesting.com:443 -P
 
 /* main job */
 node {
+
+    examples = [
+        'authcrypt': [
+            'should_run': TEST_MBED_OS_TLS_EXAMPLES,
+            'repo': MBED_OS_TLS_EXAMPLES_REPO,
+            'branch': MBED_OS_TLS_EXAMPLES_BRANCH,
+            'platforms': platforms,
+            'compilers': compilers],
+        'benchmark': [
+            'should_run': TEST_MBED_OS_TLS_EXAMPLES,
+            'repo': MBED_OS_TLS_EXAMPLES_REPO,
+            'branch': MBED_OS_TLS_EXAMPLES_BRANCH,
+            'platforms': platforms,
+            'compilers': compilers],
+        'hashing': [
+            'should_run': TEST_MBED_OS_TLS_EXAMPLES,
+            'repo': MBED_OS_TLS_EXAMPLES_REPO,
+            'branch': MBED_OS_TLS_EXAMPLES_BRANCH,
+            'platforms': platforms,
+            'compilers': compilers],
+        'tls-client': [
+            'should_run': TEST_MBED_OS_TLS_EXAMPLES,
+            'repo': MBED_OS_TLS_EXAMPLES_REPO,
+            'branch': MBED_OS_TLS_EXAMPLES_BRANCH,
+            'platforms': ['K64F', 'NUCLEO_F429ZI', 'UBLOX_EVK_ODIN_W2', 'NUCLEO_F746ZG'],
+            'compilers': compilers],
+    ]
+
     parallel_jobs = [:]
     platform = 'ubuntu-16.04'
 
@@ -352,19 +378,16 @@ mingw32-make lib
         }
     }
 
-    if (TEST_MBED_OS_EXAMPLES == "true") {
-        for (example in examples) {
-            for (compiler in compilers) {
-                for (platform in platforms) {
-                    if (platform == 'CY8CKIT_062_WIFI_BT'
-                            && example == 'tls-client') {
-                        continue
-                    }
-                    parallel_jobs["${example}-${platform}-${compiler}"] =
+    /* Mbed OS Example job generation */
+    examples.each { example ->
+        if (example.value['should_run'] == 'true') {
+            for (compiler in example.value['compilers']) {
+                for (platform in example.value['platforms']) {
+                    parallel_jobs["${example.key}-${platform}-${compiler}"] =
                         gen_mbed_os_example_job(
-                            MBED_OS_EXAMPLES_REPO,
-                            MBED_OS_EXAMPLES_BRANCH,
-                            example, compiler, platform
+                            example.value['repo'],
+                            example.value['branch'],
+                            example.key, compiler, platform
                         )
                 }
             }
