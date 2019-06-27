@@ -177,11 +177,11 @@ make all
     }
 }
 
-def checkout_mbed_os_examples() {
+def checkout_mbed_os_examples(repo, branch) {
     checkout scm: [$class: 'GitSCM',
-                   userRemoteConfigs: [[url: MBED_OS_EXAMPLES_REPO,
+                   userRemoteConfigs: [[url: repo,
                                         credentialsId: env.GIT_CREDENTIALS_ID]],
-                   branches: [[name: MBED_OS_EXAMPLES_BRANCH]],
+                   branches: [[name: branch]],
                    extensions: [
                        [$class: 'CloneOption',
                                 timeout: 60],
@@ -194,13 +194,13 @@ def get_docker_image(platform) {
     sh "\$(aws ecr get-login) && docker pull $docker_repo:$platform"
 }
 
-def gen_mbed_os_example_job(example, compiler, platform) {
+def gen_mbed_os_example_job(repo, branch, example, compiler, platform) {
     return {
         node(compiler) {
             try {
                 timestamps {
                     deleteDir()
-                    checkout_mbed_os_examples()
+                    checkout_mbed_os_examples(repo, branch)
                     dir(example) {
 /* This script appears to do nothing, however it is needed in a few cases.
  * We wish to deploy specific versions of Mbed OS, TLS and Crypto, so we
@@ -359,7 +359,11 @@ mingw32-make lib
                         continue
                     }
                     parallel_jobs["${example}-${platform}-${compiler}"] =
-                        gen_mbed_os_example_job(example, compiler, platform)
+                        gen_mbed_os_example_job(
+                            MBED_OS_EXAMPLES_REPO,
+                            MBED_OS_EXAMPLES_BRANCH,
+                            example, compiler, platform
+                        )
                 }
             }
         }
