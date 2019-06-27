@@ -205,12 +205,17 @@ mbed deploy -vv
                             deleteDir()
                             checkout_mbed_os()
                         }
-                    timeout(time: perJobTimeout.time +
-                                    perJobTimeout.raasOffset,
-                            unit: perJobTimeout.unit) {
-                        sh """
+                        timeout(time: perJobTimeout.time +
+                                        perJobTimeout.raasOffset,
+                                unit: perJobTimeout.unit) {
+                            sh """
 mbed config root .
 mbed compile -m ${platform} -t ${compiler} -DMBEDTLS_PSA_CRYPTO_C
+"""
+                            def attempts = 0
+                            while (true) {
+                                try {
+                                    sh """
 if [ -e BUILD/${platform}/${compiler}/${example}.bin ]
 then
     BINARY=BUILD/${platform}/${compiler}/${example}.bin
@@ -225,6 +230,14 @@ export RAAS_PYCLIENT_FORCE_REMOTE_ALLOCATION=1
 export RAAS_PYCLIENT_ALLOCATION_QUEUE_TIMEOUT=3600
 mbedhtrun -m ${platform} -g raas_client:https://auli.mbedcloudtesting.com:443 -P 1000 --sync=0 -v --compare-log ../tests/${example}.log -f \$BINARY
 """
+                                break
+                                } catch (err) {
+                                    attempts += 1
+                                    if (attempts >= 3) {
+                                        throw (err)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
