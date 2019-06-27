@@ -224,6 +224,11 @@ mbed deploy -vv
                         timeout(time: perJobTimeout.time +
                                         perJobTimeout.raasOffset,
                                 unit: perJobTimeout.unit) {
+                            def tag_filter = ""
+                            if (example == 'atecc608a') {
+                                sh './update-crypto.sh'
+                                tag_filter = "--tag-filters HAS_CRYPTOKIT"
+                            }
                             sh """\
 set -e
 ulimit -f 20971520
@@ -247,7 +252,7 @@ fi
 
 export RAAS_PYCLIENT_FORCE_REMOTE_ALLOCATION=1
 export RAAS_PYCLIENT_ALLOCATION_QUEUE_TIMEOUT=3600
-mbedhtrun -m ${platform} -g raas_client:https://auli.mbedcloudtesting.com:443 -P 1000 --sync=0 -v --compare-log ../tests/${example}.log -f \$BINARY
+mbedhtrun -m ${platform} ${tag_filter} -g raas_client:https://auli.mbedcloudtesting.com:443 -P 1000 --sync=0 -v --compare-log ../tests/${example}.log -f \$BINARY
 """
                                 break
                                 } catch (err) {
@@ -330,6 +335,12 @@ node {
             'branch': MBED_OS_CRYPTO_EXAMPLES_BRANCH,
             'platforms': psa_platforms,
             'compilers': compilers],
+        'atecc608a': [
+            'should_run': TEST_MBED_OS_ATECC608A_EXAMPLES,
+            'repo': MBED_OS_ATECC608A_EXAMPLES_REPO,
+            'branch': MBED_OS_ATECC608A_EXAMPLES_BRANCH,
+            'platforms': ['K64F'],
+            'compilers': ['GCC_ARM']],
     ]
 
     parallel_jobs = [:]
