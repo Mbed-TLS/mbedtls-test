@@ -141,6 +141,7 @@ def gen_docker_jobs_foreach(label, platforms, compilers, script) {
 set -x
 set -v
 set -e
+ulimit -f 20971520
 ${shell_script}
 chmod -R 777 .
 exit
@@ -178,6 +179,7 @@ def gen_node_jobs_foreach(label, platforms, compilers, script) {
                         deleteDir()
                         checkout_mbed_tls()
                         shell_script = """
+ulimit -f 20971520
 export PYTHON=/usr/local/bin/python2.7
 """ + shell_script
                         timeout(time: perJobTimeout.time,
@@ -220,6 +222,7 @@ def gen_all_sh_jobs(platform, component) {
                     writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
+ulimit -f 20971520
 git config --global user.email "you@example.com"
 git config --global user.name "Your Name"
 git init
