@@ -156,6 +156,7 @@ def checkout_mbed_os() {
     if (MBED_TLS_BRANCH) {
         dir('features/mbedtls/importer') {
             sh """\
+set -e
 ulimit -f 20971520
 export MBED_TLS_RELEASE=$MBED_TLS_BRANCH
 export MBED_TLS_REPO_URL=$MBED_TLS_REPO
@@ -166,6 +167,7 @@ make all
     }
     dir('features/mbedtls/mbed-crypto/importer') {
         sh """\
+set -e
 ulimit -f 20971520
 export CRYPTO_RELEASE=$MBED_CRYPTO_BRANCH
 export CRYPTO_REPO_URL=$MBED_CRYPTO_REPO
@@ -201,6 +203,7 @@ def gen_mbed_os_example_job(example, compiler, platform) {
                     checkout_mbed_os_examples()
                     dir(example) {
                         sh """
+set -e
 ulimit -f 20971520
 rm -f mbed-os.lib
 mbed config root .
@@ -214,6 +217,7 @@ mbed deploy -vv
                                         perJobTimeout.raasOffset,
                                 unit: perJobTimeout.unit) {
                             sh """
+set -e
 ulimit -f 20971520
 mbed config root .
 mbed compile -m ${platform} -t ${compiler} -DMBEDTLS_PSA_CRYPTO_C
@@ -222,6 +226,7 @@ mbed compile -m ${platform} -t ${compiler} -DMBEDTLS_PSA_CRYPTO_C
                             while (true) {
                                 try {
                                     sh """
+set -e
 ulimit -f 20971520
 if [ -e BUILD/${platform}/${compiler}/${example}.bin ]
 then

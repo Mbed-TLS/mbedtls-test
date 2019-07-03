@@ -179,6 +179,7 @@ def gen_node_jobs_foreach(label, platforms, compilers, script) {
                         deleteDir()
                         checkout_mbed_tls()
                         shell_script = """
+set -e
 ulimit -f 20971520
 export PYTHON=/usr/local/bin/python2.7
 """ + shell_script
