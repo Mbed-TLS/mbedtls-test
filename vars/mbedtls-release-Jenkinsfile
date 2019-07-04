@@ -248,16 +248,15 @@ mbed deploy -vv
                         timeout(time: perJobTimeout.time +
                                         perJobTimeout.raasOffset,
                                 unit: perJobTimeout.unit) {
-                            sh """
+                            sh """\
 set -e
 ulimit -f 20971520
-mbed config root .
 mbed compile -m ${platform} -t ${compiler}
 """
                             def attempts = 0
                             while (true) {
                                 try {
-                                    sh """
+                                    sh """\
 set -e
 ulimit -f 20971520
 if [ -e BUILD/${platform}/${compiler}/${example}.bin ]
