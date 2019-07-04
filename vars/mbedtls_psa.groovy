@@ -35,6 +35,12 @@ export LOG_FAILURE_ON_STDOUT=1
 
 @Field std_make_full_config_test_sh = """\
 make clean
+if [ ! -f "./tests/seedfile" ]; then
+    dd if=/dev/urandom of=./tests/seedfile bs=64 count=1
+fi
+if [ -d ./crypto -a ! -f "./crypto/tests/seedfile" ]; then
+    cp tests/seedfile crypto/tests/seedfile
+fi
 scripts/config.pl full
 scripts/config.pl unset MBEDTLS_MEMORY_BUFFER_ALLOC_C
 CC=%s make
