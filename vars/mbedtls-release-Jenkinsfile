@@ -18,7 +18,10 @@ import groovy.transform.Field
  *  - RUN_BASIC_BUILD_TEST
  *  - RUN_ALL
  *  - RUN_WINDOWS_TEST
- *  - TEST_MBED_OS_EXAMPLES
+ *  - TEST_MBED_OS_AUTHCRYPT_EXAMPLE
+ *  - TEST_MBED_OS_BENCHMARK_EXAMPLE
+ *  - TEST_MBED_OS_HASHING_EXAMPLE
+ *  - TEST_MBED_OS_TLS_CLIENT_EXAMPLE
  *
  * Environment variables:
  *  - GIT_CREDENTIALS_ID
@@ -324,25 +327,25 @@ node {
 
     examples = [
         'authcrypt': [
-            'should_run': TEST_MBED_OS_EXAMPLES,
+            'should_run': TEST_MBED_OS_AUTHCRYPT_EXAMPLE,
             'repo': MBED_OS_TLS_EXAMPLES_REPO,
             'branch': MBED_OS_TLS_EXAMPLES_BRANCH,
             'platforms': all_platforms,
             'compilers': compilers],
         'benchmark': [
-            'should_run': TEST_MBED_OS_EXAMPLES,
+            'should_run': TEST_MBED_OS_BENCHMARK_EXAMPLE,
             'repo': MBED_OS_TLS_EXAMPLES_REPO,
             'branch': MBED_OS_TLS_EXAMPLES_BRANCH,
             'platforms': all_platforms,
             'compilers': compilers],
         'hashing': [
-            'should_run': TEST_MBED_OS_EXAMPLES,
+            'should_run': TEST_MBED_OS_HASHING_EXAMPLE,
             'repo': MBED_OS_TLS_EXAMPLES_REPO,
             'branch': MBED_OS_TLS_EXAMPLES_BRANCH,
             'platforms': all_platforms,
             'compilers': compilers],
         'tls-client': [
-            'should_run': TEST_MBED_OS_EXAMPLES,
+            'should_run': TEST_MBED_OS_TLS_CLIENT_EXAMPLE,
             'repo': MBED_OS_TLS_EXAMPLES_REPO,
             'branch': MBED_OS_TLS_EXAMPLES_BRANCH,
             'platforms': platforms_with_ethernet,
