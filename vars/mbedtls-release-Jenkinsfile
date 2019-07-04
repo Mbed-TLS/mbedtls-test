@@ -230,6 +230,17 @@ def gen_mbed_os_example_job(example, compiler, platform) {
                     deleteDir()
                     checkout_mbed_os_examples()
                     dir(example) {
+/* This script appears to do nothing, however it is needed in a few cases.
+ * We wish to deploy specific versions of Mbed OS, TLS and Crypto, so we
+ * remove mbed-os.lib to not deploy it twice. Mbed deploy is still needed in
+ * case other libraries exist to be deployed. */
+                        sh """\
+set -e
+ulimit -f 20971520
+rm -f mbed-os.lib
+mbed config root .
+mbed deploy -vv
+"""
                         dir('mbed-os') {
                             deleteDir()
                             checkout_mbed_os()
