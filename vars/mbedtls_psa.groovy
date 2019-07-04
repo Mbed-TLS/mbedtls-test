@@ -142,6 +142,7 @@ def gen_docker_jobs_foreach(label, platforms, compilers, script) {
 set -x
 set -v
 set -e
+ulimit -f 20971520
 ${shell_script}
 exit
 """
@@ -181,6 +182,8 @@ def gen_node_jobs_foreach(label, platforms, compilers, script) {
                             checkout_coverity_repo()
                         }
                         shell_script = """
+set -e
+ulimit -f 20971520
 export PYTHON=/usr/local/bin/python2.7
 """ + shell_script
                         timeout(time: perJobTimeout.time,
@@ -255,6 +258,7 @@ def gen_all_sh_jobs(platform, component) {
                     writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
+ulimit -f 20971520
 git config --global user.email "you@example.com"
 git config --global user.name "Your Name"
 git init
@@ -299,6 +303,7 @@ def gen_abi_api_checking_job(platform) {
 set -x
 set -v
 set -e
+ulimit -f 20971520
 tests/scripts/list-identifiers.sh --internal
 scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
 exit
