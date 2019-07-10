@@ -156,18 +156,6 @@ def get_windows_tests_job(build) {
     }
 }
 
-def checkout_mbed_os_examples(repo, branch) {
-    checkout scm: [$class: 'GitSCM',
-                   userRemoteConfigs: [[url: repo,
-                                        credentialsId: env.GIT_CREDENTIALS_ID]],
-                   branches: [[name: branch]],
-                   extensions: [
-                       [$class: 'CloneOption',
-                                timeout: 60],
-                   ],
-                  ]
-}
-
 def get_docker_image(platform) {
     sh "\$(aws ecr get-login) && docker pull $docker_repo:$platform"
 }
@@ -178,7 +166,7 @@ def gen_mbed_os_example_job(repo, branch, example, compiler, platform) {
             try {
                 timestamps {
                     deleteDir()
-                    checkout_mbed_os_examples(repo, branch)
+                    checkout_repo.checkout_parametrized_repo(repo, branch)
                     dir(example) {
 /* This script appears to do nothing, however it is needed in a few cases.
  * We wish to deploy specific versions of Mbed OS, TLS and Crypto, so we
