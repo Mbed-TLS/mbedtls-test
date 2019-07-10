@@ -29,48 +29,6 @@ import groovy.transform.Field
  *  - TEST_PASS_EMAIL_ADDRESS - (used for scheduled jobs)
  */
 
-
-/* Create code coverage job */
-def get_code_coverage_job(platform) {
-    return {
-        node('mbedtls && ubuntu-16.10-x64') {
-            try {
-                deleteDir()
-                common.get_docker_image(platform)
-                dir('mbedtls') {
-                    checkout_repo.checkout_repo()
-                    writeFile file: 'steps.sh', text: '''#!/bin/sh
-set -e
-set -x
-ulimit -f 20971520
-./tests/scripts/basic-build-test.sh 2>&1
-'''
-                }
-                timeout(time: common.perJobTimeout.time,
-                        unit: common.perJobTimeout.unit) {
-                    coverage_log = sh returnStdout: true, script: """
-chmod +x mbedtls/steps.sh
-docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
--w /var/lib/build -v `pwd`/mbedtls:/var/lib/build \
--v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $docker_repo:$platform
-"""
-                }
-            } catch (err) {
-                failedBuilds['basic-build-test'] = true
-                throw (err)
-            } finally {
-                echo coverage_log
-                coverage_details = coverage_log.substring(
-                    coverage_log.indexOf('Test Report Summary')
-                )
-                coverage_details = coverage_details.substring(
-                    coverage_details.indexOf('Coverage')
-                )
-            }
-        }
-    }
-}
-
 def gen_mbed_os_example_job(repo, branch, example, compiler, platform) {
     return {
         node(compiler) {
@@ -146,8 +104,6 @@ mbedhtrun -m ${platform} -g raas_client:https://auli.mbedcloudtesting.com:443 -P
 // Keep track of builds that fail
 @Field failedBuilds = [:]
 
-@Field coverage_details = ""
-
 @Field compilers = ['ARM', 'GCC_ARM', 'IAR']
 
 @Field all_platforms = ['K64F', 'NUCLEO_F429ZI', 'UBLOX_EVK_ODIN_W2',
@@ -195,7 +151,7 @@ node {
     platform = 'ubuntu-16.04'
 
     if (RUN_BASIC_BUILD_TEST == "true") {
-        jobs['code_coverage'] = get_code_coverage_job(platform);
+        jobs = jobs + gen_jobs.gen_code_coverage_job(platform);
     }
 
     if (RUN_ALL == "true") {
@@ -258,7 +214,7 @@ mingw32-make lib
         if (currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause')) {
             if (gen_jobs.failed_builds.size() == 0) {
                 emailbody = """
-${coverage_details}
+${gen_jobs.coverage_details}
 
 Logs: ${env.BUILD_URL}
 """
@@ -268,7 +224,7 @@ Logs: ${env.BUILD_URL}
                 keys = gen_jobs.failed_builds.keySet()
                 failures = keys.join(", ")
                 emailbody = """
-${coverage_details}
+${gen_jobs.coverage_details}
 
 Logs: ${env.BUILD_URL}
 
