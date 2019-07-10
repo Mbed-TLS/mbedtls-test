@@ -61,27 +61,7 @@ node {
     }
 
     /* Run the IAR Compiler job unconditionally */
-    jobs['iar8-mingw'] = {
-        node("windows-tls") {
-            try {
-                dir("mbedtls") {
-                    deleteDir()
-                    checkout_repo.checkout_repo()
-                    timeout(time: common.perJobTimeout.time,
-                            unit: common.perJobTimeout.unit) {
-                        bat """
-perl scripts/config.pl baremetal
-cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
-mingw32-make lib
-"""
-                    }
-                }
-            } catch (err) {
-                failedBuilds['iar8-mingw'] = true
-                throw (err)
-            }
-        }
-    }
+    jobs = jobs + gen_jobs.gen_iar_windows_job()
 
 /* Mbed OS Example job generation */
     common.examples.each { example ->
