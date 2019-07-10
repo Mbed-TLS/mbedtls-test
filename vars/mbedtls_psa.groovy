@@ -5,7 +5,7 @@ import groovy.transform.Field
 def run_crypto_tests() {
     node {
         try {
-            githubNotify context: 'Crypto Testing',
+            githubNotify context: "${env.BRANCH_NAME} Crypto Testing",
                          description: 'In progress',
                          status: 'PENDING'
             deleteDir()
@@ -95,13 +95,13 @@ def run_crypto_tests() {
 
             jobs.failFast = false
             parallel jobs
-            githubNotify context: 'Crypto Testing',
+            githubNotify context: "${env.BRANCH_NAME} Crypto Testing",
                          description: 'All tests passed',
                          status: 'SUCCESS'
         } catch (err) {
             echo "Caught: ${err}"
             currentBuild.result = 'FAILURE'
-            githubNotify context: 'Crypto Testing',
+            githubNotify context: "${env.BRANCH_NAME} Crypto Testing",
                          description: 'Test failure',
                          status: 'FAILURE'
         }
@@ -112,12 +112,6 @@ def run_crypto_tests() {
 def run_job() {
     githubNotify context: 'Pre Test Checks',
                  description: 'Checking if all PR tests can be run',
-                 status: 'PENDING'
-    githubNotify context: 'Crypto Testing',
-                 description: 'Not started',
-                 status: 'PENDING'
-    githubNotify context: 'TLS Testing',
-                 description: 'Not started',
                  status: 'PENDING'
     stage('pre-test-checks') {
         node {
@@ -132,12 +126,6 @@ def run_job() {
                 githubNotify context: 'Pre Test Checks',
                              description: 'Base branch out of date. Please rebase',
                              status: 'FAILURE'
-                githubNotify context: 'Crypto Testing',
-                             description: 'Not run',
-                             status: 'FAILURE'
-                githubNotify context: 'TLS Testing',
-                             description: 'Not run',
-                             status: 'FAILURE'
                 throw (err)
             }
         }
@@ -147,15 +135,15 @@ def run_job() {
     }
     stage('tls-testing') {
         try {
-            githubNotify context: 'TLS Testing',
+            githubNotify context: "${env.BRANCH_NAME} TLS Testing",
                          description: 'In progress',
                          status: 'PENDING'
             mbedtls.run_tls_tests_with_crypto_pr()
-            githubNotify context: 'TLS Testing',
+            githubNotify context: "${env.BRANCH_NAME} TLS Testing",
                          description: 'All tests passed',
                          status: 'SUCCESS'
         } catch (err) {
-            githubNotify context: 'TLS Testing',
+            githubNotify context: "${env.BRANCH_NAME} TLS Testing",
                          description: 'Test failure',
                          status: 'FAILURE'
         }
