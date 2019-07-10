@@ -363,7 +363,7 @@ mingw32-make lib
         parallel jobs
     } finally {
         if (currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause')) {
-            if (failedBuilds.size() == 0) {
+            if (gen_jobs.failed_builds.size() == 0) {
                 emailbody = """
 ${coverage_details}
 
@@ -372,7 +372,7 @@ Logs: ${env.BUILD_URL}
                 subject = "Mbed TLS nightly test passed!"
                 recipients = env.TEST_PASS_EMAIL_ADDRESS
             } else {
-                keys = failedBuilds.keySet()
+                keys = gen_jobs.failed_builds.keySet()
                 failures = keys.join(", ")
                 emailbody = """
 ${coverage_details}

@@ -1,3 +1,8 @@
+import groovy.transform.Field
+
+// Keep track of builds that fail
+@Field failed_builds = [:]
+
 def gen_simple_windows_jobs(label, script) {
     def jobs = [:]
 
