@@ -42,45 +42,6 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
     }
 }
 
-def get_all_sh_job(component, platform) {
-    return {
-        node('ubuntu-16.10-x64 && mbedtls') {
-            try {
-                deleteDir()
-                common.get_docker_image(platform)
-                dir('mbed-crypto') {
-                    checkout_repo.checkout_repo()
-                    writeFile file: 'steps.sh', text: """#!/bin/sh
-set -eux
-ulimit -f 20971520
-git config --global user.email "you@example.com"
-git config --global user.name "Your Name"
-git init
-git add .
-git commit -m "CI code copy"
-export LOG_FAILURE_ON_STDOUT=1
-set ./tests/scripts/all.sh --seed 4 --keep-going $component
-"\$@"
-"""
-                }
-                timeout(time: common.perJobTimeout.time,
-                        unit: common.perJobTimeout.unit) {
-                    sh """
-chmod +x mbed-crypto/steps.sh
-docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
--w /var/lib/build -v `pwd`/mbed-crypto:/var/lib/build \
--v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh --cap-add SYS_PTRACE \
-$docker_repo:$platform
-"""
-                }
-            } catch (err) {
-                failedBuilds['all.sh'] = true
-                throw (err)
-            }
-        }
-    }
-}
-
 def gen_mbed_os_example_job(repo, branch, example, compiler, platform) {
     return {
         node(compiler) {
@@ -235,30 +196,11 @@ node {
     }
 
     if (RUN_ALL == "true") {
-        dir('mbed-crypto') {
-            deleteDir()
-            checkout_repo.checkout_repo()
-            all_sh_help = sh(
-                script: "./tests/scripts/all.sh --help",
-                returnStdout: true
-            )
-            if (all_sh_help.contains('list-components')) {
-                components = sh(
-                    script: "./tests/scripts/all.sh --list-components",
-                    returnStdout: true
-                ).trim().split('\n')
-            } else {
-                components = [""]
-            }
+        all_sh_components = common.get_all_sh_components()
+        for (component in all_sh_components) {
+            jobs = jobs + gen_jobs.gen_all_sh_jobs('ubuntu-16.04', component)
         }
-        for (component in components) {
-            jobs["all_sh-${platform}-${component}"] = get_all_sh_job(
-                component, platform
-            );
-        }
-        jobs["all_sh-ubuntu-18.04-build_mingw"] = get_all_sh_job(
-            'build_mingw', 'ubuntu-18.04'
-        );
+        jobs = jobs + gen_jobs.gen_all_sh_jobs('ubuntu-18.04', 'build_mingw')
     }
 
     if (RUN_WINDOWS_TEST == "true") {
