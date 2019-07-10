@@ -132,9 +132,7 @@ def gen_docker_jobs_foreach(label, platforms, compilers, script) {
     for (platform in platforms) {
         for (compiler in compilers) {
             def job_name = "${label}-${compiler}-${platform}"
-            def docker_image_tag = "${platform}"
-            def compiler_path = compiler_paths["${compiler}"]
-            def shell_script = sprintf("${script}", "${compiler_path}")
+            def shell_script = sprintf(script, compiler_paths[compiler])
             jobs[job_name] = {
                 node("mbedtls && ubuntu-16.10-x64") {
                     timestamps {
@@ -159,7 +157,7 @@ exit
 chmod +x src/steps.sh
 docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
 -w /var/lib/build -v `pwd`/src:/var/lib/build \
--v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $docker_repo:$docker_image_tag
+-v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $docker_repo:$platform
 """
                         }
                     }
@@ -176,11 +174,9 @@ def gen_node_jobs_foreach(label, platforms, compilers, script) {
     for (platform in platforms) {
         for (compiler in compilers) {
             def job_name = "${label}-${compiler}-${platform}"
-            def node_lbl = "${platform}"
-            def compiler_path = compiler_paths["${compiler}"]
-            def shell_script = sprintf("${script}", "${compiler_path}")
+            def shell_script = sprintf(script, compiler_paths[compiler])
             jobs[job_name] = {
-                node(node_lbl) {
+                node(platform) {
                     timestamps {
                         deleteDir()
                         checkout scm
