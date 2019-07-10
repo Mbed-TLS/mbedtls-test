@@ -84,3 +84,42 @@ def checkout_parametrized_repo(repo, branch) {
         ]
     ])
 }
+
+def checkout_mbed_os() {
+    checkout([
+        scm: [
+            $class: 'GitSCM',
+            userRemoteConfigs: [
+                [url: MBED_OS_REPO, credentialsId: env.GIT_CREDENTIALS_ID]
+            ],
+            branches: [[name: MBED_OS_BRANCH]],
+            extensions: [
+                [$class: 'CloneOption', timeout: 60, shallow: true],
+            ],
+        ]
+    ])
+    if (MBED_TLS_BRANCH) {
+        dir('features/mbedtls/importer') {
+            sh """\
+set -e
+ulimit -f 20971520
+export MBED_TLS_RELEASE=$MBED_TLS_BRANCH
+export MBED_TLS_REPO_URL=$MBED_TLS_REPO
+make update
+make all
+"""
+        }
+    }
+    if (MBED_CRYPTO_BRANCH) {
+        dir('features/mbedtls/mbed-crypto/importer') {
+            sh """\
+set -e
+ulimit -f 20971520
+export CRYPTO_RELEASE=$MBED_CRYPTO_BRANCH
+export CRYPTO_REPO_URL=$MBED_CRYPTO_REPO
+make update
+make all
+"""
+        }
+    }
+}
