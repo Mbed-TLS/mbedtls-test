@@ -112,8 +112,7 @@ def run_pr_job() {
     stage('pre-test-checks') {
         node {
             try {
-                env.PR_TYPE = 'tls'
-                env.REPO_TO_CHECKOUT = 'tls'
+                environ.set_tls_pr_environment()
                 all_sh_components = common.get_all_sh_components()
                 githubNotify context: 'Pre Test Checks',
                              description: 'OK',
