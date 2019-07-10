@@ -24,3 +24,26 @@ import groovy.transform.Field
 def get_docker_image(docker_image) {
     sh "\$(aws ecr get-login) && docker pull $docker_repo:$docker_image"
 }
+
+def get_all_sh_components() {
+    node {
+        /* Get components of all.sh */
+        dir('src') {
+            deleteDir()
+            checkout_repo.checkout_pr()
+            all_sh_help = sh(
+                script: "./tests/scripts/all.sh --help",
+                returnStdout: true
+            )
+            if (all_sh_help.contains('list-components')) {
+                all_sh_components = sh(
+                    script: "./tests/scripts/all.sh --list-components",
+                    returnStdout: true
+                ).trim().split('\n')
+            } else {
+                error('Base branch out of date. Please rebase')
+            }
+        }
+        return all_sh_components
+    }
+}

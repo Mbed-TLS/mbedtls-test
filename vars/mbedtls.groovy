@@ -204,25 +204,14 @@ def run_tls_tests() {
             )
 
             /* All.sh jobs */
-            dir('mbedtls') {
-                deleteDir()
-                checkout_repo.checkout_pr()
-                all_sh_help = sh(
-                    script: "./tests/scripts/all.sh --help",
-                    returnStdout: true
-                )
-                if (all_sh_help.contains('list-components')) {
-                    components = sh(
-                        script: "./tests/scripts/all.sh --list-components",
-                        returnStdout: true
-                    ).trim().split('\n')
-                    for (component in components) {
-                        jobs = jobs + gen_all_sh_jobs(
-                            'ubuntu-16.04', component
-                        )
-                    }
-                    jobs = jobs + gen_all_sh_jobs('ubuntu-18.04', 'build_mingw')
+            try {
+                all_sh_components = common.get_all_sh_components()
+                for (component in all_sh_components) {
+                    jobs = jobs + gen_all_sh_jobs('ubuntu-16.04', component)
                 }
+                jobs = jobs + gen_all_sh_jobs('ubuntu-18.04', 'build_mingw')
+            } catch (err) {
+                echo "Caught: ${err}, not running all.sh tests"
             }
 
             jobs.failFast = false
