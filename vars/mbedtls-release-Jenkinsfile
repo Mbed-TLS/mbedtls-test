@@ -156,45 +156,6 @@ def get_windows_tests_job(build) {
     }
 }
 
-def checkout_mbed_os() {
-    checkout scm: [$class: 'GitSCM',
-                   userRemoteConfigs: [[url: MBED_OS_REPO,
-                                        credentialsId: env.GIT_CREDENTIALS_ID]],
-                   branches: [[name: MBED_OS_BRANCH]],
-                   extensions: [
-                       [$class: 'CloneOption',
-                                timeout: 60,
-                                shallow: true,
-                                ],
-                   ],
-                  ]
-
-    dir('features/mbedtls/importer') {
-        sh """\
-set -e
-ulimit -f 20971520
-export MBED_TLS_RELEASE=$MBED_TLS_BRANCH
-export MBED_TLS_REPO_URL=$MBED_TLS_REPO
-make update
-make all
-"""
-    }
-
-    /* Optional Crypto branch */
-    if (MBED_CRYPTO_BRANCH) {
-        dir('features/mbedtls/mbed-crypto/importer') {
-            sh """\
-set -e
-ulimit -f 20971520
-export CRYPTO_RELEASE=$MBED_CRYPTO_BRANCH
-export CRYPTO_REPO_URL=$MBED_CRYPTO_REPO
-make update
-make all
-"""
-        }
-    }
-}
-
 def checkout_mbed_os_examples(repo, branch) {
     checkout scm: [$class: 'GitSCM',
                    userRemoteConfigs: [[url: repo,
@@ -232,7 +193,7 @@ mbed deploy -vv
 """
                         dir('mbed-os') {
                             deleteDir()
-                            checkout_mbed_os()
+                            checkout_repo.checkout_mbed_os()
                         }
                         timeout(time: perJobTimeout.time +
                                         perJobTimeout.raasOffset,
