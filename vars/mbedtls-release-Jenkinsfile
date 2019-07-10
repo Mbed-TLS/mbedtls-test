@@ -29,78 +29,6 @@ import groovy.transform.Field
  *  - TEST_PASS_EMAIL_ADDRESS - (used for scheduled jobs)
  */
 
-def gen_mbed_os_example_job(repo, branch, example, compiler, platform) {
-    return {
-        node(compiler) {
-            try {
-                timestamps {
-                    deleteDir()
-                    checkout_repo.checkout_parametrized_repo(repo, branch)
-                    dir(example) {
-/* This script appears to do nothing, however it is needed in a few cases.
- * We wish to deploy specific versions of Mbed OS, TLS and Crypto, so we
- * remove mbed-os.lib to not deploy it twice. Mbed deploy is still needed in
- * case other libraries exist to be deployed. */
-                        sh """\
-set -e
-ulimit -f 20971520
-rm -f mbed-os.lib
-mbed config root .
-mbed deploy -vv
-"""
-                        dir('mbed-os') {
-                            deleteDir()
-                            checkout_repo.checkout_mbed_os()
-                        }
-                        timeout(time: common.perJobTimeout.time +
-                                      common.perJobTimeout.raasOffset,
-                                unit: common.perJobTimeout.unit) {
-                            sh """\
-set -e
-ulimit -f 20971520
-mbed compile -m ${platform} -t ${compiler}
-"""
-                            def attempts = 0
-                            while (true) {
-                                try {
-                                    sh """\
-set -e
-ulimit -f 20971520
-if [ -e BUILD/${platform}/${compiler}/${example}.bin ]
-then
-    BINARY=BUILD/${platform}/${compiler}/${example}.bin
-else
-    if [ -e BUILD/${platform}/${compiler}/${example}.hex ]
-    then
-        BINARY=BUILD/${platform}/${compiler}/${example}.hex
-    fi
-fi
-
-export RAAS_USERNAME=user
-export RAAS_PASSWORD=user
-export RAAS_PYCLIENT_FORCE_REMOTE_ALLOCATION=1
-export RAAS_PYCLIENT_ALLOCATION_QUEUE_TIMEOUT=3600
-mbedhtrun -m ${platform} -g raas_client:https://auli.mbedcloudtesting.com:443 -P 1000 --sync=0 -v --compare-log ../tests/${example}.log -f \$BINARY
-"""
-                                break
-                                } catch (err) {
-                                    attempts += 1
-                                    if (attempts >= 3) {
-                                        throw (err)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (err) {
-                failedBuilds["${example}-${platform}-${compiler}"] = true
-                throw (err)
-            }
-        }
-    }
-}
-
 // Keep track of builds that fail
 @Field failedBuilds = [:]
 
@@ -160,12 +88,11 @@ mingw32-make lib
         if (example.value['should_run'] == 'true') {
             for (compiler in example.value['compilers']) {
                 for (platform in example.value['platforms']) {
-                    jobs["${example.key}-${platform}-${compiler}"] =
-                        gen_mbed_os_example_job(
-                            example.value['repo'],
-                            example.value['branch'],
-                            example.key, compiler, platform
-                        )
+                    jobs = jobs + gen_jobs.gen_mbed_os_example_job(
+                        example.value['repo'],
+                        example.value['branch'],
+                        example.key, compiler, platform
+                    )
                 }
             }
         }
