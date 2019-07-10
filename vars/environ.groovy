@@ -9,3 +9,15 @@ def set_tls_pr_environment() {
     env.TARGET_REPO = 'tls'
     env.REPO_TO_CHECKOUT = 'tls'
 }
+
+def set_crypto_release_environment() {
+    env.JOB_TYPE = 'release'
+    env.TARGET_REPO = 'crypto'
+    env.REPO_TO_CHECKOUT = 'crypto'
+}
+
+def set_tls_release_environment() {
+    env.JOB_TYPE = 'release'
+    env.TARGET_REPO = 'tls'
+    env.REPO_TO_CHECKOUT = 'tls'
+}
