@@ -6,8 +6,6 @@ import groovy.transform.Field
  */
 @Field perJobTimeout = [time: 45, unit: 'MINUTES']
 
-@Field crypto_pr = false
-
 def gen_docker_jobs_foreach(label, platforms, compilers, script) {
     def jobs = [:]
 
@@ -22,7 +20,7 @@ def gen_docker_jobs_foreach(label, platforms, compilers, script) {
                         deleteDir()
                         common.get_docker_image(platform)
                         dir('src') {
-                            checkout_mbed_tls()
+                            checkout_repo.checkout_pr()
                             writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -x
@@ -62,7 +60,7 @@ def gen_node_jobs_foreach(label, platforms, compilers, script) {
                 node(platform) {
                     timestamps {
                         deleteDir()
-                        checkout_mbed_tls()
+                        checkout_repo.checkout_pr()
                         shell_script = """
 set -e
 ulimit -f 20971520
@@ -86,7 +84,7 @@ def gen_windows_jobs(label, script) {
     jobs[label] = {
         node("windows-tls") {
             deleteDir()
-            checkout_mbed_tls()
+            checkout_repo.checkout_pr()
             timeout(time: perJobTimeout.time, unit: perJobTimeout.unit) {
                 bat script
             }
@@ -104,7 +102,7 @@ def gen_all_sh_jobs(platform, component) {
                 deleteDir()
                 common.get_docker_image(platform)
                 dir('src') {
-                    checkout_mbed_tls()
+                    checkout_repo.checkout_pr()
                     writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
@@ -134,38 +132,9 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
     return jobs
 }
 
-/* If testing an Mbed TLS PR, checkout the Mbed TLS PR branch.
-   If testing an Mbed Crypto PR, checkout the Mbed TLS development branch
-   and update the Crypto submodule to the Mbed Crypto PR branch */
-def checkout_mbed_tls() {
-    if (crypto_pr) {
-        checkout([$class: 'GitSCM',
-                  branches: [[name: 'development']],
-                  doGenerateSubmoduleConfigurations: false,
-                  extensions: [
-                      [$class: 'CloneOption',
-                               timeout: 60],
-                      [$class: 'SubmoduleOption',
-                               disableSubmodules: false,
-                               parentCredentials: false,
-                               recursiveSubmodules: true,
-                               reference: '',
-                               trackingSubmodules: false],
-                  ],
-                  submoduleCfg: [],
-                  userRemoteConfigs: [[credentialsId: env.GIT_CREDENTIALS_ID,
-                                       url: "git@github.com:ARMmbed/mbedtls.git"]]])
-        dir('crypto') {
-            checkout scm
-        }
-    } else {
-        checkout scm
-    }
-}
-
 /* This runs the job using the main TLS development branch and a Mbed Crypto PR */
 def run_job_with_crypto_pr() {
-    crypto_pr = true
+    env.REPO_TO_CHECKOUT = 'tls'
     run_tls_tests()
 }
 
@@ -237,7 +206,7 @@ def run_tls_tests() {
             /* All.sh jobs */
             dir('mbedtls') {
                 deleteDir()
-                checkout_mbed_tls()
+                checkout_repo.checkout_pr()
                 all_sh_help = sh(
                     script: "./tests/scripts/all.sh --help",
                     returnStdout: true
@@ -267,5 +236,7 @@ def run_tls_tests() {
 
 /* main job */
 def run_job() {
+    env.PR_TYPE = 'tls'
+    env.REPO_TO_CHECKOUT = 'tls'
     run_tls_tests()
 }
