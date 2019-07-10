@@ -98,7 +98,7 @@ def get_windows_tests_job(build) {
                                      ],
                         ],
                         submoduleCfg: [],
-                        userRemoteConfigs: [[credentialsId: "${env.GIT_CREDENTIALS_ID}",
+                        userRemoteConfigs: [[credentialsId: env.GIT_CREDENTIALS_ID,
                         refspec: '+refs/heads/*:refs/remotes/*',
                         url: MBED_CRYPTO_REPO]]])
                 }

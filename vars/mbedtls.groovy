@@ -272,7 +272,7 @@ def checkout_mbed_tls() {
                                trackingSubmodules: false],
                   ],
                   submoduleCfg: [],
-                  userRemoteConfigs: [[credentialsId: "${env.GIT_CREDENTIALS_ID}",
+                  userRemoteConfigs: [[credentialsId: env.GIT_CREDENTIALS_ID,
                                        url: "git@github.com:ARMmbed/mbedtls.git"]]])
         dir('crypto') {
             checkout scm
