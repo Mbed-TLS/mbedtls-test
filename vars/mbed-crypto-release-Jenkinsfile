@@ -284,11 +284,11 @@ node {
             'compilers': ['GCC_ARM']],
     ]
 
-    parallel_jobs = [:]
+    jobs = [:]
     platform = 'ubuntu-16.04'
 
     if (RUN_BASIC_BUILD_TEST == "true") {
-        parallel_jobs['code_coverage'] = get_code_coverage_job(platform);
+        jobs['code_coverage'] = get_code_coverage_job(platform);
     }
 
     if (RUN_ALL == "true") {
@@ -309,21 +309,21 @@ node {
             }
         }
         for (component in components) {
-            parallel_jobs["all_sh-${platform}-${component}"] = get_all_sh_job(
+            jobs["all_sh-${platform}-${component}"] = get_all_sh_job(
                 component, platform
             );
         }
-        parallel_jobs["all_sh-ubuntu-18.04-build_mingw"] = get_all_sh_job(
+        jobs["all_sh-ubuntu-18.04-build_mingw"] = get_all_sh_job(
             'build_mingw', 'ubuntu-18.04'
         );
     }
 
     if (RUN_WINDOWS_TEST == "true") {
         for (build in ['mingw', '2010', '2013', '2015', '2017']) {
-            parallel_jobs["Windows-${build}"] = get_windows_tests_job(build);
+            jobs["Windows-${build}"] = get_windows_tests_job(build);
         }
 
-        parallel_jobs['iar8-mingw'] = {
+        jobs['iar8-mingw'] = {
             node("windows-tls") {
                 try {
                     dir("mbed-crypto") {
@@ -350,7 +350,7 @@ mingw32-make lib
         if (example.value['should_run'] == 'true') {
             for (compiler in example.value['compilers']) {
                 for (platform in example.value['platforms']) {
-                    parallel_jobs["${example.key}-${platform}-${compiler}"] =
+                    jobs["${example.key}-${platform}-${compiler}"] =
                         gen_mbed_os_example_job(
                             example.value['repo'],
                             example.value['branch'],
@@ -361,9 +361,9 @@ mingw32-make lib
         }
     }
 
-    parallel_jobs.failFast = false
+    jobs.failFast = false
     try {
-        parallel parallel_jobs
+        parallel jobs
     } finally {
         if (currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause')) {
             if (failedBuilds.size() == 0) {
