@@ -301,7 +301,7 @@ def run_job() {
             def windows_compilers = ['cc']
             def all_compilers = ['gcc', 'clang']
             def gcc_compilers = ['gcc']
-            def asan_compilers = ['clang'] /* Change to clang once mbed TLS can compile with clang 3.8 */
+            def asan_compilers = ['clang']
 
             /* Linux jobs */
             def jobs = gen_docker_jobs_foreach(
