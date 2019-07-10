@@ -1,12 +1,5 @@
 import groovy.transform.Field
 
-@Field compiler_paths = [
-    'gcc' : 'gcc',
-    'gcc48' : '/usr/local/bin/gcc48',
-    'clang' : 'clang',
-    'cc' : 'cc'
-]
-
 @Field docker_repo = '853142832404.dkr.ecr.eu-west-1.amazonaws.com/jenkins-mbedtls'
 
 /*
@@ -25,7 +18,7 @@ def gen_docker_jobs_foreach(label, platforms, compilers, script) {
     for (platform in platforms) {
         for (compiler in compilers) {
             def job_name = "${label}-${compiler}-${platform}"
-            def shell_script = sprintf(script, compiler_paths[compiler])
+            def shell_script = sprintf(script, common.compiler_paths[compiler])
             jobs[job_name] = {
                 node("mbedtls && ubuntu-16.10-x64") {
                     timestamps {
@@ -67,7 +60,7 @@ def gen_node_jobs_foreach(label, platforms, compilers, script) {
     for (platform in platforms) {
         for (compiler in compilers) {
             def job_name = "${label}-${compiler}-${platform}"
-            def shell_script = sprintf(script, compiler_paths[compiler])
+            def shell_script = sprintf(script, common.compiler_paths[compiler])
             jobs[job_name] = {
                 node(platform) {
                     timestamps {
