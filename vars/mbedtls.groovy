@@ -1,11 +1,5 @@
 import groovy.transform.Field
 
-/*
- * This controls the timeout each job has. It does not count the time spent in
- * waiting queues and setting up the environment.
- */
-@Field perJobTimeout = [time: 45, unit: 'MINUTES']
-
 def gen_docker_jobs_foreach(label, platforms, compilers, script) {
     def jobs = [:]
 
@@ -32,8 +26,8 @@ chmod -R 777 .
 exit
 """
                         }
-                        timeout(time: perJobTimeout.time,
-                                unit: perJobTimeout.unit) {
+                        timeout(time: common.perJobTimeout.time,
+                                unit: common.perJobTimeout.unit) {
                             sh """\
 chmod +x src/steps.sh
 docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
@@ -66,8 +60,8 @@ set -e
 ulimit -f 20971520
 export PYTHON=/usr/local/bin/python2.7
 """ + shell_script
-                        timeout(time: perJobTimeout.time,
-                                unit: perJobTimeout.unit) {
+                        timeout(time: common.perJobTimeout.time,
+                                unit: common.perJobTimeout.unit) {
                             sh shell_script
                         }
                     }
@@ -85,7 +79,8 @@ def gen_windows_jobs(label, script) {
         node("windows-tls") {
             deleteDir()
             checkout_repo.checkout_pr()
-            timeout(time: perJobTimeout.time, unit: perJobTimeout.unit) {
+            timeout(time: common.perJobTimeout.time,
+                    unit: common.perJobTimeout.unit) {
                 bat script
             }
         }
@@ -117,7 +112,8 @@ set ./tests/scripts/all.sh -m --release-test --keep-going $component
 "\$@"
 """
                 }
-                timeout(time: perJobTimeout.time, unit: perJobTimeout.unit) {
+                timeout(time: common.perJobTimeout.time,
+                        unit: common.perJobTimeout.unit) {
                     sh """\
 chmod +x src/steps.sh
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
