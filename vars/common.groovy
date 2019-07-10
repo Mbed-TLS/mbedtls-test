@@ -1,5 +1,11 @@
 import groovy.transform.Field
 
+/*
+ * This controls the timeout each job has. It does not count the time spent in
+ * waiting queues and setting up the environment.
+ */
+@Field perJobTimeout = [time: 45, unit: 'MINUTES']
+
 @Field compiler_paths = [
     'gcc' : 'gcc',
     'gcc48' : '/usr/local/bin/gcc48',
