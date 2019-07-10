@@ -98,12 +98,13 @@ def gen_all_sh_jobs(platform, component) {
 
     jobs["all_sh-${platform}-${component}"] = {
         node('ubuntu-16.10-x64 && mbedtls') {
-            timestamps {
-                deleteDir()
-                common.get_docker_image(platform)
-                dir('src') {
-                    checkout_repo.checkout_repo()
-                    writeFile file: 'steps.sh', text: """\
+            try {
+                timestamps {
+                    deleteDir()
+                    common.get_docker_image(platform)
+                    dir('src') {
+                        checkout_repo.checkout_repo()
+                        writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
 ulimit -f 20971520
@@ -116,17 +117,21 @@ export LOG_FAILURE_ON_STDOUT=1
 set ./tests/scripts/all.sh --seed 4 --keep-going $component
 "\$@"
 """
-                }
-                timeout(time: common.perJobTimeout.time,
-                        unit: common.perJobTimeout.unit) {
-                    sh """\
+                    }
+                    timeout(time: common.perJobTimeout.time,
+                            unit: common.perJobTimeout.unit) {
+                        sh """\
 chmod +x src/steps.sh
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
 -w /var/lib/build -v `pwd`/src:/var/lib/build \
 -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh \
 --cap-add SYS_PTRACE $common.docker_repo:$platform
 """
+                    }
                 }
+            } catch (err) {
+                failed_builds['all.sh'] = true
+                throw (err)
             }
         }
     }
