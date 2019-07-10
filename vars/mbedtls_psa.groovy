@@ -65,7 +65,7 @@ def gen_node_jobs_foreach(label, platforms, compilers, script) {
                         deleteDir()
                         checkout_repo.checkout_pr()
                         if (label == 'coverity') {
-                            checkout_coverity_repo()
+                            checkout_repo.checkout_coverity_repo()
                         }
                         shell_script = """
 set -e
@@ -207,22 +207,6 @@ docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
         }
     }
     return jobs
-}
-
-def checkout_coverity_repo() {
-    checkout changelog: false, poll: false,
-        scm: [
-            $class: 'GitSCM',
-            branches: [[name: '*/master']],
-            doGenerateSubmoduleConfigurations: false,
-            extensions: [
-                [$class: 'CloneOption', noTags: true, shallow: true],
-                [$class: 'RelativeTargetDirectory', relativeTargetDir: 'coverity-tools']
-                ],
-            submoduleCfg: [],
-            userRemoteConfigs: [[
-                url: 'git@github.com:ARMmbed/coverity-tools.git',
-                credentialsId: "${env.GIT_CREDENTIALS_ID}"]]]
 }
 
 def run_crypto_tests() {
