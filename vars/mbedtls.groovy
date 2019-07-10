@@ -187,45 +187,50 @@ def run_job() {
     node {
         try {
             deleteDir()
-            def one_platform = ["debian-9-x64"]
-            def linux_platforms = ["debian-9-i386", "debian-9-x64"]
-            def bsd_platforms = ["freebsd"]
-            def bsd_compilers = ["clang"]
-            def windows_platforms = ['windows']
-            def windows_compilers = ['cc']
-            def all_compilers = ['gcc', 'clang']
-            def gcc_compilers = ['gcc']
-            def asan_compilers = ['clang']
 
             /* Linux jobs */
             def jobs = gen_docker_jobs_foreach(
-                'std-make', linux_platforms, all_compilers,
+                'std-make',
+                common.linux_platforms,
+                common.all_compilers,
                 scripts.std_make_test_sh
             )
             jobs = jobs + gen_docker_jobs_foreach(
-                'std-make-full-config', linux_platforms, all_compilers,
+                'std-make-full-config',
+                common.linux_platforms,
+                common.all_compilers,
                 scripts.std_make_full_config_test_sh
             )
             jobs = jobs + gen_docker_jobs_foreach(
-                'cmake', linux_platforms, all_compilers,
+                'cmake',
+                common.linux_platforms,
+                common.all_compilers,
                 scripts.cmake_test_sh
             )
             jobs = jobs + gen_docker_jobs_foreach(
-                'cmake-full', linux_platforms, gcc_compilers,
+                'cmake-full',
+                common.linux_platforms,
+                common.gcc_compilers,
                 scripts.cmake_full_test_sh
             )
             jobs = jobs + gen_docker_jobs_foreach(
-                'cmake-asan', linux_platforms, asan_compilers,
+                'cmake-asan',
+                common.linux_platforms,
+                common.asan_compilers,
                 scripts.cmake_asan_test_sh
             )
 
             /* BSD jobs */
             jobs = jobs + gen_node_jobs_foreach(
-                'gmake', bsd_platforms, bsd_compilers,
+                'gmake',
+                common.bsd_platforms,
+                common.bsd_compilers,
                 scripts.gmake_test_sh
             )
             jobs = jobs + gen_node_jobs_foreach(
-                'cmake', bsd_platforms, bsd_compilers,
+                'cmake',
+                common.bsd_platforms,
+                common.bsd_compilers,
                 scripts.cmake_test_sh
             )
 
