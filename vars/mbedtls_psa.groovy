@@ -24,7 +24,7 @@ def gen_docker_jobs_foreach(label, platforms, compilers, script) {
                         deleteDir()
                         common.get_docker_image(platform)
                         dir('src') {
-                            checkout scm
+                            checkout_repo.checkout_pr()
                             writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -x
@@ -63,7 +63,7 @@ def gen_node_jobs_foreach(label, platforms, compilers, script) {
                 node(platform) {
                     timestamps {
                         deleteDir()
-                        checkout scm
+                        checkout_repo.checkout_pr()
                         if (label == 'coverity') {
                             checkout_coverity_repo()
                         }
@@ -90,7 +90,7 @@ def gen_simple_windows_jobs(label, script) {
     jobs[label] = {
         node("windows-tls") {
             deleteDir()
-            checkout scm
+            checkout_repo.checkout_pr()
             timeout(time: perJobTimeout.time, unit: perJobTimeout.unit) {
                 bat script
             }
@@ -106,7 +106,7 @@ def gen_windows_tests_jobs(build) {
         node("windows-tls") {
             dir("mbed-crypto") {
                 deleteDir()
-                checkout scm
+                checkout_repo.checkout_pr()
             }
             /* The empty files are created to re-create the directory after it
              * and its contents have been removed by deleteDir. */
@@ -140,7 +140,7 @@ def gen_all_sh_jobs(platform, component) {
                 deleteDir()
                 common.get_docker_image(platform)
                 dir('src') {
-                    checkout scm
+                    checkout_repo.checkout_pr()
                     writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
@@ -179,7 +179,7 @@ def gen_abi_api_checking_job(platform) {
                 deleteDir()
                 common.get_docker_image(platform)
                 dir('src') {
-                    checkout scm
+                    checkout_repo.checkout_pr()
                     sh(
                         returnStdout: true,
                         script: "git fetch origin ${CHANGE_TARGET}"
@@ -341,10 +341,12 @@ def run_job() {
     stage('pre-test-checks') {
         node {
             try {
+                env.PR_TYPE = 'crypto'
+                env.REPO_TO_CHECKOUT = 'crypto'
                 /* Get components of all.sh */
                 dir('mbedtls') {
                     deleteDir()
-                    scm_vars = checkout scm
+                    scm_vars = checkout_repo.checkout_pr()
                     all_sh_help = sh(
                         script: "./tests/scripts/all.sh --help",
                         returnStdout: true
