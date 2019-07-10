@@ -166,11 +166,10 @@ def checkout_mbed_tls() {
 /* This runs the job using the main TLS development branch and a Mbed Crypto PR */
 def run_job_with_crypto_pr() {
     crypto_pr = true
-    run_job()
+    run_tls_tests()
 }
 
-/* main job */
-def run_job() {
+def run_tls_tests() {
     node {
         try {
             deleteDir()
@@ -264,4 +263,9 @@ def run_job() {
             currentBuild.result = 'FAILURE'
         }
     }
+}
+
+/* main job */
+def run_job() {
+    run_tls_tests()
 }
