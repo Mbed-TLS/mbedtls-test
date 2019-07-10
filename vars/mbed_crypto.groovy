@@ -116,8 +116,7 @@ def run_pr_job() {
     stage('pre-test-checks') {
         node {
             try {
-                env.PR_TYPE = 'crypto'
-                env.REPO_TO_CHECKOUT = 'crypto'
+                environ.set_crypto_pr_environment()
                 all_sh_components = common.get_all_sh_components()
                 githubNotify context: 'Pre Test Checks',
                              description: 'OK',

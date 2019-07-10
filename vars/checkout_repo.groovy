@@ -3,7 +3,7 @@
  * In all other cases, the standard scm checkout will checkout the PR branch
  * we wish to test. */
 def checkout_pr() {
-    if (env.PR_TYPE == 'crypto' && env.REPO_TO_CHECKOUT == 'tls') {
+    if (env.TARGET_REPO == 'crypto' && env.REPO_TO_CHECKOUT == 'tls') {
         checkout([
             $class: 'GitSCM',
             branches: [[name: 'development']],
