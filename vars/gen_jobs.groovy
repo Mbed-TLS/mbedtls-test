@@ -348,3 +348,31 @@ mbedhtrun -m ${platform} ${tag_filter} \
     }
     return jobs
 }
+
+def gen_iar_windows_job() {
+    def jobs = [:]
+
+    jobs['iar8-mingw'] = {
+        node("windows-tls") {
+            try {
+                dir("src") {
+                    deleteDir()
+                    checkout_repo.checkout_repo()
+                    timeout(time: common.perJobTimeout.time,
+                            unit: common.perJobTimeout.unit) {
+                        bat """
+perl scripts/config.pl baremetal
+cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" \
+-G "MinGW Makefiles" .
+mingw32-make lib
+"""
+                    }
+                }
+            } catch (err) {
+                failed_builds['iar8-mingw'] = true
+                throw (err)
+            }
+        }
+    }
+    return jobs
+}
