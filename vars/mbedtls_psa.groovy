@@ -1,7 +1,5 @@
 import groovy.transform.Field
 
-@Field docker_repo = '853142832404.dkr.ecr.eu-west-1.amazonaws.com/jenkins-mbedtls'
-
 /*
  * This controls the timeout each job has. It does not count the time spent in
  * waiting queues and setting up the environment.
@@ -24,7 +22,7 @@ def gen_docker_jobs_foreach(label, platforms, compilers, script) {
                     timestamps {
                         sh 'rm -rf *'
                         deleteDir()
-                        get_docker_image(platform)
+                        common.get_docker_image(platform)
                         dir('src') {
                             checkout scm
                             writeFile file: 'steps.sh', text: """\
@@ -43,7 +41,7 @@ exit
 chmod +x src/steps.sh
 docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
 -w /var/lib/build -v `pwd`/src:/var/lib/build \
--v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $docker_repo:$platform
+-v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
 """
                         }
                     }
@@ -140,7 +138,7 @@ def gen_all_sh_jobs(platform, component) {
         node('ubuntu-16.10-x64 && mbedtls') {
             timestamps {
                 deleteDir()
-                get_docker_image(platform)
+                common.get_docker_image(platform)
                 dir('src') {
                     checkout scm
                     writeFile file: 'steps.sh', text: """\
@@ -163,7 +161,7 @@ chmod +x src/steps.sh
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
 -w /var/lib/build -v `pwd`/src:/var/lib/build \
 -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh \
---cap-add SYS_PTRACE $docker_repo:$platform
+--cap-add SYS_PTRACE $common.docker_repo:$platform
 """
                 }
             }
@@ -179,7 +177,7 @@ def gen_abi_api_checking_job(platform) {
         node('ubuntu-16.10-x64 && mbedtls') {
             timestamps {
                 deleteDir()
-                get_docker_image(platform)
+                common.get_docker_image(platform)
                 dir('src') {
                     checkout scm
                     sh(
@@ -202,7 +200,7 @@ exit
 chmod +x src/steps.sh
 docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
 -w /var/lib/build -v `pwd`/src:/var/lib/build \
--v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $docker_repo:$platform
+-v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
 """
                 }
             }
@@ -225,10 +223,6 @@ def checkout_coverity_repo() {
             userRemoteConfigs: [[
                 url: 'git@github.com:ARMmbed/coverity-tools.git',
                 credentialsId: "${env.GIT_CREDENTIALS_ID}"]]]
-}
-
-def get_docker_image(docker_image) {
-    sh "\$(aws ecr get-login) && docker pull $docker_repo:$docker_image"
 }
 
 /* main job */
