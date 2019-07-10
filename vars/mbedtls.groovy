@@ -1,7 +1,7 @@
 import groovy.transform.Field
 
 /* This runs the job using the main TLS development branch and a Mbed Crypto PR */
-def run_job_with_crypto_pr() {
+def run_tls_tests_with_crypto_pr() {
     env.REPO_TO_CHECKOUT = 'tls'
     run_tls_tests()
 }
