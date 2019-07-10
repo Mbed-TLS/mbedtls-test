@@ -325,38 +325,20 @@ def run_job() {
             try {
                 env.PR_TYPE = 'crypto'
                 env.REPO_TO_CHECKOUT = 'crypto'
-                /* Get components of all.sh */
-                dir('mbedtls') {
-                    deleteDir()
-                    checkout_repo.checkout_pr()
-                    all_sh_help = sh(
-                        script: "./tests/scripts/all.sh --help",
-                        returnStdout: true
-                    )
-                    if (all_sh_help.contains('list-components')) {
-                        all_sh_components = sh(
-                            script: "./tests/scripts/all.sh --list-components",
-                            returnStdout: true
-                        ).trim().split('\n')
-                    } else {
-                        def message = 'Base branch out of date. Please rebase'
-                        githubNotify context: 'Pre Test Checks',
-                                     description: message,
-                                     status: 'FAILURE'
-                        githubNotify context: 'Crypto Testing',
-                                     description: 'Not run',
-                                     status: 'FAILURE'
-                        githubNotify context: 'TLS Testing',
-                                     description: 'Not run',
-                                     status: 'FAILURE'
-                        error(message)
-                    }
-                }
-
+                all_sh_components = common.get_all_sh_components()
                 githubNotify context: 'Pre Test Checks',
                              description: 'OK',
                              status: 'SUCCESS'
             } catch (err) {
+                githubNotify context: 'Pre Test Checks',
+                             description: 'Base branch out of date. Please rebase',
+                             status: 'FAILURE'
+                githubNotify context: 'Crypto Testing',
+                             description: 'Not run',
+                             status: 'FAILURE'
+                githubNotify context: 'TLS Testing',
+                             description: 'Not run',
+                             status: 'FAILURE'
                 throw (err)
             }
         }
