@@ -36,7 +36,7 @@ def get_all_sh_components() {
         /* Get components of all.sh */
         dir('src') {
             deleteDir()
-            checkout_repo.checkout_pr()
+            checkout_repo.checkout_repo()
             all_sh_help = sh(
                 script: "./tests/scripts/all.sh --help",
                 returnStdout: true

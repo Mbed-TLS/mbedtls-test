@@ -4,7 +4,7 @@ def gen_simple_windows_jobs(label, script) {
     jobs[label] = {
         node("windows-tls") {
             deleteDir()
-            checkout_repo.checkout_pr()
+            checkout_repo.checkout_repo()
             timeout(time: common.perJobTimeout.time,
                     unit: common.perJobTimeout.unit) {
                 bat script
@@ -28,7 +28,7 @@ def gen_docker_jobs_foreach(label, platforms, compilers, script) {
                         deleteDir()
                         common.get_docker_image(platform)
                         dir('src') {
-                            checkout_repo.checkout_pr()
+                            checkout_repo.checkout_repo()
                             writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -x
@@ -67,7 +67,7 @@ def gen_node_jobs_foreach(label, platforms, compilers, script) {
                 node(platform) {
                     timestamps {
                         deleteDir()
-                        checkout_repo.checkout_pr()
+                        checkout_repo.checkout_repo()
                         if (label == 'coverity') {
                             checkout_repo.checkout_coverity_repo()
                         }
@@ -97,7 +97,7 @@ def gen_all_sh_jobs(platform, component) {
                 deleteDir()
                 common.get_docker_image(platform)
                 dir('src') {
-                    checkout_repo.checkout_pr()
+                    checkout_repo.checkout_repo()
                     writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
@@ -135,7 +135,7 @@ def gen_windows_tests_jobs(build) {
         node("windows-tls") {
             dir("src") {
                 deleteDir()
-                checkout_repo.checkout_pr()
+                checkout_repo.checkout_repo()
             }
             /* The empty files are created to re-create the directory after it
              * and its contents have been removed by deleteDir. */
@@ -170,7 +170,7 @@ def gen_abi_api_checking_job(platform) {
                 deleteDir()
                 common.get_docker_image(platform)
                 dir('src') {
-                    checkout_repo.checkout_pr()
+                    checkout_repo.checkout_repo()
                     sh(
                         returnStdout: true,
                         script: "git fetch origin ${CHANGE_TARGET}"
