@@ -9,6 +9,9 @@ def run_tls_tests_with_crypto_pr() {
 def run_tls_tests() {
     node {
         try {
+            githubNotify context: "${env.BRANCH_NAME} TLS Testing",
+                         description: 'In progress',
+                         status: 'PENDING'
             deleteDir()
 
             /* Linux jobs */
@@ -88,16 +91,42 @@ def run_tls_tests() {
 
             jobs.failFast = false
             parallel jobs
+            githubNotify context: "${env.BRANCH_NAME} TLS Testing",
+                         description: 'All tests passed',
+                         status: 'SUCCESS'
         } catch (err) {
             echo "Caught: ${err}"
             currentBuild.result = 'FAILURE'
+            githubNotify context: "${env.BRANCH_NAME} TLS Testing",
+                         description: 'Test failure',
+                         status: 'FAILURE'
         }
     }
 }
 
 /* main job */
 def run_job() {
-    env.PR_TYPE = 'tls'
-    env.REPO_TO_CHECKOUT = 'tls'
-    run_tls_tests()
+    githubNotify context: 'Pre Test Checks',
+                 description: 'Checking if all PR tests can be run',
+                 status: 'PENDING'
+    stage('pre-test-checks') {
+        node {
+            try {
+                env.PR_TYPE = 'tls'
+                env.REPO_TO_CHECKOUT = 'tls'
+                all_sh_components = common.get_all_sh_components()
+                githubNotify context: 'Pre Test Checks',
+                             description: 'OK',
+                             status: 'SUCCESS'
+            } catch (err) {
+                githubNotify context: 'Pre Test Checks',
+                             description: 'Base branch out of date. Please rebase',
+                             status: 'FAILURE'
+                throw (err)
+            }
+        }
+    }
+    stage('tls-testing') {
+        run_tls_tests()
+    }
 }
