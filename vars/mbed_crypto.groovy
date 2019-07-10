@@ -109,7 +109,7 @@ def run_crypto_tests() {
 }
 
 /* main job */
-def run_job() {
+def run_pr_job() {
     githubNotify context: 'Pre Test Checks',
                  description: 'Checking if all PR tests can be run',
                  status: 'PENDING'
