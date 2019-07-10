@@ -150,7 +150,7 @@ def run_job() {
             githubNotify context: 'TLS Testing',
                          description: 'In progress',
                          status: 'PENDING'
-            mbedtls.run_job_with_crypto_pr()
+            mbedtls.run_tls_tests_with_crypto_pr()
             githubNotify context: 'TLS Testing',
                          description: 'All tests passed',
                          status: 'SUCCESS'
