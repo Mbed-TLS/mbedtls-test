@@ -8,8 +8,6 @@ import groovy.transform.Field
 
 @Field all_sh_components = []
 
-@Field scm_vars
-
 def gen_docker_jobs_foreach(label, platforms, compilers, script) {
     def jobs = [:]
 
@@ -124,7 +122,7 @@ def gen_windows_tests_jobs(build) {
             def windows_testing = libraryResource 'windows/windows_testing.py'
             writeFile file: 'windows_testing.py', text: windows_testing
             timeout(time: perJobTimeout.time, unit: perJobTimeout.unit) {
-                bat "python windows_testing.py mbed-crypto logs $scm_vars.GIT_BRANCH -b $build"
+                bat "python windows_testing.py mbed-crypto logs $env.BRANCH_NAME -b $build"
             }
         }
     }
@@ -330,7 +328,7 @@ def run_job() {
                 /* Get components of all.sh */
                 dir('mbedtls') {
                     deleteDir()
-                    scm_vars = checkout_repo.checkout_pr()
+                    checkout_repo.checkout_pr()
                     all_sh_help = sh(
                         script: "./tests/scripts/all.sh --help",
                         returnStdout: true
