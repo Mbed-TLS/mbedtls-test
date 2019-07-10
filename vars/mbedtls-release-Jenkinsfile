@@ -110,55 +110,6 @@ $docker_repo:$platform
     }
 }
 
-def get_windows_tests_job(build) {
-    return {
-        node("windows-tls") {
-            try {
-                dir("mbedtls") {
-                    deleteDir()
-                    checkout([$class: 'GitSCM', branches: [[name: "**"]],
-                        extensions: [
-                            [$class: 'CloneOption',
-                                     timeout: 60],
-                            [$class: 'SubmoduleOption',
-                                     disableSubmodules: false,
-                                     parentCredentials: false,
-                                     recursiveSubmodules: true,
-                                     reference: '',
-                                     trackingSubmodules: false],
-                        ],
-                        userRemoteConfigs: [[credentialsId: env.GIT_CREDENTIALS_ID,
-                        refspec: '+refs/heads/*:refs/remotes/*',
-                        url: MBED_TLS_REPO]]])
-                }
-
-                dir("tools") {
-                    deleteDir()
-                    checkout scm
-                }
-
-                dir("logs") {
-                    deleteDir()
-                    writeFile file:'results.txt', text:''
-                }
-
-                dir("worktrees") {
-                    deleteDir()
-                    writeFile file:'worktrees.txt', text:''
-                }
-
-                timeout(time: common.perJobTimeout.time,
-                        unit: common.perJobTimeout.unit) {
-                    bat "python tools/resources/windows/windows_testing.py mbedtls logs $MBED_TLS_BRANCH -b $build"
-                }
-            } catch (err) {
-                failedBuilds["Windows ${build} tests"] = true
-                throw (err)
-            }
-        }
-    }
-}
-
 def gen_mbed_os_example_job(repo, branch, example, compiler, platform) {
     return {
         node(compiler) {
@@ -313,7 +264,7 @@ node {
 
     if (RUN_WINDOWS_TEST == "true") {
         for (build in ['mingw', '2010', '2013', '2015', '2017']) {
-            jobs["Windows-${build}"] = get_windows_tests_job(build);
+            jobs = jobs + gen_jobs.gen_windows_tests_jobs(build)
         }
     }
 

@@ -14,10 +14,12 @@ def set_crypto_release_environment() {
     env.JOB_TYPE = 'release'
     env.TARGET_REPO = 'crypto'
     env.REPO_TO_CHECKOUT = 'crypto'
+    env.BRANCH_NAME = MBED_CRYPTO_BRANCH
 }
 
 def set_tls_release_environment() {
     env.JOB_TYPE = 'release'
     env.TARGET_REPO = 'tls'
     env.REPO_TO_CHECKOUT = 'tls'
+    env.BRANCH_NAME = MBED_TLS_BRANCH
 }
