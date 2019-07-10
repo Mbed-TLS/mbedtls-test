@@ -134,18 +134,6 @@ def run_job() {
         run_crypto_tests()
     }
     stage('tls-testing') {
-        try {
-            githubNotify context: "${env.BRANCH_NAME} TLS Testing",
-                         description: 'In progress',
-                         status: 'PENDING'
-            mbedtls.run_tls_tests_with_crypto_pr()
-            githubNotify context: "${env.BRANCH_NAME} TLS Testing",
-                         description: 'All tests passed',
-                         status: 'SUCCESS'
-        } catch (err) {
-            githubNotify context: "${env.BRANCH_NAME} TLS Testing",
-                         description: 'Test failure',
-                         status: 'FAILURE'
-        }
+        mbedtls.run_tls_tests_with_crypto_pr()
     }
 }
