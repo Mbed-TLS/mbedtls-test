@@ -261,3 +261,88 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
     }
     return jobs
 }
+
+def gen_mbed_os_example_job(repo, branch, example, compiler, platform) {
+    def jobs = [:]
+
+    jobs["${example}-${platform}-${compiler}"] = {
+        node(compiler) {
+            try {
+                def use_psa_crypto = ""
+                if (env.TARGET_REPO == 'crypto' &&
+                    common.platforms_with_entropy_sources.contains(platform)) {
+                    use_psa_crypto = "-DMBEDTLS_PSA_CRYPTO_C"
+                }
+                timestamps {
+                    deleteDir()
+                    checkout_repo.checkout_parametrized_repo(repo, branch)
+                    dir(example) {
+/* This script appears to do nothing, however it is needed in a few cases.
+ * We wish to deploy specific versions of Mbed OS, TLS and Crypto, so we
+ * remove mbed-os.lib to not deploy it twice. Mbed deploy is still needed in
+ * case other libraries exist to be deployed. */
+                        sh """\
+set -e
+ulimit -f 20971520
+rm -f mbed-os.lib
+mbed config root .
+mbed deploy -vv
+"""
+                        dir('mbed-os') {
+                            deleteDir()
+                            checkout_repo.checkout_mbed_os()
+                        }
+                        timeout(time: common.perJobTimeout.time +
+                                      common.perJobTimeout.raasOffset,
+                                unit: common.perJobTimeout.unit) {
+                            def tag_filter = ""
+                            if (example == 'atecc608a') {
+                                sh './update-crypto.sh'
+                                tag_filter = "--tag-filters HAS_CRYPTOKIT"
+                            }
+                            sh """\
+set -e
+ulimit -f 20971520
+mbed compile -m ${platform} -t ${compiler} ${use_psa_crypto}
+"""
+                            def attempts = 0
+                            while (true) {
+                                try {
+                                    sh """\
+set -e
+ulimit -f 20971520
+if [ -e BUILD/${platform}/${compiler}/${example}.bin ]
+then
+    BINARY=BUILD/${platform}/${compiler}/${example}.bin
+else
+    if [ -e BUILD/${platform}/${compiler}/${example}.hex ]
+    then
+        BINARY=BUILD/${platform}/${compiler}/${example}.hex
+    fi
+fi
+
+export RAAS_PYCLIENT_FORCE_REMOTE_ALLOCATION=1
+export RAAS_PYCLIENT_ALLOCATION_QUEUE_TIMEOUT=3600
+mbedhtrun -m ${platform} ${tag_filter} \
+-g raas_client:https://auli.mbedcloudtesting.com:443 -P 1000 --sync=0 -v \
+--compare-log ../tests/${example}.log -f \$BINARY
+"""
+                                break
+                                } catch (err) {
+                                    attempts += 1
+                                    if (attempts >= 3) {
+                                        throw (err)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                failed_builds["${example}-${platform}-${compiler}"] = true
+                throw (err)
+            }
+        }
+    }
+    return jobs
+}
