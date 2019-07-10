@@ -3,6 +3,9 @@ import groovy.transform.Field
 // Keep track of builds that fail
 @Field failed_builds = [:]
 
+//Record coverage details for reporting
+@Field coverage_details = ""
+
 def gen_simple_windows_jobs(label, script) {
     def jobs = [:]
 
@@ -210,6 +213,49 @@ docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
 -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
 """
                 }
+            }
+        }
+    }
+    return jobs
+}
+
+def gen_code_coverage_job(platform) {
+    def jobs = [:]
+
+    jobs['code_coverage'] = {
+        node('mbedtls && ubuntu-16.10-x64') {
+            try {
+                deleteDir()
+                common.get_docker_image(platform)
+                dir('src') {
+                    checkout_repo.checkout_repo()
+                    writeFile file: 'steps.sh', text: '''#!/bin/sh
+set -e
+set -x
+ulimit -f 20971520
+./tests/scripts/basic-build-test.sh 2>&1
+'''
+                }
+                timeout(time: common.perJobTimeout.time,
+                        unit: common.perJobTimeout.unit) {
+                    coverage_log = sh returnStdout: true, script: """
+chmod +x src/steps.sh
+docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
+-w /var/lib/build -v `pwd`/src:/var/lib/build \
+-v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
+"""
+                }
+            } catch (err) {
+                failed_builds['basic-build-test'] = true
+                throw (err)
+            } finally {
+                echo coverage_log
+                coverage_details = coverage_log.substring(
+                    coverage_log.indexOf('Test Report Summary')
+                )
+                coverage_details = coverage_details.substring(
+                    coverage_details.indexOf('Coverage')
+                )
             }
         }
     }
