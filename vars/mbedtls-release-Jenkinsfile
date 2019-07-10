@@ -11,14 +11,17 @@ import groovy.transform.Field
  *  - MBED_CRYPTO_BRANCH - optional
  *  - MBED_OS_REPO
  *  - MBED_OS_BRANCH
- *  - MBED_OS_EXAMPLES_REPO
- *  - MBED_OS_EXAMPLES_BRANCH
+ *  - MBED_OS_TLS_EXAMPLES_REPO
+ *  - MBED_OS_TLS_EXAMPLES_BRANCH
  *
  * Test options
  *  - RUN_BASIC_BUILD_TEST
  *  - RUN_ALL
  *  - RUN_WINDOWS_TEST
- *  - TEST_MBED_OS_EXAMPLES
+ *  - TEST_MBED_OS_AUTHCRYPT_EXAMPLE
+ *  - TEST_MBED_OS_BENCHMARK_EXAMPLE
+ *  - TEST_MBED_OS_HASHING_EXAMPLE
+ *  - TEST_MBED_OS_TLS_CLIENT_EXAMPLE
  *
  * Environment variables:
  *  - GIT_CREDENTIALS_ID
@@ -206,11 +209,11 @@ make all
     }
 }
 
-def checkout_mbed_os_examples() {
+def checkout_mbed_os_examples(repo, branch) {
     checkout scm: [$class: 'GitSCM',
-                   userRemoteConfigs: [[url: MBED_OS_EXAMPLES_REPO,
+                   userRemoteConfigs: [[url: repo,
                                         credentialsId: env.GIT_CREDENTIALS_ID]],
-                   branches: [[name: MBED_OS_EXAMPLES_BRANCH]],
+                   branches: [[name: branch]],
                    extensions: [
                        [$class: 'CloneOption',
                                 timeout: 60],
@@ -222,14 +225,25 @@ def get_docker_image(platform) {
     sh "\$(aws ecr get-login) && docker pull $docker_repo:$platform"
 }
 
-def gen_mbed_os_example_job(example, compiler, platform) {
+def gen_mbed_os_example_job(repo, branch, example, compiler, platform) {
     return {
         node(compiler) {
             try {
                 timestamps {
                     deleteDir()
-                    checkout_mbed_os_examples()
+                    checkout_mbed_os_examples(repo, branch)
                     dir(example) {
+/* This script appears to do nothing, however it is needed in a few cases.
+ * We wish to deploy specific versions of Mbed OS, TLS and Crypto, so we
+ * remove mbed-os.lib to not deploy it twice. Mbed deploy is still needed in
+ * case other libraries exist to be deployed. */
+                        sh """\
+set -e
+ulimit -f 20971520
+rm -f mbed-os.lib
+mbed config root .
+mbed deploy -vv
+"""
                         dir('mbed-os') {
                             deleteDir()
                             checkout_mbed_os()
@@ -237,16 +251,15 @@ def gen_mbed_os_example_job(example, compiler, platform) {
                         timeout(time: perJobTimeout.time +
                                         perJobTimeout.raasOffset,
                                 unit: perJobTimeout.unit) {
-                            sh """
+                            sh """\
 set -e
 ulimit -f 20971520
-mbed config root .
 mbed compile -m ${platform} -t ${compiler}
 """
                             def attempts = 0
                             while (true) {
                                 try {
-                                    sh """
+                                    sh """\
 set -e
 ulimit -f 20971520
 if [ -e BUILD/${platform}/${compiler}/${example}.bin ]
@@ -291,10 +304,12 @@ mbedhtrun -m ${platform} -g raas_client:https://auli.mbedcloudtesting.com:443 -P
 
 @Field compilers = ['ARM', 'GCC_ARM', 'IAR']
 
-@Field platforms = ['K64F', 'NUCLEO_F429ZI', 'UBLOX_EVK_ODIN_W2',
+@Field all_platforms = ['K64F', 'NUCLEO_F429ZI', 'UBLOX_EVK_ODIN_W2',
                     'NUCLEO_F746ZG', 'CY8CKIT_062_WIFI_BT']
 
-@Field examples = ['authcrypt', 'benchmark', 'hashing', 'tls-client']
+@Field platforms_with_ethernet = [
+    'K64F', 'NUCLEO_F429ZI', 'UBLOX_EVK_ODIN_W2', 'NUCLEO_F746ZG'
+]
 
 @Field docker_repo = '853142832404.dkr.ecr.eu-west-1.amazonaws.com/jenkins-mbedtls'
 
@@ -309,6 +324,34 @@ mbedhtrun -m ${platform} -g raas_client:https://auli.mbedcloudtesting.com:443 -P
 
 /* main job */
 node {
+
+    examples = [
+        'authcrypt': [
+            'should_run': TEST_MBED_OS_AUTHCRYPT_EXAMPLE,
+            'repo': MBED_OS_TLS_EXAMPLES_REPO,
+            'branch': MBED_OS_TLS_EXAMPLES_BRANCH,
+            'platforms': all_platforms,
+            'compilers': compilers],
+        'benchmark': [
+            'should_run': TEST_MBED_OS_BENCHMARK_EXAMPLE,
+            'repo': MBED_OS_TLS_EXAMPLES_REPO,
+            'branch': MBED_OS_TLS_EXAMPLES_BRANCH,
+            'platforms': all_platforms,
+            'compilers': compilers],
+        'hashing': [
+            'should_run': TEST_MBED_OS_HASHING_EXAMPLE,
+            'repo': MBED_OS_TLS_EXAMPLES_REPO,
+            'branch': MBED_OS_TLS_EXAMPLES_BRANCH,
+            'platforms': all_platforms,
+            'compilers': compilers],
+        'tls-client': [
+            'should_run': TEST_MBED_OS_TLS_CLIENT_EXAMPLE,
+            'repo': MBED_OS_TLS_EXAMPLES_REPO,
+            'branch': MBED_OS_TLS_EXAMPLES_BRANCH,
+            'platforms': platforms_with_ethernet,
+            'compilers': compilers],
+    ]
+
     parallel_jobs = [:]
     platform = 'ubuntu-16.04'
 
@@ -371,16 +414,17 @@ mingw32-make lib
         }
     }
 
-    if (TEST_MBED_OS_EXAMPLES == "true") {
-        for (example in examples) {
-            for (compiler in compilers) {
-                for (platform in platforms) {
-                    if (platform == 'CY8CKIT_062_WIFI_BT'
-                            && example == 'tls-client') {
-                        continue
-                    }
-                    parallel_jobs["${example}-${platform}-${compiler}"] =
-                        gen_mbed_os_example_job(example, compiler, platform)
+/* Mbed OS Example job generation */
+    examples.each { example ->
+        if (example.value['should_run'] == 'true') {
+            for (compiler in example.value['compilers']) {
+                for (platform in example.value['platforms']) {
+                    parallel_jobs["${example.key}-${platform}-${compiler}"] =
+                        gen_mbed_os_example_job(
+                            example.value['repo'],
+                            example.value['branch'],
+                            example.key, compiler, platform
+                        )
                 }
             }
         }
