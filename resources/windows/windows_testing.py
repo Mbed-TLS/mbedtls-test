@@ -144,6 +144,16 @@ class MbedWindowsTesting(object):
         self.git_command = "git"
         self.perl_command = "perl"
 
+    def this_version_forbids_c99(self, path):
+        # If CMakeLists.txt contains -Wdeclaration-after-statement,
+        # this version is intended to build with C89 in Visual Studio 2010.
+        # If it doesn't, this version is either from before PolarSSL 0.12
+        # or recent enough to be written in C99 which VS2010 doesn't support.
+        cmakelists_path = os.path.join(path, 'CMakeLists.txt')
+        with open(cmakelists_path) as cmakelists_file:
+            content = cmakelists_file.read()
+            return '-Wdeclaration-after-statement' in content
+
     def set_return_code(self, return_code):
         if return_code > self.return_code:
             self.return_code = return_code
@@ -527,6 +537,11 @@ class MbedWindowsTesting(object):
             git_worktree_path = self.get_clean_worktree_for_git_reference(
                 vs_logger
             )
+            if test_run.vs_version == '2010' and \
+               not self.this_version_forbids_c99(git_worktree_path):
+                for key in test_run.results:
+                    test_run.results[key] = 'Skipped'
+                return
             self.set_config_on_code(git_worktree_path, vs_logger)
             self.generate_seedfiles(git_worktree_path)
             if solution_type == "cmake":
