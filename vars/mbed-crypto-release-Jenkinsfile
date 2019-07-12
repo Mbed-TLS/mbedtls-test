@@ -50,15 +50,7 @@ node {
         parallel jobs
     } finally {
         if (currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause')) {
-            if (gen_jobs.failed_builds.size() == 0) {
-                emailbody = """
-${gen_jobs.coverage_details}
-
-Logs: ${env.BUILD_URL}
-"""
-                subject = "Mbed Crypto nightly test passed!"
-                recipients = "jaeden.amero@arm.com; oliver.harper@arm.com"
-            } else {
+            if (gen_jobs.failed_builds) {
                 keys = gen_jobs.failed_builds.keySet()
                 failures = keys.join(", ")
                 emailbody = """
@@ -70,6 +62,14 @@ Failures: ${failures}
 """
                 subject = "Mbed Crypto nightly test failed!"
                 recipients = 'mbed-crypto-eng@arm.com'
+            } else {
+                emailbody = """
+${gen_jobs.coverage_details}
+
+Logs: ${env.BUILD_URL}
+"""
+                subject = "Mbed Crypto nightly test passed!"
+                recipients = "jaeden.amero@arm.com; oliver.harper@arm.com"
             }
             echo subject
             echo emailbody
