@@ -37,7 +37,10 @@ mingw32-make lib
 """
 
 @Field win32_msvc12_32_test_bat = """\
-if exist scripts\\generate_psa_constants.py scripts\\generate_psa_constants.py
+if exist scripts\\generate_psa_constants.py \
+    scripts\\generate_psa_constants.py
+if exist crypto\\scripts\\generate_psa_constants.py \
+    crypto\\scripts\\generate_psa_constants.py
 call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
 cmake . -G "Visual Studio 12"
 MSBuild ALL_BUILD.vcxproj
@@ -45,7 +48,10 @@ programs\\test\\Debug\\selftest.exe
 """
 
 @Field win32_msvc12_64_test_bat = """\
-if exist scripts\\generate_psa_constants.py scripts\\generate_psa_constants.py
+if exist scripts\\generate_psa_constants.py \
+    scripts\\generate_psa_constants.py
+if exist crypto\\scripts\\generate_psa_constants.py \
+    crypto\\scripts\\generate_psa_constants.py
 call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
 cmake . -G "Visual Studio 12 Win64"
 MSBuild ALL_BUILD.vcxproj
