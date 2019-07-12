@@ -11,11 +11,18 @@ def gen_simple_windows_jobs(label, script) {
 
     jobs[label] = {
         node("windows-tls") {
-            deleteDir()
-            checkout_repo.checkout_repo()
-            timeout(time: common.perJobTimeout.time,
-                    unit: common.perJobTimeout.unit) {
-                bat script
+            try {
+                dir("src") {
+                    deleteDir()
+                    checkout_repo.checkout_repo()
+                    timeout(time: common.perJobTimeout.time,
+                            unit: common.perJobTimeout.unit) {
+                        bat script
+                    }
+                }
+            } catch (err) {
+                failed_builds[label] = true
+                throw (err)
             }
         }
     }
@@ -326,34 +333,6 @@ mbedhtrun -m ${platform} ${tag_filter} \
                 }
             } catch (err) {
                 failed_builds["${example}-${platform}-${compiler}"] = true
-                throw (err)
-            }
-        }
-    }
-    return jobs
-}
-
-def gen_iar_windows_job() {
-    def jobs = [:]
-
-    jobs['iar8-mingw'] = {
-        node("windows-tls") {
-            try {
-                dir("src") {
-                    deleteDir()
-                    checkout_repo.checkout_repo()
-                    timeout(time: common.perJobTimeout.time,
-                            unit: common.perJobTimeout.unit) {
-                        bat """
-perl scripts/config.pl baremetal
-cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" \
--G "MinGW Makefiles" .
-mingw32-make lib
-"""
-                    }
-                }
-            } catch (err) {
-                failed_builds['iar8-mingw'] = true
                 throw (err)
             }
         }

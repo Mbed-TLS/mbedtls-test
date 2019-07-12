@@ -55,7 +55,9 @@ node {
     }
 
     /* Run the IAR Compiler job unconditionally */
-    jobs = jobs + gen_jobs.gen_iar_windows_job()
+    jobs = jobs + gen_jobs.gen_simple_windows_jobs(
+        'iar8-mingw', scripts.iar8_mingw_test_bat
+    )
 
 /* Mbed OS Example job generation */
     common.examples.each { example ->
