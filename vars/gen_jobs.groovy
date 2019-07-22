@@ -128,7 +128,7 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
                     }
                 }
             } catch (err) {
-                failed_builds['all.sh'] = true
+                failed_builds["all.sh-${component}"] = true
                 throw (err)
             }
         }
