@@ -101,7 +101,6 @@ def checkout_mbed_os() {
     if (MBED_TLS_BRANCH) {
         dir('features/mbedtls/importer') {
             sh """\
-set -e
 ulimit -f 20971520
 export MBED_TLS_RELEASE=$MBED_TLS_BRANCH
 export MBED_TLS_REPO_URL=$MBED_TLS_REPO
@@ -113,7 +112,6 @@ make all
     if (MBED_CRYPTO_BRANCH) {
         dir('features/mbedtls/mbed-crypto/importer') {
             sh """\
-set -e
 ulimit -f 20971520
 export CRYPTO_RELEASE=$MBED_CRYPTO_BRANCH
 export CRYPTO_REPO_URL=$MBED_CRYPTO_REPO

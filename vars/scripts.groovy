@@ -95,7 +95,6 @@ if grep 'fno-sanitize-recover[^=]' CMakeLists.txt
 then
     sed -i 's/fno-sanitize-recover/fno-sanitize-recover=undefined,integer/' CMakeLists.txt;
 fi
-set -e
 CC=%s cmake -D CMAKE_BUILD_TYPE:String=ASan .
 make
 make test

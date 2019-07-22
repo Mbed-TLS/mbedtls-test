@@ -39,9 +39,7 @@ def gen_docker_jobs_foreach(label, platforms, compilers, script) {
                             checkout_repo.checkout_repo()
                             writeFile file: 'steps.sh', text: """\
 #!/bin/sh
-set -x
-set -v
-set -e
+set -ux
 ulimit -f 20971520
 ${shell_script}
 exit
@@ -80,7 +78,6 @@ def gen_node_jobs_foreach(label, platforms, compilers, script) {
                             checkout_repo.checkout_coverity_repo()
                         }
                         shell_script = """
-set -e
 ulimit -f 20971520
 export PYTHON=/usr/local/bin/python2.7
 """ + shell_script
@@ -109,7 +106,7 @@ def gen_all_sh_jobs(platform, component) {
                         checkout_repo.checkout_repo()
                         writeFile file: 'steps.sh', text: """\
 #!/bin/sh
-set -eux
+set -ux
 ulimit -f 20971520
 git config --global user.email "you@example.com"
 git config --global user.name "Your Name"
@@ -195,9 +192,7 @@ def gen_abi_api_checking_job(platform) {
                     ).trim()
                     writeFile file: 'steps.sh', text: """\
 #!/bin/sh
-set -x
-set -v
-set -e
+set -ux
 ulimit -f 20971520
 tests/scripts/list-identifiers.sh --internal
 scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
@@ -230,8 +225,7 @@ def gen_code_coverage_job(platform) {
                 dir('src') {
                     checkout_repo.checkout_repo()
                     writeFile file: 'steps.sh', text: '''#!/bin/sh
-set -e
-set -x
+set -ux
 ulimit -f 20971520
 ./tests/scripts/basic-build-test.sh 2>&1
 '''
@@ -282,7 +276,6 @@ def gen_mbed_os_example_job(repo, branch, example, compiler, platform) {
  * remove mbed-os.lib to not deploy it twice. Mbed deploy is still needed in
  * case other libraries exist to be deployed. */
                         sh """\
-set -e
 ulimit -f 20971520
 rm -f mbed-os.lib
 mbed config root .
@@ -301,7 +294,6 @@ mbed deploy -vv
                                 tag_filter = "--tag-filters HAS_CRYPTOKIT"
                             }
                             sh """\
-set -e
 ulimit -f 20971520
 mbed compile -m ${platform} -t ${compiler} ${use_psa_crypto}
 """
@@ -309,7 +301,6 @@ mbed compile -m ${platform} -t ${compiler} ${use_psa_crypto}
                             while (true) {
                                 try {
                                     sh """\
-set -e
 ulimit -f 20971520
 if [ -e BUILD/${platform}/${compiler}/${example}.bin ]
 then
