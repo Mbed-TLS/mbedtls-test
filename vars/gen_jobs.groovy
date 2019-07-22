@@ -294,8 +294,7 @@ mbed deploy -vv
 ulimit -f 20971520
 mbed compile -m ${platform} -t ${compiler} ${use_psa_crypto}
 """
-                            def attempts = 0
-                            while (true) {
+                            for (int attempt in 1..3) {
                                 try {
                                     sh """\
 ulimit -f 20971520
@@ -315,12 +314,9 @@ mbedhtrun -m ${platform} ${tag_filter} \
 -g raas_client:https://auli.mbedcloudtesting.com:443 -P 1000 --sync=0 -v \
     --compare-log ../tests/${example}.log -f \$BINARY
 """
-                                break
+                                    break
                                 } catch (err) {
-                                    attempts += 1
-                                    if (attempts >= 3) {
-                                        throw (err)
-                                    }
+                                    if (attempt == 3) throw (err)
                                 }
                             }
                         }
