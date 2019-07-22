@@ -48,8 +48,8 @@ ${shell_script}
                             sh """\
 chmod +x src/steps.sh
 docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
--w /var/lib/build -v `pwd`/src:/var/lib/build \
--v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
+    -w /var/lib/build -v `pwd`/src:/var/lib/build \
+    -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
 """
                         }
                     }
@@ -121,9 +121,9 @@ set ./tests/scripts/all.sh --seed 4 --keep-going $component
                         sh """\
 chmod +x src/steps.sh
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
--w /var/lib/build -v `pwd`/src:/var/lib/build \
--v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh \
---cap-add SYS_PTRACE $common.docker_repo:$platform
+    -w /var/lib/build -v `pwd`/src:/var/lib/build \
+    -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh \
+    --cap-add SYS_PTRACE $common.docker_repo:$platform
 """
                     }
                 }
@@ -201,8 +201,8 @@ scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
                     sh """\
 chmod +x src/steps.sh
 docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
--w /var/lib/build -v `pwd`/src:/var/lib/build \
--v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
+    -w /var/lib/build -v `pwd`/src:/var/lib/build \
+    -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
 """
                 }
             }
@@ -232,8 +232,8 @@ ulimit -f 20971520
                     coverage_log = sh returnStdout: true, script: """
 chmod +x src/steps.sh
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
--w /var/lib/build -v `pwd`/src:/var/lib/build \
--v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
+    -w /var/lib/build -v `pwd`/src:/var/lib/build \
+    -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
 """
                 }
                 coverage_details = coverage_log.substring(
@@ -313,7 +313,7 @@ export RAAS_PYCLIENT_FORCE_REMOTE_ALLOCATION=1
 export RAAS_PYCLIENT_ALLOCATION_QUEUE_TIMEOUT=3600
 mbedhtrun -m ${platform} ${tag_filter} \
 -g raas_client:https://auli.mbedcloudtesting.com:443 -P 1000 --sync=0 -v \
---compare-log ../tests/${example}.log -f \$BINARY
+    --compare-log ../tests/${example}.log -f \$BINARY
 """
                                 break
                                 } catch (err) {

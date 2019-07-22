@@ -111,13 +111,13 @@ fi
 
 @Field std_coverity_sh = """\
 python coverity-tools/coverity_build.py \
---dir coverity \
--v \
---skip-html-report \
--i '.*' \
---aggressiveness-level high \
---do-not-fail-on-issues \
--c make programs CC=%s
+    --dir coverity \
+    -v \
+    --skip-html-report \
+    -i '.*' \
+    --aggressiveness-level high \
+    --do-not-fail-on-issues \
+    -c make programs CC=%s
 
 tar -zcvf coverity-PSA-Crypto-Coverity.tar.gz coverity
 aws s3 cp coverity-PSA-Crypto-Coverity.tar.gz s3://coverity-reports
