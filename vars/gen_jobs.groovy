@@ -32,7 +32,6 @@ def gen_docker_jobs_foreach(label, platforms, compilers, script) {
             jobs[job_name] = {
                 node("mbedtls && ubuntu-16.10-x64") {
                     timestamps {
-                        sh 'rm -rf *'
                         deleteDir()
                         common.get_docker_image(platform)
                         dir('src') {
@@ -42,7 +41,6 @@ def gen_docker_jobs_foreach(label, platforms, compilers, script) {
 set -ux
 ulimit -f 20971520
 ${shell_script}
-exit
 """
                         }
                         timeout(time: common.perJobTimeout.time,
@@ -196,7 +194,6 @@ set -ux
 ulimit -f 20971520
 tests/scripts/list-identifiers.sh --internal
 scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
-exit
 """
                 }
                 timeout(time: common.perJobTimeout.time,
