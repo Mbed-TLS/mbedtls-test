@@ -236,17 +236,17 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
 -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
 """
                 }
-            } catch (err) {
-                failed_builds['basic-build-test'] = true
-                throw (err)
-            } finally {
-                echo coverage_log
                 coverage_details = coverage_log.substring(
                     coverage_log.indexOf('Test Report Summary')
                 )
                 coverage_details = coverage_details.substring(
                     coverage_details.indexOf('Coverage')
                 )
+            } catch (err) {
+                failed_builds['basic-build-test'] = true
+                throw (err)
+            } finally {
+                echo coverage_log
             }
         }
     }
