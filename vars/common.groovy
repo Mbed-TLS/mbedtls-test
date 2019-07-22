@@ -93,7 +93,7 @@ def get_all_sh_components() {
         dir('src') {
             deleteDir()
             checkout_repo.checkout_repo()
-            all_sh_help = sh(
+            def all_sh_help = sh(
                 script: "./tests/scripts/all.sh --help",
                 returnStdout: true
             )
