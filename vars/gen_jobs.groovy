@@ -45,7 +45,7 @@ def gen_docker_jobs_foreach(label, platforms, compilers, script) {
                             checkout_repo.checkout_repo()
                             writeFile file: 'steps.sh', text: """\
 #!/bin/sh
-set -ux
+set -eux
 ulimit -f 20971520
 ${shell_script}
 """
@@ -111,7 +111,7 @@ def gen_all_sh_jobs(platform, component) {
                         checkout_repo.checkout_repo()
                         writeFile file: 'steps.sh', text: """\
 #!/bin/sh
-set -ux
+set -eux
 ulimit -f 20971520
 git config --global user.email "you@example.com"
 git config --global user.name "Your Name"
@@ -197,7 +197,7 @@ def gen_abi_api_checking_job(platform) {
                     ).trim()
                     writeFile file: 'steps.sh', text: """\
 #!/bin/sh
-set -ux
+set -eux
 ulimit -f 20971520
 tests/scripts/list-identifiers.sh --internal
 scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
@@ -229,7 +229,7 @@ def gen_code_coverage_job(platform) {
                 dir('src') {
                     checkout_repo.checkout_repo()
                     writeFile file: 'steps.sh', text: '''#!/bin/sh
-set -ux
+set -eux
 ulimit -f 20971520
 ./tests/scripts/basic-build-test.sh 2>&1
 '''
