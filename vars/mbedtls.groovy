@@ -1,8 +1,11 @@
 import groovy.transform.Field
 
+@Field all_sh_components = []
+
 /* This runs the job using the main TLS development branch and a Mbed Crypto PR */
 def run_tls_tests_with_crypto_pr() {
     env.REPO_TO_CHECKOUT = 'tls'
+    all_sh_components = common.get_all_sh_components()
     run_tls_tests()
 }
 
@@ -75,19 +78,14 @@ def run_tls_tests() {
             )
 
             /* All.sh jobs */
-            try {
-                all_sh_components = common.get_all_sh_components()
-                for (component in all_sh_components) {
-                    jobs = jobs + gen_jobs.gen_all_sh_jobs(
-                        'ubuntu-16.04', component
-                    )
-                }
+            for (component in all_sh_components) {
                 jobs = jobs + gen_jobs.gen_all_sh_jobs(
-                    'ubuntu-18.04', 'build_mingw'
+                    'ubuntu-16.04', component
                 )
-            } catch (err) {
-                echo "Caught: ${err}, not running all.sh tests"
             }
+            jobs = jobs + gen_jobs.gen_all_sh_jobs(
+                'ubuntu-18.04', 'build_mingw'
+            )
 
             jobs.failFast = false
             parallel jobs
