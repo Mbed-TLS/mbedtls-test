@@ -12,9 +12,6 @@ def run_tls_tests_with_crypto_pr() {
 def run_tls_tests() {
     node {
         try {
-            githubNotify context: "${env.BRANCH_NAME} TLS Testing",
-                         description: 'In progress',
-                         status: 'PENDING'
             deleteDir()
 
             /* Linux jobs */
@@ -104,19 +101,22 @@ def run_tls_tests() {
 
 /* main job */
 def run_pr_job() {
-    githubNotify context: 'Pre Test Checks',
+    githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
                  description: 'Checking if all PR tests can be run',
+                 status: 'PENDING'
+    githubNotify context: "${env.BRANCH_NAME} TLS Testing",
+                 description: 'In progress',
                  status: 'PENDING'
     stage('pre-test-checks') {
         node {
             try {
                 environ.set_tls_pr_environment()
                 all_sh_components = common.get_all_sh_components()
-                githubNotify context: 'Pre Test Checks',
+                githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
                              description: 'OK',
                              status: 'SUCCESS'
             } catch (err) {
-                githubNotify context: 'Pre Test Checks',
+                githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
                              description: 'Base branch out of date. Please rebase',
                              status: 'FAILURE'
                 throw (err)
