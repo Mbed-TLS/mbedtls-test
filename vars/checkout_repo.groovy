@@ -30,6 +30,8 @@ def checkout_pr() {
                  recursiveSubmodules: true,
                  reference: '',
                  trackingSubmodules: false],
+                [$class: 'LocalBranch',
+                 localBranch: 'development']
             ],
             submoduleCfg: [],
             userRemoteConfigs: [
@@ -80,6 +82,7 @@ def checkout_parametrized_repo(repo, branch) {
             extensions: [
                 [$class: 'CloneOption', timeout: 60],
                 [$class: 'SubmoduleOption', recursiveSubmodules: true],
+                [$class: 'LocalBranch', localBranch: branch],
             ],
         ]
     ])
