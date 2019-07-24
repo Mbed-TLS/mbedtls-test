@@ -2,14 +2,7 @@ import groovy.transform.Field
 
 @Field all_sh_components = []
 
-/* This runs the job using the main TLS development branch and a Mbed Crypto PR */
-def run_tls_tests_with_crypto_pr() {
-    env.REPO_TO_CHECKOUT = 'tls'
-    all_sh_components = common.get_all_sh_components()
-    run_tls_tests()
-}
-
-def run_tls_tests() {
+def run_crypto_tests() {
     node {
         try {
             deleteDir()
@@ -73,6 +66,17 @@ def run_tls_tests() {
             jobs = jobs + gen_jobs.gen_simple_windows_jobs(
                 'iar8-mingw', scripts.iar8_mingw_test_bat
             )
+            for (build in ['mingw', '2013']) {
+                jobs = jobs + gen_jobs.gen_windows_tests_jobs(build)
+            }
+
+            /* Coverity jobs */
+            jobs = jobs + gen_jobs.gen_node_jobs_foreach(
+                'coverity',
+                common.coverity_platforms,
+                common.coverity_compilers,
+                scripts.std_coverity_sh
+            )
 
             /* All.sh jobs */
             for (component in all_sh_components) {
@@ -84,15 +88,17 @@ def run_tls_tests() {
                 'ubuntu-18.04', 'build_mingw'
             )
 
+            jobs = jobs + gen_jobs.gen_abi_api_checking_job('ubuntu-16.04')
+
             jobs.failFast = false
             parallel jobs
-            githubNotify context: "${env.BRANCH_NAME} TLS Testing",
+            githubNotify context: "${env.BRANCH_NAME} Crypto Testing",
                          description: 'All tests passed',
                          status: 'SUCCESS'
         } catch (err) {
             echo "Caught: ${err}"
             currentBuild.result = 'FAILURE'
-            githubNotify context: "${env.BRANCH_NAME} TLS Testing",
+            githubNotify context: "${env.BRANCH_NAME} Crypto Testing",
                          description: 'Test failure',
                          status: 'FAILURE'
         }
@@ -104,13 +110,16 @@ def run_pr_job() {
     githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
                  description: 'Checking if all PR tests can be run',
                  status: 'PENDING'
+    githubNotify context: "${env.BRANCH_NAME} Crypto Testing",
+                 description: 'In progress',
+                 status: 'PENDING'
     githubNotify context: "${env.BRANCH_NAME} TLS Testing",
                  description: 'In progress',
                  status: 'PENDING'
     stage('pre-test-checks') {
         node {
             try {
-                environ.set_tls_pr_environment()
+                environ.set_crypto_pr_environment()
                 all_sh_components = common.get_all_sh_components()
                 githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
                              description: 'OK',
@@ -123,12 +132,10 @@ def run_pr_job() {
             }
         }
     }
-    stage('tls-testing') {
-        run_tls_tests()
+    stage('crypto-testing') {
+        run_crypto_tests()
     }
-}
-
-/* main job */
-def run_job() {
-    run_pr_job()
+    stage('tls-testing') {
+        mbedtls.run_tls_tests_with_crypto_pr()
+    }
 }
