@@ -301,7 +301,7 @@ mbed deploy -vv
 ulimit -f 20971520
 mbed compile -m ${platform} -t ${compiler} ${use_psa_crypto}
 """
-                            for (int attempt in 1..3) {
+                            for (int attempt = 1; attempt <= 3; attempt++) {
                                 try {
                                     sh """\
 ulimit -f 20971520
