@@ -100,8 +100,9 @@ export PYTHON=/usr/local/bin/python2.7
 
 def gen_all_sh_jobs(platform, component) {
     def jobs = [:]
+    def job_name = "all_sh-${platform}-${component}"
 
-    jobs["all_sh-${platform}-${component}"] = {
+    jobs[job_name] = {
         node('ubuntu-16.10-x64 && mbedtls') {
             try {
                 timestamps {
@@ -135,7 +136,7 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
                     }
                 }
             } catch (err) {
-                failed_builds["all.sh-${component}"] = true
+                failed_builds[job_name] = true
                 throw (err)
             }
         }
@@ -183,8 +184,9 @@ def gen_windows_tests_jobs(build) {
 
 def gen_abi_api_checking_job(platform) {
     def jobs = [:]
+    def job_name = "ABI-API-checking"
 
-    jobs["ABI/API checking"] = {
+    jobs[job_name] = {
         node('ubuntu-16.10-x64 && mbedtls') {
             timestamps {
                 deleteDir()
@@ -220,8 +222,9 @@ docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
 
 def gen_code_coverage_job(platform) {
     def jobs = [:]
+    def job_name = 'code-coverage'
 
-    jobs['code_coverage'] = {
+    jobs[job_name] = {
         node('mbedtls && ubuntu-16.10-x64') {
             try {
                 deleteDir()
@@ -250,7 +253,7 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
                     coverage_details.indexOf('Coverage')
                 )
             } catch (err) {
-                failed_builds['basic-build-test'] = true
+                failed_builds[job_name] = true
                 throw (err)
             } finally {
                 echo coverage_log
