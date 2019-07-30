@@ -66,7 +66,6 @@ make test
 ./programs/test/selftest -x timing
 export PATH=/usr/local/openssl-1.0.2g/bin:/usr/local/gnutls-3.4.10/bin:\$PATH
 export SEED=1
-export LOG_FAILURE_ON_STDOUT=1
 if [ -f "./tests/compat.sh" ]; then
     ./tests/compat.sh
     ./tests/ssl-opt.sh
@@ -89,7 +88,6 @@ make check
 if [ -f "./tests/compat.sh" ]; then
     export PATH=/usr/local/openssl-1.0.2g/bin:/usr/local/gnutls-3.4.10/bin:\$PATH
     export SEED=1
-    export LOG_FAILURE_ON_STDOUT=1
     ./tests/ssl-opt.sh
     ./tests/compat.sh
 fi
@@ -107,7 +105,6 @@ make test
 ./programs/test/selftest -x timing
 export PATH=/usr/local/openssl-1.0.2g/bin:/usr/local/gnutls-3.4.10/bin:\$PATH
 export SEED=1
-export LOG_FAILURE_ON_STDOUT=1
 if [ -f "./tests/compat.sh" ]; then
     ./tests/compat.sh
     ./tests/ssl-opt.sh

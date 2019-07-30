@@ -125,7 +125,6 @@ git config --global user.name "Your Name"
 git init
 git add .
 git commit -m 'CI code copy'
-export LOG_FAILURE_ON_STDOUT=1
 set ./tests/scripts/all.sh --seed 4 --keep-going $component
 "\$@"
 """
