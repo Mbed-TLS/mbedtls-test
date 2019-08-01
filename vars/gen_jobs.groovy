@@ -104,9 +104,9 @@ export PYTHON=/usr/local/bin/python2.7
     return jobs
 }
 
-def gen_all_sh_jobs(platform, component) {
+def gen_all_sh_jobs(platform, component, label_prefix='') {
     def jobs = [:]
-    def job_name = "all_sh-${platform}-${component}"
+    def job_name = "${label_prefix}all_sh-${platform}-${component}"
 
     jobs[job_name] = {
         node('ubuntu-16.10-x64 && mbedtls') {
