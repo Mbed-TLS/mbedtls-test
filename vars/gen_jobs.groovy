@@ -218,18 +218,12 @@ scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
                 }
                 timeout(time: common.perJobTimeout.time,
                         unit: common.perJobTimeout.unit) {
-                    try {
-                        sh """\
+                    sh """\
 chmod +x src/steps.sh
 docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
     -w /var/lib/build -v `pwd`/src:/var/lib/build \
     -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
 """
-                    } finally {
-                        dir('src/tests/') {
-                            common.archive_zipped_log_files(job_name)
-                        }
-                    }
                 }
             }
         }
