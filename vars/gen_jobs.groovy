@@ -52,12 +52,18 @@ ${shell_script}
                         }
                         timeout(time: common.perJobTimeout.time,
                                 unit: common.perJobTimeout.unit) {
-                            sh """\
+                            try {
+                                sh """\
 chmod +x src/steps.sh
 docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
     -w /var/lib/build -v `pwd`/src:/var/lib/build \
     -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
 """
+                            } finally {
+                                dir('src/tests/') {
+                                    common.archive_zipped_log_files(job_name)
+                                }
+                            }
                         }
                     }
                 }
@@ -100,8 +106,9 @@ export PYTHON=/usr/local/bin/python2.7
 
 def gen_all_sh_jobs(platform, component) {
     def jobs = [:]
+    def job_name = "all_sh-${platform}-${component}"
 
-    jobs["all_sh-${platform}-${component}"] = {
+    jobs[job_name] = {
         node('ubuntu-16.10-x64 && mbedtls') {
             try {
                 timestamps {
@@ -118,24 +125,29 @@ git config --global user.name "Your Name"
 git init
 git add .
 git commit -m 'CI code copy'
-export LOG_FAILURE_ON_STDOUT=1
 set ./tests/scripts/all.sh --seed 4 --keep-going $component
 "\$@"
 """
                     }
                     timeout(time: common.perJobTimeout.time,
                             unit: common.perJobTimeout.unit) {
-                        sh """\
+                        try {
+                            sh """\
 chmod +x src/steps.sh
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
     -w /var/lib/build -v `pwd`/src:/var/lib/build \
     -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh \
     --cap-add SYS_PTRACE $common.docker_repo:$platform
 """
+                        } finally {
+                            dir('src/tests/') {
+                                common.archive_zipped_log_files(job_name)
+                            }
+                        }
                     }
                 }
             } catch (err) {
-                failed_builds["all.sh-${component}"] = true
+                failed_builds[job_name] = true
                 throw (err)
             }
         }
@@ -183,8 +195,9 @@ def gen_windows_tests_jobs(build) {
 
 def gen_abi_api_checking_job(platform) {
     def jobs = [:]
+    def job_name = "ABI-API-checking"
 
-    jobs["ABI/API checking"] = {
+    jobs[job_name] = {
         node('ubuntu-16.10-x64 && mbedtls') {
             timestamps {
                 deleteDir()
@@ -220,8 +233,9 @@ docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
 
 def gen_code_coverage_job(platform) {
     def jobs = [:]
+    def job_name = 'code-coverage'
 
-    jobs['code_coverage'] = {
+    jobs[job_name] = {
         node('mbedtls && ubuntu-16.10-x64') {
             try {
                 deleteDir()
@@ -250,10 +264,13 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
                     coverage_details.indexOf('Coverage')
                 )
             } catch (err) {
-                failed_builds['basic-build-test'] = true
+                failed_builds[job_name] = true
                 throw (err)
             } finally {
                 echo coverage_log
+                dir('src/tests/') {
+                    common.archive_zipped_log_files(job_name)
+                }
             }
         }
     }

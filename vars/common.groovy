@@ -109,3 +109,18 @@ def get_all_sh_components() {
         return all_sh_components
     }
 }
+
+def archive_zipped_log_files(job_name) {
+    sh """\
+for i in *.log; do
+    [ -f "\$i" ] || break
+    mv "\$i" "$job_name-\$i"
+    xz "$job_name-\$i"
+done
+"""
+    archiveArtifacts(
+        artifacts: '*.log.xz',
+        fingerprint: true,
+        allowEmptyArchive: true
+    )
+}
