@@ -195,7 +195,7 @@ def gen_windows_testing_job(build) {
 
 def gen_all_windows_jobs() {
     def jobs = [:]
-    for (build in ['mingw', '2010', '2013', '2015', '2017']) {
+    for (build in common.get_supported_windows_builds()) {
         jobs = jobs + gen_windows_testing_job(build)
     }
     jobs = jobs + gen_simple_windows_jobs(
