@@ -111,7 +111,23 @@ def get_all_sh_components() {
 }
 
 def get_supported_windows_builds() {
-    def vs_builds = ['2010', '2013', '2015', '2017']
+    def is_c89 = null
+    node {
+        dir('src') {
+            deleteDir()
+            checkout_repo.checkout_repo()
+            // Branches written in C89 (plus very minor extensions) have
+            // "-Wdeclaration-after-statement" in CMakeLists.txt, so look
+            // for that to determine whether the code is supposed to be C89.
+            String cmakelists_contents = readFile('CMakeLists.txt')
+            is_c89 = cmakelists_contents.contains('-Wdeclaration-after-statement')
+        }
+    }
+    def vs_builds = ['2013', '2015', '2017']
+    if (is_c89) {
+        vs_builds = ['2010'] + vs_builds
+    }
+    echo "vs_builds = ${vs_builds}"
     return ['mingw'] + vs_builds
 }
 
