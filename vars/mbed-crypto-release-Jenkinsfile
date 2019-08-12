@@ -21,13 +21,7 @@ node {
     }
 
     if (RUN_WINDOWS_TEST == "true") {
-        for (build in ['mingw', '2010', '2013', '2015', '2017']) {
-            jobs = jobs + gen_jobs.gen_windows_tests_jobs(build)
-        }
-
-        jobs = jobs + gen_jobs.gen_simple_windows_jobs(
-            'iar8-mingw', scripts.iar8_mingw_test_bat
-        )
+        jobs = jobs + gen_jobs.gen_all_windows_jobs()
     }
 
     /* Mbed OS Example job generation */
