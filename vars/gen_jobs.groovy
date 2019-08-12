@@ -367,3 +367,40 @@ mbedhtrun -m ${platform} ${tag_filter} \
     }
     return jobs
 }
+
+def gen_release_jobs() {
+    def jobs = [:]
+
+    if (RUN_BASIC_BUILD_TEST == "true") {
+        jobs = jobs + gen_code_coverage_job('ubuntu-16.04');
+    }
+
+    if (RUN_ALL == "true") {
+        all_sh_components = common.get_all_sh_components()
+        for (component in all_sh_components) {
+            jobs = jobs + gen_all_sh_jobs('ubuntu-16.04', component)
+        }
+        jobs = jobs + gen_all_sh_jobs('ubuntu-18.04', 'build_mingw')
+    }
+
+    if (RUN_WINDOWS_TEST == "true") {
+        jobs = jobs + gen_all_windows_jobs()
+    }
+
+    /* Mbed OS Example job generation */
+    common.examples.each { example ->
+        if (example.value['should_run'] == 'true') {
+            for (compiler in example.value['compilers']) {
+                for (platform in example.value['platforms']) {
+                    jobs = jobs + gen_mbed_os_example_job(
+                        example.value['repo'],
+                        example.value['branch'],
+                        example.key, compiler, platform
+                    )
+                }
+            }
+        }
+    }
+
+    return jobs
+}

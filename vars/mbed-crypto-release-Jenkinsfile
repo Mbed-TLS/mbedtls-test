@@ -5,72 +5,7 @@ node {
     library identifier: 'mbedtls-test@master', retriever: legacySCM(scm)
     environ.set_crypto_release_environment()
 
-    jobs = [:]
-    platform = 'ubuntu-16.04'
+    def jobs = gen_jobs.gen_release_jobs()
 
-    if (RUN_BASIC_BUILD_TEST == "true") {
-        jobs = jobs + gen_jobs.gen_code_coverage_job(platform);
-    }
-
-    if (RUN_ALL == "true") {
-        all_sh_components = common.get_all_sh_components()
-        for (component in all_sh_components) {
-            jobs = jobs + gen_jobs.gen_all_sh_jobs('ubuntu-16.04', component)
-        }
-        jobs = jobs + gen_jobs.gen_all_sh_jobs('ubuntu-18.04', 'build_mingw')
-    }
-
-    if (RUN_WINDOWS_TEST == "true") {
-        jobs = jobs + gen_jobs.gen_all_windows_jobs()
-    }
-
-    /* Mbed OS Example job generation */
-    common.examples.each { example ->
-        if (example.value['should_run'] == 'true') {
-            for (compiler in example.value['compilers']) {
-                for (platform in example.value['platforms']) {
-                    jobs = jobs + gen_jobs.gen_mbed_os_example_job(
-                        example.value['repo'],
-                        example.value['branch'],
-                        example.key, compiler, platform
-                    )
-                }
-            }
-        }
-    }
-
-    jobs.failFast = false
-    try {
-        parallel jobs
-    } finally {
-        if (currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause')) {
-            if (gen_jobs.failed_builds) {
-                keys = gen_jobs.failed_builds.keySet()
-                failures = keys.join(", ")
-                emailbody = """
-${gen_jobs.coverage_details}
-
-Logs: ${env.BUILD_URL}
-
-Failures: ${failures}
-"""
-                subject = "Mbed Crypto nightly test failed!"
-                recipients = env.TEST_FAIL_EMAIL_ADDRESS
-            } else {
-                emailbody = """
-${gen_jobs.coverage_details}
-
-Logs: ${env.BUILD_URL}
-"""
-                subject = "Mbed Crypto nightly test passed!"
-                recipients = env.TEST_PASS_EMAIL_ADDRESS
-            }
-            echo subject
-            echo emailbody
-            emailext body: emailbody,
-                     subject: subject,
-                     to: recipients,
-                     mimeType: 'text/plain'
-        }
-    }
+    common.run_release_jobs("Mbed Crypto nightly tests", jobs)
 }

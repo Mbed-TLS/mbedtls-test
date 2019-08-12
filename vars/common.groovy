@@ -124,3 +124,44 @@ done
         allowEmptyArchive: true
     )
 }
+
+def send_email(name) {
+    if (gen_jobs.failed_builds) {
+        keys = gen_jobs.failed_builds.keySet()
+        failures = keys.join(", ")
+        emailbody = """
+${gen_jobs.coverage_details}
+
+Logs: ${env.BUILD_URL}
+
+Failures: ${failures}
+"""
+        subject = "${name} failed!"
+        recipients = env.TEST_FAIL_EMAIL_ADDRESS
+    } else {
+        emailbody = """
+${gen_jobs.coverage_details}
+
+Logs: ${env.BUILD_URL}
+"""
+        subject = "${name} passed!"
+        recipients = env.TEST_PASS_EMAIL_ADDRESS
+    }
+    echo subject
+    echo emailbody
+    emailext body: emailbody,
+             subject: subject,
+             to: recipients,
+             mimeType: 'text/plain'
+}
+
+def run_release_jobs(name, jobs) {
+    jobs.failFast = false
+    try {
+        parallel jobs
+    } finally {
+        if (currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause')) {
+            send_email(name)
+        }
+    }
+}
