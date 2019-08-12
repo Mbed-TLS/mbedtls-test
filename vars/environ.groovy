@@ -21,6 +21,12 @@ def set_crypto_release_environment() {
         env.TEST_MBED_OS_HASHING_EXAMPLE = 'true'
         env.TEST_MBED_OS_TLS_CLIENT_EXAMPLE = 'true'
     }
+    if (env.TEST_FAIL_EMAIL_ADDRESS == null) {
+        env.TEST_FAIL_EMAIL_ADDRESS = 'mbed-crypto-eng@arm.com'
+    }
+    if (env.TEST_PASS_EMAIL_ADDRESS == null) {
+        env.TEST_PASS_EMAIL_ADDRESS = "jaeden.amero@arm.com; oliver.harper@arm.com"
+    }
 }
 
 def set_tls_release_environment() {
