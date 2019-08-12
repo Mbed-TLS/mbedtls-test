@@ -67,7 +67,7 @@ def run_crypto_tests() {
                 'iar8-mingw', scripts.iar8_mingw_test_bat
             )
             for (build in ['mingw', '2013']) {
-                jobs = jobs + gen_jobs.gen_windows_tests_jobs(build)
+                jobs = jobs + gen_jobs.gen_windows_testing_jobs(build)
             }
 
             /* Coverity jobs */

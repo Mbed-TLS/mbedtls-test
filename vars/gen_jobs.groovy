@@ -155,7 +155,7 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
     return jobs
 }
 
-def gen_windows_tests_jobs(build) {
+def gen_windows_testing_job(build) {
     def jobs = [:]
 
     jobs["Windows-${build}"] = {
@@ -190,6 +190,17 @@ def gen_windows_tests_jobs(build) {
             }
         }
     }
+    return jobs
+}
+
+def gen_all_windows_jobs() {
+    def jobs = [:]
+    for (build in ['mingw', '2010', '2013', '2015', '2017']) {
+        jobs = jobs + gen_windows_testing_job(build)
+    }
+    jobs = jobs + gen_simple_windows_jobs(
+        'iar8-mingw', scripts.iar8_mingw_test_bat
+    )
     return jobs
 }
 
