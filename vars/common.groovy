@@ -110,6 +110,11 @@ def get_all_sh_components() {
     }
 }
 
+def get_supported_windows_builds() {
+    def vs_builds = ['2010', '2013', '2015', '2017']
+    return ['mingw'] + vs_builds
+}
+
 def archive_zipped_log_files(job_name) {
     sh """\
 for i in *.log; do
