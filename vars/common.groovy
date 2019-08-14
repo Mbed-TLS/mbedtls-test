@@ -110,6 +110,27 @@ def get_all_sh_components() {
     }
 }
 
+def get_supported_windows_builds() {
+    def is_c89 = null
+    node {
+        dir('src') {
+            deleteDir()
+            checkout_repo.checkout_repo()
+            // Branches written in C89 (plus very minor extensions) have
+            // "-Wdeclaration-after-statement" in CMakeLists.txt, so look
+            // for that to determine whether the code is supposed to be C89.
+            String cmakelists_contents = readFile('CMakeLists.txt')
+            is_c89 = cmakelists_contents.contains('-Wdeclaration-after-statement')
+        }
+    }
+    def vs_builds = ['2013', '2015', '2017']
+    if (is_c89) {
+        vs_builds = ['2010'] + vs_builds
+    }
+    echo "vs_builds = ${vs_builds}"
+    return ['mingw'] + vs_builds
+}
+
 def archive_zipped_log_files(job_name) {
     sh """\
 for i in *.log; do
@@ -123,4 +144,45 @@ done
         fingerprint: true,
         allowEmptyArchive: true
     )
+}
+
+def send_email(name) {
+    if (gen_jobs.failed_builds) {
+        keys = gen_jobs.failed_builds.keySet()
+        failures = keys.join(", ")
+        emailbody = """
+${gen_jobs.coverage_details}
+
+Logs: ${env.BUILD_URL}
+
+Failures: ${failures}
+"""
+        subject = "${name} failed!"
+        recipients = env.TEST_FAIL_EMAIL_ADDRESS
+    } else {
+        emailbody = """
+${gen_jobs.coverage_details}
+
+Logs: ${env.BUILD_URL}
+"""
+        subject = "${name} passed!"
+        recipients = env.TEST_PASS_EMAIL_ADDRESS
+    }
+    echo subject
+    echo emailbody
+    emailext body: emailbody,
+             subject: subject,
+             to: recipients,
+             mimeType: 'text/plain'
+}
+
+def run_release_jobs(name, jobs) {
+    jobs.failFast = false
+    try {
+        parallel jobs
+    } finally {
+        if (currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause')) {
+            send_email(name)
+        }
+    }
 }
