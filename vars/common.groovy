@@ -57,7 +57,7 @@ import groovy.transform.Field
         'branch': env.MBED_OS_TLS_EXAMPLES_BRANCH,
         'platforms': platforms_with_ethernet,
         'compilers': compilers],
-    'mbed-crypto': [
+    'getting-started': [
         'should_run': env.TEST_MBED_OS_CRYPTO_EXAMPLES,
         'repo': env.MBED_OS_CRYPTO_EXAMPLES_REPO,
         'branch': env.MBED_OS_CRYPTO_EXAMPLES_BRANCH,
