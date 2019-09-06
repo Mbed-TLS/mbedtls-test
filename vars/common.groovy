@@ -109,6 +109,33 @@ def get_all_sh_components() {
         return all_sh_components
     }
 }
+/* Check for any bad words found from pull request code and commit messages.
+   Bad words list is in file resources/bad_words.txt
+ * Bad words may be a customer which can't be shown to public, TODO's etc.
+ * If words are found, this method will throw an error and PR will fail.
+ */
+def check_for_bad_words() {
+    node {
+        // can't access file bad_words.txt from the sh so we must write it there as a new file
+        def BAD_WORDS = libraryResource 'bad_words.txt'
+        writeFile file: 'bad_words.txt', text: BAD_WORDS
+
+        std_output = sh(
+                    script: '''
+                    cd src/
+                    BRANCH="$(git symbolic-ref --short HEAD)"
+                    git fetch --no-tags git@github.com:ARMmbed/mbedtls.git +refs/heads/$CHANGE_TARGET:refs/remotes/origin/$CHANGE_TARGET
+                    git cherry -v origin/$CHANGE_TARGET $BRANCH > pr_git_log_messages.txt
+                    grep -f ../bad_words.txt -Rnwi --exclude-dir=".git" --exclude-dir="crypto" --exclude-dir=".github" --exclude-dir="doxygen" .
+                    ''',
+                    returnStdout: true
+                )
+        echo std_output
+        if (std_output) {
+            throw new Exception("Bad words check failed")
+        }
+    }
+}
 
 def get_supported_windows_builds() {
     def is_c89 = null

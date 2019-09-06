@@ -116,12 +116,20 @@ def run_pr_job() {
             try {
                 environ.set_tls_pr_environment()
                 all_sh_components = common.get_all_sh_components()
+            } catch (err) {
+                githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
+                             description: 'Base branch out of date. Please rebase',
+                             status: 'FAILURE'
+                throw (err)
+            }
+            try {
+                common.check_for_bad_words()
                 githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
                              description: 'OK',
                              status: 'SUCCESS'
             } catch (err) {
                 githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                             description: 'Base branch out of date. Please rebase',
+                             description: 'Bad words found. Please remove words in bad_words.txt',
                              status: 'FAILURE'
                 throw (err)
             }
