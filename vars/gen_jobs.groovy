@@ -322,7 +322,6 @@ mbed deploy -vv
                                 unit: common.perJobTimeout.unit) {
                             def tag_filter = ""
                             if (example == 'atecc608a') {
-                                sh './update-crypto.sh'
                                 tag_filter = "--tag-filters HAS_CRYPTOKIT"
                             }
                             sh """\
