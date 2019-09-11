@@ -146,12 +146,12 @@ done
     )
 }
 
-def send_email(name) {
-    if (gen_jobs.failed_builds) {
-        keys = gen_jobs.failed_builds.keySet()
+def send_email(name, failed_builds, coverage_details) {
+    if (failed_builds) {
+        keys = failed_builds.keySet()
         failures = keys.join(", ")
         emailbody = """
-${gen_jobs.coverage_details}
+${coverage_details}
 
 Logs: ${env.BUILD_URL}
 
@@ -161,7 +161,7 @@ Failures: ${failures}
         recipients = env.TEST_FAIL_EMAIL_ADDRESS
     } else {
         emailbody = """
-${gen_jobs.coverage_details}
+${coverage_details}
 
 Logs: ${env.BUILD_URL}
 """
@@ -176,13 +176,13 @@ Logs: ${env.BUILD_URL}
              mimeType: 'text/plain'
 }
 
-def run_release_jobs(name, jobs) {
+def run_release_jobs(name, jobs, failed_builds, coverage_details) {
     jobs.failFast = false
     try {
         parallel jobs
     } finally {
         if (currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause')) {
-            send_email(name)
+            send_email(name, failed_builds, coverage_details)
         }
     }
 }
