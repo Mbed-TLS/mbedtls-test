@@ -7,5 +7,10 @@ node {
 
     def jobs = gen_jobs.gen_release_jobs()
 
-    common.run_release_jobs("Mbed Crypto nightly tests", jobs)
+    common.run_release_jobs(
+        "Mbed Crypto nightly tests",
+        jobs,
+        gen_jobs.failed_builds,
+        gen_jobs.coverage_details
+    )
 }
