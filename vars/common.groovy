@@ -151,7 +151,7 @@ def send_email(name, failed_builds, coverage_details) {
         keys = failed_builds.keySet()
         failures = keys.join(", ")
         emailbody = """
-${coverage_details}
+${coverage_details['coverage']}
 
 Logs: ${env.BUILD_URL}
 
@@ -161,7 +161,7 @@ Failures: ${failures}
         recipients = env.TEST_FAIL_EMAIL_ADDRESS
     } else {
         emailbody = """
-${coverage_details}
+${coverage_details['coverage']}
 
 Logs: ${env.BUILD_URL}
 """
