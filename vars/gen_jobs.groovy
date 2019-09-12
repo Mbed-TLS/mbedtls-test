@@ -245,6 +245,7 @@ docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
 def gen_code_coverage_job(platform) {
     def jobs = [:]
     def job_name = 'code-coverage'
+    def coverage_log = ''
 
     jobs[job_name] = {
         node('mbedtls && ubuntu-16.10-x64') {
