@@ -4,7 +4,7 @@ import groovy.transform.Field
 @Field failed_builds = [:]
 
 //Record coverage details for reporting
-@Field coverage_details = ""
+@Field coverage_details = ['coverage': 'Code coverage job did not run']
 
 def gen_simple_windows_jobs(label, script) {
     def jobs = [:]
@@ -245,6 +245,7 @@ docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
 def gen_code_coverage_job(platform) {
     def jobs = [:]
     def job_name = 'code-coverage'
+    def coverage_log = ''
 
     jobs[job_name] = {
         node('mbedtls && ubuntu-16.10-x64') {
@@ -268,11 +269,11 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
     -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
 """
                 }
-                coverage_details = coverage_log.substring(
+                coverage_details['coverage'] = coverage_log.substring(
                     coverage_log.indexOf('Test Report Summary')
                 )
-                coverage_details = coverage_details.substring(
-                    coverage_details.indexOf('Coverage')
+                coverage_details['coverage'] = coverage_details['coverage'].substring(
+                    coverage_details['coverage'].indexOf('Coverage')
                 )
             } catch (err) {
                 failed_builds[job_name] = true
