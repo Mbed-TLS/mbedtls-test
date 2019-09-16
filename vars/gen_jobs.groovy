@@ -125,6 +125,7 @@ git config --global user.name "Your Name"
 git init
 git add .
 git commit -m 'CI code copy'
+export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv'
 set ./tests/scripts/all.sh --seed 4 --keep-going $component
 "\$@"
 """
