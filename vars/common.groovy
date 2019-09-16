@@ -125,10 +125,11 @@ def check_for_bad_words() {
                     cd src/
                     BRANCH="$(git symbolic-ref --short HEAD)"
                     git fetch --no-tags git@github.com:ARMmbed/mbedtls.git +refs/heads/$CHANGE_TARGET:refs/remotes/origin/$CHANGE_TARGET
-                    git cherry -v origin/$CHANGE_TARGET $BRANCH > pr_git_log_messages.txt
+                    git log origin/$CHANGE_TARGET..$BRANCH > pr_git_log_messages.txt
+                    cat pr_git_log_messages.txt
                     grep -f ../bad_words.txt -Rnwi --exclude-dir=".git" --exclude-dir="crypto" --exclude-dir=".github" --exclude-dir="doxygen" .
                     ''',
-                    returnStdout: true
+                    returnStdout: false
                 )
         echo std_output
         if (std_output) {
