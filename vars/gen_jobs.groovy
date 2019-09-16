@@ -141,6 +141,9 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
     --cap-add SYS_PTRACE $common.docker_repo:$platform
 """
                         } finally {
+                            dir('src') {
+                                analysis.stash_outcomes(job_name)
+                            }
                             dir('src/tests/') {
                                 common.archive_zipped_log_files(job_name)
                             }
