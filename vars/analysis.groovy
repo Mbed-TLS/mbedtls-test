@@ -42,3 +42,19 @@ def gather_outcomes() {
 def analyze_results() {
     gather_outcomes()
 }
+
+def analyze_results_and_notify_github() {
+    node {
+        try {
+            analyze_results()
+            githubNotify context: "${env.BRANCH_NAME} Result analysis",
+                         description: 'OK',
+                         status: 'SUCCESS'
+        } catch (err) {
+            githubNotify context: "${env.BRANCH_NAME} Result analysis",
+                         description: 'Analysis failed',
+                         status: 'FAILURE'
+            throw (err)
+        }
+    }
+}

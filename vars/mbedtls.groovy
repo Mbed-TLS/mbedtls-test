@@ -111,6 +111,9 @@ def run_pr_job() {
     githubNotify context: "${env.BRANCH_NAME} TLS Testing",
                  description: 'In progress',
                  status: 'PENDING'
+    githubNotify context: "${env.BRANCH_NAME} Result analysis",
+                 description: 'In progress',
+                 status: 'PENDING'
     stage('pre-test-checks') {
         node {
             try {
@@ -127,8 +130,13 @@ def run_pr_job() {
             }
         }
     }
-    stage('tls-testing') {
-        run_tls_tests()
+
+    try {
+        stage('tls-testing') {
+            run_tls_tests()
+        }
+    } finally {
+        analysis.analyze_results_and_notify_github()
     }
 }
 
