@@ -132,10 +132,15 @@ def run_pr_job() {
             }
         }
     }
-    stage('crypto-testing') {
-        run_crypto_tests()
-    }
-    stage('tls-testing') {
-        mbedtls.run_tls_tests_with_crypto_pr()
+
+    try {
+        stage('crypto-testing') {
+            run_crypto_tests()
+        }
+        stage('tls-testing') {
+            mbedtls.run_tls_tests_with_crypto_pr()
+        }
+    } finally {
+        analysis.analyze_results_and_notify_github()
     }
 }
