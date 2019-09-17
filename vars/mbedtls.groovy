@@ -128,8 +128,12 @@ def run_pr_job() {
                              description: 'OK',
                              status: 'SUCCESS'
             } catch (err) {
+                /* We give generic error message to github because we don't wan't to give
+                 * information to external pull requests that failure cause was for example
+                 * bad word like name of our customer.
+                */
                 githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                             description: 'Bad words found. Please remove words in bad_words.txt',
+                             description: 'Pre Test Checks failed.',
                              status: 'FAILURE'
                 throw (err)
             }

@@ -110,8 +110,8 @@ def get_all_sh_components() {
     }
 }
 /* Check for any bad words found from pull request code and commit messages.
-   Bad words list is in file resources/bad_words.txt
- * Bad words may be a customer which can't be shown to public, TODO's etc.
+ * Bad words list is in file resources/bad_words.txt
+ * Bad words may be a customer which can't be shown to public.
  * If words are found, this method will throw an error and PR will fail.
  */
 def check_for_bad_words() {
@@ -120,19 +120,19 @@ def check_for_bad_words() {
         def BAD_WORDS = libraryResource 'bad_words.txt'
         writeFile file: 'bad_words.txt', text: BAD_WORDS
 
-        std_output = sh(
-                    script: '''
-                    cd src/
-                    TARGET_URL="$(git config remote.origin.url)"
-                    git fetch --no-tags $TARGET_URL +refs/heads/$CHANGE_TARGET:refs/remotes/origin/$CHANGE_TARGET
-                    git log origin/$CHANGE_TARGET..HEAD  > pr_git_log_messages.txt
-                    grep -f ../bad_words.txt -Rnwi --exclude-dir=".git" --exclude-dir="crypto" .
-                    ''',
-                    returnStdout: true
-                )
+        dir('src') {
+            std_output = sh(
+                        script: '''
+                        git fetch origin $CHANGE_TARGET
+                        git log FETCH_HEAD..HEAD > pr_git_log_messages.txt
+                        grep -f ../bad_words.txt -Rnwi --exclude-dir=".git" --exclude-dir="crypto" .
+                        ''',
+                        returnStdout: true
+                    )
+        }
         echo std_output
         if (std_output) {
-            throw new Exception("Bad words check failed")
+            throw new Exception("Pre Test Checks failed")
         }
     }
 }
