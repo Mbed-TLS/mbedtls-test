@@ -62,7 +62,7 @@ import groovy.transform.Field
         'repo': env.MBED_OS_CRYPTO_EXAMPLES_REPO,
         'branch': env.MBED_OS_CRYPTO_EXAMPLES_BRANCH,
         'platforms': platforms_with_entropy_sources,
-        'compilers': compilers],
+        'compilers': ['GCC_ARM', 'IAR']],
     'atecc608a': [
         'should_run': env.TEST_MBED_OS_ATECC608A_EXAMPLES,
         'repo': env.MBED_OS_ATECC608A_EXAMPLES_REPO,
