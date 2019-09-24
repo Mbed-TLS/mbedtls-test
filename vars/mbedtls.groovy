@@ -116,12 +116,24 @@ def run_pr_job() {
             try {
                 environ.set_tls_pr_environment()
                 all_sh_components = common.get_all_sh_components()
+            } catch (err) {
+                githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
+                             description: 'Base branch out of date. Please rebase',
+                             status: 'FAILURE'
+                throw (err)
+            }
+            try {
+                common.check_for_bad_words()
                 githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
                              description: 'OK',
                              status: 'SUCCESS'
             } catch (err) {
+                /* We give generic error message to github because we don't wan't to give
+                 * information to external pull requests that failure cause was for example
+                 * bad word like name of our customer.
+                */
                 githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                             description: 'Base branch out of date. Please rebase',
+                             description: 'Pre Test Checks failed.',
                              status: 'FAILURE'
                 throw (err)
             }
