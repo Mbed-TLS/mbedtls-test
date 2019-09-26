@@ -119,20 +119,24 @@ def check_for_bad_words() {
         // can't access file bad_words.txt from the sh so we must write it there as a new file
         def BAD_WORDS = libraryResource 'bad_words.txt'
         writeFile file: 'bad_words.txt', text: BAD_WORDS
+        def BAD_EXCLUDE = libraryResource 'bad_words_exclude.txt'
+        writeFile file: 'bad_words_exclude.txt', text: BAD_EXCLUDE
 
         dir('src') {
             std_output = sh(
                         script: '''
+                        set +e
                         git fetch origin $CHANGE_TARGET
                         git log FETCH_HEAD..HEAD > pr_git_log_messages.txt
-                        grep -f ../bad_words.txt -Rnwi --exclude-dir=".git" --exclude-dir="crypto" .
+                        grep -f ../bad_words.txt -Rnwi --exclude-dir=".git" --exclude-dir="crypto" . > ../bw.txt
+                        grep -vi -f ../bad_words_exclude.txt ../bw.txt || [ "$?" = 1 ]
                         ''',
                         returnStdout: true
                     )
-        }
-        echo std_output
-        if (std_output) {
-            throw new Exception("Pre Test Checks failed")
+            echo std_output
+            if (std_output) {
+                throw new Exception("Pre Test Checks failed")
+            }
         }
     }
 }
