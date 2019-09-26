@@ -125,6 +125,7 @@ def check_for_bad_words() {
         dir('src') {
             std_output = sh(
                         script: '''
+                        set +e
                         git fetch origin $CHANGE_TARGET
                         git log FETCH_HEAD..HEAD > pr_git_log_messages.txt
                         grep -f ../bad_words.txt -Rnwi --exclude-dir=".git" --exclude-dir="crypto" . > ../bw.txt
