@@ -44,12 +44,10 @@ class MbedWindowsTesting(object):
     def __init__(self,
                  repository_path,
                  logging_directory,
-                 git_ref,
                  build_method,
                  testing_config):
         self.repository_path = repository_path
         self.log_dir = logging_directory
-        self.git_ref = git_ref
         self.return_code = 0
         if "config_to_disable" in testing_config.keys():
             self.config_to_disable = testing_config["config_to_disable"]
@@ -175,14 +173,12 @@ class MbedWindowsTesting(object):
         return logger
 
     def get_clean_worktree_for_git_reference(self, logger):
-        logger.info(
-            "Checking out git worktree for reference {}".format(self.git_ref)
-        )
+        logger.info("Checking out git worktree")
         git_worktree_path = os.path.abspath(tempfile.mkdtemp(dir="worktrees"))
         try:
             worktree_output = subprocess.run(
                 [self.git_command, "worktree", "add", "--detach",
-                 git_worktree_path, self.git_ref],
+                 git_worktree_path, "HEAD"],
                 cwd=self.repository_path,
                 encoding=sys.stdout.encoding,
                 stdout=subprocess.PIPE,
@@ -592,7 +588,6 @@ class MbedWindowsTesting(object):
             "Results",
             os.path.join(self.log_dir, "results.txt")
         )
-        result_logger.info("{} results\n".format(self.git_ref))
         total_test_runs = 0
         successful_test_runs = 0
         if self.build_mingw:
@@ -687,9 +682,6 @@ def run_main():
         "log_path", type=str, help="the directory path for log files"
     )
     parser.add_argument(
-        "git_ref", type=str, help="which git reference to test"
-    )
-    parser.add_argument(
         "-b", "--build-method", type=str, nargs="+",
         choices=["mingw", "2010", "2013", "2015", "2017"],
         default=["mingw", "2010", "2013", "2015", "2017"],
@@ -709,7 +701,6 @@ def run_main():
     mbed_test = MbedWindowsTesting(
         windows_testing_args.repo_path,
         windows_testing_args.log_path,
-        windows_testing_args.git_ref,
         windows_testing_args.build_method,
         testing_config
     )
