@@ -125,6 +125,7 @@ git config --global user.name "Your Name"
 git init
 git add .
 git commit -m 'CI code copy'
+export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv'
 set ./tests/scripts/all.sh --seed 4 --keep-going $component
 "\$@"
 """
@@ -140,6 +141,9 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
     --cap-add SYS_PTRACE $common.docker_repo:$platform
 """
                         } finally {
+                            dir('src') {
+                                analysis.stash_outcomes(job_name)
+                            }
                             dir('src/tests/') {
                                 common.archive_zipped_log_files(job_name)
                             }
