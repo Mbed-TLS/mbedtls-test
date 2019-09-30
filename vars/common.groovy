@@ -79,11 +79,9 @@ import groovy.transform.Field
 @Field linux_platforms = ["debian-9-i386", "debian-9-x64"]
 @Field bsd_platforms = ["freebsd"]
 @Field bsd_compilers = ["clang"]
-@Field coverity_platforms = ['coverity && gcc']
 @Field all_compilers = ['gcc', 'clang']
 @Field gcc_compilers = ['gcc']
 @Field asan_compilers = ['clang']
-@Field coverity_compilers = ['gcc']
 
 def get_docker_image(docker_image) {
     sh "\$(aws ecr get-login) && docker pull $docker_repo:$docker_image"
