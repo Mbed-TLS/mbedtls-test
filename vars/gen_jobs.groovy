@@ -85,9 +85,6 @@ def gen_node_jobs_foreach(label, platforms, compilers, script) {
                     timestamps {
                         deleteDir()
                         checkout_repo.checkout_repo()
-                        if (label == 'coverity') {
-                            checkout_repo.checkout_coverity_repo()
-                        }
                         shell_script = """
 ulimit -f 20971520
 export PYTHON=/usr/local/bin/python2.7
