@@ -47,30 +47,6 @@ def checkout_pr() {
     }
 }
 
-def checkout_coverity_repo() {
-    checkout([
-        changelog: false,
-        poll: false,
-        scm: [
-            $class: 'GitSCM',
-            branches: [[name: '*/master']],
-            doGenerateSubmoduleConfigurations: false,
-            extensions: [
-                [$class: 'CloneOption',
-                 noTags: true,
-                 shallow: true],
-                [$class: 'RelativeTargetDirectory',
-                 relativeTargetDir: 'coverity-tools']
-            ],
-            submoduleCfg: [],
-            userRemoteConfigs: [
-                [url: 'git@github.com:ARMmbed/coverity-tools.git',
-                 credentialsId: "${env.GIT_CREDENTIALS_ID}"]
-            ]
-        ]
-    ])
-}
-
 def checkout_parametrized_repo(repo, branch) {
     checkout([
         scm: [
