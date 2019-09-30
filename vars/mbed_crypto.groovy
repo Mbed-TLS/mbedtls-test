@@ -70,14 +70,6 @@ def run_crypto_tests() {
                 jobs = jobs + gen_jobs.gen_windows_testing_job(build)
             }
 
-            /* Coverity jobs */
-            jobs = jobs + gen_jobs.gen_node_jobs_foreach(
-                'coverity',
-                common.coverity_platforms,
-                common.coverity_compilers,
-                scripts.std_coverity_sh
-            )
-
             /* All.sh jobs */
             for (component in all_sh_components) {
                 jobs = jobs + gen_jobs.gen_all_sh_jobs(
