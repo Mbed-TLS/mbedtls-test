@@ -183,7 +183,7 @@ def gen_windows_testing_job(build) {
                 writeFile file: 'windows_testing.py', text: windows_testing
                 timeout(time: common.perJobTimeout.time,
                         unit: common.perJobTimeout.unit) {
-                    bat "python windows_testing.py src logs $env.BRANCH_NAME -b $build"
+                    bat "python windows_testing.py src logs -b $build"
                 }
             } catch (err) {
                 failed_builds["Windows ${build} tests"] = true
