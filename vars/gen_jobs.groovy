@@ -307,6 +307,26 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
     return jobs
 }
 
+/* Mbed OS Example job generation */
+def gen_all_example_jobs() {
+    def jobs = [:]
+
+    common.examples.each { example ->
+        if (example.value['should_run'] == 'true') {
+            for (compiler in example.value['compilers']) {
+                for (platform in example.value['platforms']) {
+                    jobs = jobs + gen_mbed_os_example_job(
+                        example.value['repo'],
+                        example.value['branch'],
+                        example.key, compiler, platform
+                    )
+                }
+            }
+        }
+    }
+    return jobs
+}
+
 def gen_mbed_os_example_job(repo, branch, example, compiler, platform) {
     def jobs = [:]
 
@@ -405,20 +425,7 @@ def gen_release_jobs() {
         jobs = jobs + gen_windows_jobs_for_release()
     }
 
-    /* Mbed OS Example job generation */
-    common.examples.each { example ->
-        if (example.value['should_run'] == 'true') {
-            for (compiler in example.value['compilers']) {
-                for (platform in example.value['platforms']) {
-                    jobs = jobs + gen_mbed_os_example_job(
-                        example.value['repo'],
-                        example.value['branch'],
-                        example.key, compiler, platform
-                    )
-                }
-            }
-        }
-    }
+    jobs = jobs + gen_all_example_jobs()
 
     return jobs
 }
