@@ -194,7 +194,7 @@ def gen_windows_testing_job(build) {
     return jobs
 }
 
-def gen_all_windows_jobs() {
+def gen_windows_jobs_for_release() {
     def jobs = [:]
     for (build in common.get_supported_windows_builds()) {
         jobs = jobs + gen_windows_testing_job(build)
@@ -383,7 +383,7 @@ def gen_release_jobs() {
     }
 
     if (RUN_WINDOWS_TEST == "true") {
-        jobs = jobs + gen_all_windows_jobs()
+        jobs = jobs + gen_windows_jobs_for_release()
     }
 
     /* Mbed OS Example job generation */
