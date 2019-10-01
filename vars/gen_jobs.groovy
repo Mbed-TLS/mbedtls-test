@@ -156,10 +156,11 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
     return jobs
 }
 
-def gen_windows_testing_job(build) {
+def gen_windows_testing_job(build, label_prefix='') {
     def jobs = [:]
+    def job_name = "${label_prefix}Windows-${build}"
 
-    jobs["Windows-${build}"] = {
+    jobs[job_name] = {
         node("windows-tls") {
             try {
                 dir("src") {
@@ -186,7 +187,7 @@ def gen_windows_testing_job(build) {
                     bat "python windows_testing.py src logs -b $build"
                 }
             } catch (err) {
-                failed_builds["Windows ${build} tests"] = true
+                failed_builds[job_name] = true
                 throw (err)
             }
         }
