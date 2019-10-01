@@ -68,6 +68,8 @@ def run_crypto_tests() {
 
             jobs = jobs + gen_jobs.gen_abi_api_checking_job('ubuntu-16.04')
 
+            jobs = jobs + gen_jobs.gen_all_example_jobs()
+
             jobs.failFast = false
             parallel jobs
             githubNotify context: "${env.BRANCH_NAME} Crypto Testing",
