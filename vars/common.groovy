@@ -143,6 +143,7 @@ def check_for_bad_words() {
 
 def get_supported_windows_builds() {
     def is_c89 = null
+    def vs_builds = []
     node {
         dir('src') {
             deleteDir()
@@ -154,7 +155,11 @@ def get_supported_windows_builds() {
             is_c89 = cmakelists_contents.contains('-Wdeclaration-after-statement')
         }
     }
-    def vs_builds = ['2013', '2015', '2017']
+    if (env.JOB_TYPE == 'PR') {
+        vs_builds = ['2013']
+    } else {
+        vs_builds = ['2013', '2015', '2017']
+    }
     if (is_c89) {
         vs_builds = ['2010'] + vs_builds
     }
