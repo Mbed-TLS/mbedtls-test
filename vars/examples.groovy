@@ -13,18 +13,23 @@ import groovy.transform.Field
     'NUCLEO_F412ZG', 'NUCLEO_L476RG', 'NUCLEO_L4R5ZI', 'NUCLEO_L496ZG',
 ]
 
-/* Currently unavailable in RaaS: LPC55S69_NS */
+/* This is a minimal set of boards with the following criteria:
+ * one v7-M with TRNG, one v7-M without TRNG,
+ * one dual CPU PSA platform, one v8-M PSA platform
+ * Currently unavailable in RaaS: LPC55S69_NS */
 @Field pull_request_platforms = [
     'K64F', 'NUCLEO_F411RE', 'CY8CKIT_062_WIFI_BT', 'LPC55S69_NS',
 ]
 
-/* Currently unavailable in RaaS: LPC55S69_NS */
+/* From https://confluence.arm.com/display/IoTBU/ISG+Device+SW+SUT+list
+ * Currently unavailable in RaaS: LPC55S69_NS */
 @Field mbed_os_gold_platforms = [
     'K64F', 'NUCLEO_F429ZI', 'NUCLEO_F411RE', 'NRF52840_DK',
     'DISCO_L475VG_IOT01A', 'NUCLEO_F303RE', 'LPC55S69_NS'
 ]
 
-/* Currently unavailable in RaaS: EFM32GG11_STK3701, TB_SENSE_12, DISCO_F469NI,
+/* From https://confluence.arm.com/display/IoTBU/ISG+Device+SW+SUT+list
+ * Currently unavailable in RaaS: EFM32GG11_STK3701, TB_SENSE_12, DISCO_F469NI,
  * NUCLEO_F412ZG, NUCLEO_L4R5ZI, NUCLEO_L496ZG */
 @Field mbed_os_silver_platforms = [
     'CY8CKIT_062_WIFI_BT', 'K66F', 'UBLOX_EVK_ODIN_W2', 'NUCLEO_F746ZG',
