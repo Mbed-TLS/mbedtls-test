@@ -17,6 +17,11 @@ import groovy.transform.Field
 ]
 
 /* Currently unavailable in RaaS: LPC55S69_NS */
+@Field pull_request_platforms = [
+    'K64F', 'NUCLEO_F411RE', 'CY8CKIT_062_WIFI_BT', 'LPC55S69_NS',
+]
+
+/* Currently unavailable in RaaS: LPC55S69_NS */
 @Field mbed_os_gold_platforms = [
     'K64F', 'NUCLEO_F429ZI', 'NUCLEO_F411RE', 'NRF52840_DK',
     'DISCO_L475VG_IOT01A', 'NUCLEO_F303RE', 'LPC55S69_NS'
