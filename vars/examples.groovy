@@ -16,6 +16,12 @@ import groovy.transform.Field
     'K64F', 'NUCLEO_F429ZI', 'UBLOX_EVK_ODIN_W2', 'NUCLEO_F746ZG'
 ]
 
+/* Currently unavailable in RaaS: LPC55S69_NS */
+@Field mbed_os_gold_platforms = [
+    'K64F', 'NUCLEO_F429ZI', 'NUCLEO_F411RE', 'NRF52840_DK',
+    'DISCO_L475VG_IOT01A', 'NUCLEO_F303RE', 'LPC55S69_NS'
+]
+
 @Field examples = [
     'authcrypt': [
         'should_run': env.TEST_MBED_OS_AUTHCRYPT_EXAMPLE,
