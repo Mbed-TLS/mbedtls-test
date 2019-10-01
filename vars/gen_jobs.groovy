@@ -195,13 +195,28 @@ def gen_windows_testing_job(build, label_prefix='') {
     return jobs
 }
 
-def gen_windows_jobs_for_release() {
+def gen_windows_jobs_for_pr(label_prefix='') {
+    def jobs = [:]
+    jobs = jobs + gen_simple_windows_jobs(
+        label_prefix + 'win32-mingw', scripts.win32_mingw_test_bat
+    )
+    jobs = jobs + gen_simple_windows_jobs(
+        label_prefix + 'win32_msvc12_32', scripts.win32_msvc12_32_test_bat
+    )
+    jobs = jobs + gen_simple_windows_jobs(
+        label_prefix + 'win32-msvc12_64', scripts.win32_msvc12_64_test_bat
+    )
+    jobs = jobs + gen_windows_jobs_for_release(label_prefix)
+    return jobs
+}
+
+def gen_windows_jobs_for_release(label_prefix='') {
     def jobs = [:]
     for (build in common.get_supported_windows_builds()) {
-        jobs = jobs + gen_windows_testing_job(build)
+        jobs = jobs + gen_windows_testing_job(build, label_prefix)
     }
     jobs = jobs + gen_simple_windows_jobs(
-        'iar8-mingw', scripts.iar8_mingw_test_bat
+        label_prefix + 'iar8-mingw', scripts.iar8_mingw_test_bat
     )
     return jobs
 }
