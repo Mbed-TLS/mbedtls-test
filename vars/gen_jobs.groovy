@@ -314,7 +314,7 @@ def gen_all_example_jobs() {
     examples.examples.each { example ->
         if (example.value['should_run'] == 'true') {
             for (compiler in example.value['compilers']) {
-                for (platform in example.value['platforms']) {
+                for (platform in example.value['platforms']()) {
                     if (examples.raas_for_platform[platform]) {
                         jobs = jobs + gen_mbed_os_example_job(
                             example.value['repo'],

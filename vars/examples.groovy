@@ -7,13 +7,15 @@ import groovy.transform.Field
     'CY8CKIT_062_WIFI_BT', 'NUCLEO_F411RE'
 ]
 
-@Field platforms_with_entropy_sources = [
-    'K64F', 'NUCLEO_F429ZI', 'UBLOX_EVK_ODIN_W2', 'NUCLEO_F746ZG',
-    'CY8CKIT_062_WIFI_BT'
+@Field platforms_without_entropy_sources = [
+    'NUCLEO_F411RE', 'NUCLEO_F303RE', 'GR_LYCHEE'
 ]
 
-@Field platforms_with_ethernet = [
-    'K64F', 'NUCLEO_F429ZI', 'UBLOX_EVK_ODIN_W2', 'NUCLEO_F746ZG'
+@Field platforms_without_ethernet = [
+    'NUCLEO_F411RE', 'CY8CKIT_062_WIFI_BT', 'NRF52840_DK',
+    'DISCO_L475VG_IOT01A', 'NUCLEO_F303RE', 'LPC55S69_NS',
+    'GR_LYCHEE', 'TB_SENSE_12', 'DISCO_F469NI', 'DISCO_L496AG',
+    'NUCLEO_F412ZG', 'NUCLEO_L476RG', 'NUCLEO_L4R5ZI', 'NUCLEO_L496ZG',
 ]
 
 /* Currently unavailable in RaaS: LPC55S69_NS */
@@ -70,31 +72,31 @@ import groovy.transform.Field
         'should_run': env.TEST_MBED_OS_AUTHCRYPT_EXAMPLE,
         'repo': env.MBED_OS_TLS_EXAMPLES_REPO,
         'branch': env.MBED_OS_TLS_EXAMPLES_BRANCH,
-        'platforms': platforms_with_entropy_sources,
+        'platforms': {platforms_with_entropy_sources()},
         'compilers': compilers],
     'benchmark': [
         'should_run': env.TEST_MBED_OS_BENCHMARK_EXAMPLE,
         'repo': env.MBED_OS_TLS_EXAMPLES_REPO,
         'branch': env.MBED_OS_TLS_EXAMPLES_BRANCH,
-        'platforms': platforms_with_entropy_sources,
+        'platforms': {platforms_with_entropy_sources()},
         'compilers': compilers],
     'hashing': [
         'should_run': env.TEST_MBED_OS_HASHING_EXAMPLE,
         'repo': env.MBED_OS_TLS_EXAMPLES_REPO,
         'branch': env.MBED_OS_TLS_EXAMPLES_BRANCH,
-        'platforms': all_platforms,
+        'platforms': {all_platforms},
         'compilers': compilers],
     'tls-client': [
         'should_run': env.TEST_MBED_OS_TLS_CLIENT_EXAMPLE,
         'repo': env.MBED_OS_TLS_EXAMPLES_REPO,
         'branch': env.MBED_OS_TLS_EXAMPLES_BRANCH,
-        'platforms': platforms_with_ethernet,
+        'platforms': {platforms_with_ethernet()},
         'compilers': compilers],
     'getting-started': [
         'should_run': env.TEST_MBED_OS_CRYPTO_EXAMPLES,
         'repo': env.MBED_OS_CRYPTO_EXAMPLES_REPO,
         'branch': env.MBED_OS_CRYPTO_EXAMPLES_BRANCH,
-        'platforms': platforms_with_entropy_sources,
+        'platforms': {platforms_with_entropy_sources()},
         /* ARM removed temporarily due to a compilation issue, this is being
          * tracked in https://jira.arm.com/browse/IOTCRYPT-920 */
         'compilers': ['GCC_ARM', 'IAR']],
@@ -102,6 +104,14 @@ import groovy.transform.Field
         'should_run': env.TEST_MBED_OS_ATECC608A_EXAMPLES,
         'repo': env.MBED_OS_ATECC608A_EXAMPLES_REPO,
         'branch': env.MBED_OS_ATECC608A_EXAMPLES_BRANCH,
-        'platforms': ['K64F'],
+        'platforms': {['K64F']},
         'compilers': ['GCC_ARM']],
 ]
+
+def platforms_with_entropy_sources() {
+    return (all_platforms - platforms_without_entropy_sources)
+}
+
+def platforms_with_ethernet() {
+    return (all_platforms - platforms_without_ethernet)
+}
