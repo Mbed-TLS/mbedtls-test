@@ -333,11 +333,6 @@ def gen_mbed_os_example_job(repo, branch, example, compiler, platform) {
     jobs["${example}-${platform}-${compiler}"] = {
         node(compiler) {
             try {
-                def use_psa_crypto = ""
-                if (env.TARGET_REPO == 'crypto' &&
-                    common.platforms_with_entropy_sources.contains(platform)) {
-                    use_psa_crypto = "-DMBEDTLS_PSA_CRYPTO_C"
-                }
                 timestamps {
                     deleteDir()
                     checkout_repo.checkout_parametrized_repo(repo, branch)
@@ -365,7 +360,7 @@ mbed deploy -vv
                             }
                             sh """\
 ulimit -f 20971520
-mbed compile -m ${platform} -t ${compiler} ${use_psa_crypto}
+mbed compile -m ${platform} -t ${compiler}
 """
                             for (int attempt = 1; attempt <= 3; attempt++) {
                                 try {
