@@ -311,7 +311,7 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
 def gen_all_example_jobs() {
     def jobs = [:]
 
-    common.examples.each { example ->
+    examples.examples.each { example ->
         if (example.value['should_run'] == 'true') {
             for (compiler in example.value['compilers']) {
                 for (platform in example.value['platforms']) {
