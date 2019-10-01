@@ -2,12 +2,18 @@ def set_crypto_pr_environment() {
     env.JOB_TYPE = 'PR'
     env.TARGET_REPO = 'crypto'
     env.REPO_TO_CHECKOUT = 'crypto'
+    env.MBED_OS_REPO = 'git@github.com:ARMmbed/mbed-os.git'
+    env.MBED_OS_BRANCH = 'master'
+    env.MBED_CRYPTO_BRANCH = env.CHANGE_BRANCH
 }
 
 def set_tls_pr_environment() {
     env.JOB_TYPE = 'PR'
     env.TARGET_REPO = 'tls'
     env.REPO_TO_CHECKOUT = 'tls'
+    env.MBED_OS_REPO = 'git@github.com:ARMmbed/mbed-os.git'
+    env.MBED_OS_BRANCH = 'master'
+    env.MBED_TLS_BRANCH = env.CHANGE_BRANCH
 }
 
 def set_crypto_release_environment() {

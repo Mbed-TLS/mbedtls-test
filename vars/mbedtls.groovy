@@ -5,6 +5,8 @@ import groovy.transform.Field
 /* This runs the job using the main TLS development branch and a Mbed Crypto PR */
 def run_tls_tests_with_crypto_pr() {
     env.REPO_TO_CHECKOUT = 'tls'
+    env.MBED_TLS_BRANCH = 'development'
+    env.MBED_TLS_REPO = "git@github.com:ARMmbed/mbedtls.git"
     all_sh_components = common.get_all_sh_components()
     run_tls_tests('tls-')
 }
