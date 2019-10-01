@@ -2,11 +2,6 @@ import groovy.transform.Field
 
 @Field compilers = ['ARM', 'GCC_ARM', 'IAR']
 
-@Field all_platforms = [
-    'K64F', 'NUCLEO_F429ZI', 'UBLOX_EVK_ODIN_W2', 'NUCLEO_F746ZG',
-    'CY8CKIT_062_WIFI_BT', 'NUCLEO_F411RE'
-]
-
 @Field platforms_without_entropy_sources = [
     'NUCLEO_F411RE', 'NUCLEO_F303RE', 'GR_LYCHEE'
 ]
@@ -84,7 +79,7 @@ import groovy.transform.Field
         'should_run': env.TEST_MBED_OS_HASHING_EXAMPLE,
         'repo': env.MBED_OS_TLS_EXAMPLES_REPO,
         'branch': env.MBED_OS_TLS_EXAMPLES_BRANCH,
-        'platforms': {all_platforms},
+        'platforms': {platforms_to_test()},
         'compilers': compilers],
     'tls-client': [
         'should_run': env.TEST_MBED_OS_TLS_CLIENT_EXAMPLE,
@@ -108,10 +103,28 @@ import groovy.transform.Field
         'compilers': ['GCC_ARM']],
 ]
 
+def platforms_to_test() {
+    if (env.JOB_TYPE == 'PR') {
+        return pull_request_platforms
+    }
+    switch (env.EXAMPLES_TO_BUILD) {
+        case 'Pull Request':
+            return pull_request_platforms
+        case 'Mbed OS Gold Boards':
+            return mbed_os_gold_platforms
+        case 'Mbed OS Silver Boards':
+            return mbed_os_silver_platforms
+        case 'Mbed OS Gold Boards + Mbed OS Silver Boards':
+            return (mbed_os_gold_platforms + mbed_os_silver_platforms)
+        default:
+            return []
+    }
+}
+
 def platforms_with_entropy_sources() {
-    return (all_platforms - platforms_without_entropy_sources)
+    return (platforms_to_test() - platforms_without_entropy_sources)
 }
 
 def platforms_with_ethernet() {
-    return (all_platforms - platforms_without_ethernet)
+    return (platforms_to_test() - platforms_without_ethernet)
 }
