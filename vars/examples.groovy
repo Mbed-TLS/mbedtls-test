@@ -117,7 +117,7 @@ def platforms_to_test() {
         case 'Mbed OS Gold Boards + Mbed OS Silver Boards':
             return (mbed_os_gold_platforms + mbed_os_silver_platforms)
         default:
-            return []
+            throw new Exception("No example list provided")
     }
 }
 
