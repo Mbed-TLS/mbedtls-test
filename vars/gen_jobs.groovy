@@ -315,11 +315,14 @@ def gen_all_example_jobs() {
         if (example.value['should_run'] == 'true') {
             for (compiler in example.value['compilers']) {
                 for (platform in example.value['platforms']) {
-                    jobs = jobs + gen_mbed_os_example_job(
-                        example.value['repo'],
-                        example.value['branch'],
-                        example.key, compiler, platform
-                    )
+                    if (examples.raas_for_platform[platform]) {
+                        jobs = jobs + gen_mbed_os_example_job(
+                            example.value['repo'],
+                            example.value['branch'],
+                            example.key, compiler, platform,
+                            examples.raas_for_platform[platform]
+                        )
+                    }
                 }
             }
         }
@@ -327,7 +330,7 @@ def gen_all_example_jobs() {
     return jobs
 }
 
-def gen_mbed_os_example_job(repo, branch, example, compiler, platform) {
+def gen_mbed_os_example_job(repo, branch, example, compiler, platform, raas) {
     def jobs = [:]
 
     jobs["${example}-${platform}-${compiler}"] = {
@@ -379,7 +382,7 @@ fi
 export RAAS_PYCLIENT_FORCE_REMOTE_ALLOCATION=1
 export RAAS_PYCLIENT_ALLOCATION_QUEUE_TIMEOUT=3600
 mbedhtrun -m ${platform} ${tag_filter} \
--g raas_client:https://auli.mbedcloudtesting.com:443 -P 1000 --sync=0 -v \
+-g raas_client:https://${raas}.mbedcloudtesting.com:443 -P 1000 --sync=0 -v \
     --compare-log ../tests/${example}.log -f \$BINARY
 """
                                     break

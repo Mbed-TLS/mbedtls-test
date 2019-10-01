@@ -37,6 +37,34 @@ import groovy.transform.Field
     'NUCLEO_L496ZG', 'NUCLEO_F767ZI'
 ]
 
+@Field raas_for_platform = [
+    'K64F':'auli',
+    'NUCLEO_F429ZI':'auli',
+    'NUCLEO_F411RE':'auli',
+    'NRF52840_DK':'auli',
+    'DISCO_L475VG_IOT01A':'auli',
+    'NUCLEO_F303RE':'auli',
+    'LPC55S69_NS':null,
+    'CY8CKIT_062_WIFI_BT':'auli',
+    'K66F':'auli',
+    'UBLOX_EVK_ODIN_W2':'auli',
+    'NUCLEO_F746ZG':'auli',
+    'UBLOX_C030_U201':'hanna',
+    'DISCO_F746NG':'hanna',
+    'NUCLEO_F207ZG':'ruka',
+    'GR_LYCHEE':'hanna',
+    'EFM32GG11_STK3701':null,
+    'TB_SENSE_12':null,
+    'DISCO_F469NI':null,
+    'DISCO_F769NI':'kaisa',
+    'DISCO_L496AG':'hanna',
+    'NUCLEO_F412ZG':null,
+    'NUCLEO_L476RG':'auli',
+    'NUCLEO_L4R5ZI':null,
+    'NUCLEO_L496ZG':null,
+    'NUCLEO_F767ZI':'auli',
+]
+
 @Field examples = [
     'authcrypt': [
         'should_run': env.TEST_MBED_OS_AUTHCRYPT_EXAMPLE,
