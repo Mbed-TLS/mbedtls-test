@@ -61,22 +61,7 @@ def run_tls_tests(label_prefix='') {
             )
 
             /* Windows jobs */
-            jobs = jobs + gen_jobs.gen_simple_windows_jobs(
-                label_prefix + 'win32-mingw',
-                scripts.win32_mingw_test_bat
-            )
-            jobs = jobs + gen_jobs.gen_simple_windows_jobs(
-                label_prefix + 'win32_msvc12_32',
-                scripts.win32_msvc12_32_test_bat
-            )
-            jobs = jobs + gen_jobs.gen_simple_windows_jobs(
-                label_prefix + 'win32-msvc12_64',
-                scripts.win32_msvc12_64_test_bat
-            )
-            jobs = jobs + gen_jobs.gen_simple_windows_jobs(
-                label_prefix + 'iar8-mingw',
-                scripts.iar8_mingw_test_bat
-            )
+            jobs = jobs + gen_jobs.gen_windows_jobs_for_pr(label_prefix)
 
             /* All.sh jobs */
             for (component in all_sh_components) {
