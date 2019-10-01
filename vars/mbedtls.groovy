@@ -73,6 +73,8 @@ def run_tls_tests(label_prefix='') {
                 'ubuntu-18.04', 'build_mingw', label_prefix
             )
 
+            jobs = jobs + gen_jobs.gen_abi_api_checking_job('ubuntu-16.04')
+
             jobs.failFast = false
             parallel jobs
             githubNotify context: "${env.BRANCH_NAME} TLS Testing",
