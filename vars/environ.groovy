@@ -56,7 +56,6 @@ def set_crypto_release_environment() {
     env.TARGET_REPO = 'crypto'
     env.REPO_TO_CHECKOUT = 'crypto'
     env.CHECKOUT_METHOD = 'parametrized'
-    env.BRANCH_NAME = MBED_CRYPTO_BRANCH
     if (TEST_MBED_OS_TLS_EXAMPLES == 'true') {
         env.TEST_MBED_OS_AUTHCRYPT_EXAMPLE = 'true'
         env.TEST_MBED_OS_BENCHMARK_EXAMPLE = 'true'
@@ -76,5 +75,4 @@ def set_tls_release_environment() {
     env.TARGET_REPO = 'tls'
     env.REPO_TO_CHECKOUT = 'tls'
     env.CHECKOUT_METHOD = 'parametrized'
-    env.BRANCH_NAME = MBED_TLS_BRANCH
 }
