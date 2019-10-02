@@ -3,10 +3,12 @@ import groovy.transform.Field
 @Field all_sh_components = []
 
 /* This runs the job using the main TLS development branch and a Mbed Crypto PR */
-def run_tls_tests_with_crypto_pr() {
+def run_tls_tests_with_crypto_pr(production) {
     env.REPO_TO_CHECKOUT = 'tls'
-    env.MBED_TLS_BRANCH = 'development'
-    env.MBED_TLS_REPO = "git@github.com:ARMmbed/mbedtls.git"
+    if (production) {
+        env.MBED_TLS_BRANCH = 'development'
+        env.MBED_TLS_REPO = "git@github.com:ARMmbed/mbedtls.git"
+    }
     all_sh_components = common.get_all_sh_components()
     run_tls_tests('tls-')
 }
@@ -111,7 +113,7 @@ def run_tls_tests(label_prefix='') {
 }
 
 /* main job */
-def run_pr_job() {
+def run_pr_job(production=true) {
     if (env.BRANCH_NAME) {
         githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
                      description: 'Checking if all PR tests can be run',
@@ -126,7 +128,7 @@ def run_pr_job() {
     stage('pre-test-checks') {
         node {
             try {
-                environ.set_tls_pr_environment()
+                environ.set_tls_pr_environment(production)
                 all_sh_components = common.get_all_sh_components()
             } catch (err) {
                 if (env.BRANCH_NAME) {
