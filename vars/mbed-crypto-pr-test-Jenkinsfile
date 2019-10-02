@@ -1,0 +1,41 @@
+#!/usr/bin/env groovy
+
+/*
+ * This script takes the following parameters:
+ *
+ * Repos and branches
+ *  - MBED_CRYPTO_REPO
+ *  - MBED_CRYPTO_BRANCH
+ *  - MBED_TLS_REPO
+ *  - MBED_TLS_BRANCH
+ *  - MBED_OS_REPO
+ *  - MBED_OS_BRANCH
+ *  - MBED_OS_TLS_EXAMPLES_REPO
+ *  - MBED_OS_TLS_EXAMPLES_BRANCH
+ *  - MBED_OS_CRYPTO_EXAMPLES_REPO
+ *  - MBED_OS_CRYPTO_EXAMPLES_BRANCH
+ *  - MBED_OS_ATECC608A_EXAMPLES_REPO
+ *  - MBED_OS_ATECC608A_EXAMPLES_BRANCH
+ *
+ * Test options
+ *  - RUN_CRYPTO_TESTS_OF_CRYPTO_PR
+ *  - RUN_TLS_TESTS_OF_CRYPTO_PR
+ *  - RUN_LINUX_SCRIPTS
+ *  - RUN_FREEBSD
+ *  - RUN_WINDOWS_TEST
+ *  - RUN_ALL
+ *  - RUN_ABI_CHECK
+ *  - TEST_MBED_OS_AUTHCRYPT_EXAMPLE
+ *  - TEST_MBED_OS_BENCHMARK_EXAMPLE
+ *  - TEST_MBED_OS_HASHING_EXAMPLE
+ *  - TEST_MBED_OS_TLS_CLIENT_EXAMPLE
+ *  - TEST_MBED_OS_CRYPTO_EXAMPLES
+ *  - TEST_MBED_OS_ATECC608A_EXAMPLES
+ *
+ */
+
+/* main job */
+node {
+    library identifier: 'mbedtls-test@master', retriever: legacySCM(scm)
+    mbed_crypto.run_pr_job(production=false)
+}
