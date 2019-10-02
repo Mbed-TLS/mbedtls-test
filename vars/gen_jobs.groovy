@@ -156,10 +156,11 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
     return jobs
 }
 
-def gen_windows_testing_job(build) {
+def gen_windows_testing_job(build, label_prefix='') {
     def jobs = [:]
+    def job_name = "${label_prefix}Windows-${build}"
 
-    jobs["Windows-${build}"] = {
+    jobs[job_name] = {
         node("windows-tls") {
             try {
                 dir("src") {
@@ -186,7 +187,7 @@ def gen_windows_testing_job(build) {
                     bat "python windows_testing.py src logs -b $build"
                 }
             } catch (err) {
-                failed_builds["Windows ${build} tests"] = true
+                failed_builds[job_name] = true
                 throw (err)
             }
         }
@@ -194,13 +195,28 @@ def gen_windows_testing_job(build) {
     return jobs
 }
 
-def gen_all_windows_jobs() {
+def gen_windows_jobs_for_pr(label_prefix='') {
+    def jobs = [:]
+    jobs = jobs + gen_simple_windows_jobs(
+        label_prefix + 'win32-mingw', scripts.win32_mingw_test_bat
+    )
+    jobs = jobs + gen_simple_windows_jobs(
+        label_prefix + 'win32_msvc12_32', scripts.win32_msvc12_32_test_bat
+    )
+    jobs = jobs + gen_simple_windows_jobs(
+        label_prefix + 'win32-msvc12_64', scripts.win32_msvc12_64_test_bat
+    )
+    jobs = jobs + gen_windows_jobs_for_release(label_prefix)
+    return jobs
+}
+
+def gen_windows_jobs_for_release(label_prefix='') {
     def jobs = [:]
     for (build in common.get_supported_windows_builds()) {
-        jobs = jobs + gen_windows_testing_job(build)
+        jobs = jobs + gen_windows_testing_job(build, label_prefix)
     }
     jobs = jobs + gen_simple_windows_jobs(
-        'iar8-mingw', scripts.iar8_mingw_test_bat
+        label_prefix + 'iar8-mingw', scripts.iar8_mingw_test_bat
     )
     return jobs
 }
@@ -216,10 +232,11 @@ def gen_abi_api_checking_job(platform) {
                 common.get_docker_image(platform)
                 dir('src') {
                     checkout_repo.checkout_repo()
-                    sh(
-                        returnStdout: true,
-                        script: "git fetch origin ${CHANGE_TARGET}"
-                    ).trim()
+                    if (env.TARGET_REPO == 'crypto' && env.REPO_TO_CHECKOUT == 'tls') {
+                        sh "git fetch origin development"
+                    } else {
+                        sh "git fetch origin ${CHANGE_TARGET}"
+                    }
                     writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
@@ -290,17 +307,35 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
     return jobs
 }
 
-def gen_mbed_os_example_job(repo, branch, example, compiler, platform) {
+/* Mbed OS Example job generation */
+def gen_all_example_jobs() {
+    def jobs = [:]
+
+    examples.examples.each { example ->
+        if (example.value['should_run'] == 'true') {
+            for (compiler in example.value['compilers']) {
+                for (platform in example.value['platforms']()) {
+                    if (examples.raas_for_platform[platform]) {
+                        jobs = jobs + gen_mbed_os_example_job(
+                            example.value['repo'],
+                            example.value['branch'],
+                            example.key, compiler, platform,
+                            examples.raas_for_platform[platform]
+                        )
+                    }
+                }
+            }
+        }
+    }
+    return jobs
+}
+
+def gen_mbed_os_example_job(repo, branch, example, compiler, platform, raas) {
     def jobs = [:]
 
     jobs["${example}-${platform}-${compiler}"] = {
         node(compiler) {
             try {
-                def use_psa_crypto = ""
-                if (env.TARGET_REPO == 'crypto' &&
-                    common.platforms_with_entropy_sources.contains(platform)) {
-                    use_psa_crypto = "-DMBEDTLS_PSA_CRYPTO_C"
-                }
                 timestamps {
                     deleteDir()
                     checkout_repo.checkout_parametrized_repo(repo, branch)
@@ -328,7 +363,7 @@ mbed deploy -vv
                             }
                             sh """\
 ulimit -f 20971520
-mbed compile -m ${platform} -t ${compiler} ${use_psa_crypto}
+mbed compile -m ${platform} -t ${compiler}
 """
                             for (int attempt = 1; attempt <= 3; attempt++) {
                                 try {
@@ -349,7 +384,7 @@ export RAAS_PASSWORD=user
 export RAAS_PYCLIENT_FORCE_REMOTE_ALLOCATION=1
 export RAAS_PYCLIENT_ALLOCATION_QUEUE_TIMEOUT=3600
 mbedhtrun -m ${platform} ${tag_filter} \
--g raas_client:https://auli.mbedcloudtesting.com:443 -P 1000 --sync=0 -v \
+-g raas_client:https://${raas}.mbedcloudtesting.com:443 -P 1000 --sync=0 -v \
     --compare-log ../tests/${example}.log -f \$BINARY
 """
                                     break
@@ -385,23 +420,10 @@ def gen_release_jobs() {
     }
 
     if (RUN_WINDOWS_TEST == "true") {
-        jobs = jobs + gen_all_windows_jobs()
+        jobs = jobs + gen_windows_jobs_for_release()
     }
 
-    /* Mbed OS Example job generation */
-    common.examples.each { example ->
-        if (example.value['should_run'] == 'true') {
-            for (compiler in example.value['compilers']) {
-                for (platform in example.value['platforms']) {
-                    jobs = jobs + gen_mbed_os_example_job(
-                        example.value['repo'],
-                        example.value['branch'],
-                        example.key, compiler, platform
-                    )
-                }
-            }
-        }
-    }
+    jobs = jobs + gen_all_example_jobs()
 
     return jobs
 }
