@@ -15,6 +15,7 @@ def set_tls_pr_environment() {
 }
 
 def set_common_pr_production_environment() {
+    env.CHECKOUT_METHOD = 'scm'
     env.RUN_LINUX_SCRIPTS = 'true'
     env.RUN_FREEBSD = 'true'
     env.RUN_WINDOWS_TEST = 'true'
@@ -54,6 +55,7 @@ def set_crypto_release_environment() {
     env.JOB_TYPE = 'release'
     env.TARGET_REPO = 'crypto'
     env.REPO_TO_CHECKOUT = 'crypto'
+    env.CHECKOUT_METHOD = 'parametrized'
     env.BRANCH_NAME = MBED_CRYPTO_BRANCH
     if (TEST_MBED_OS_TLS_EXAMPLES == 'true') {
         env.TEST_MBED_OS_AUTHCRYPT_EXAMPLE = 'true'
@@ -73,5 +75,6 @@ def set_tls_release_environment() {
     env.JOB_TYPE = 'release'
     env.TARGET_REPO = 'tls'
     env.REPO_TO_CHECKOUT = 'tls'
+    env.CHECKOUT_METHOD = 'parametrized'
     env.BRANCH_NAME = MBED_TLS_BRANCH
 }
