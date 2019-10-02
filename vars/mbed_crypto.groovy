@@ -54,21 +54,7 @@ def run_crypto_tests() {
             )
 
             /* Windows jobs */
-            jobs = jobs + gen_jobs.gen_simple_windows_jobs(
-                'win32-mingw', scripts.win32_mingw_test_bat
-            )
-            jobs = jobs + gen_jobs.gen_simple_windows_jobs(
-                'win32_msvc12_32', scripts.win32_msvc12_32_test_bat
-            )
-            jobs = jobs + gen_jobs.gen_simple_windows_jobs(
-                'win32-msvc12_64', scripts.win32_msvc12_64_test_bat
-            )
-            jobs = jobs + gen_jobs.gen_simple_windows_jobs(
-                'iar8-mingw', scripts.iar8_mingw_test_bat
-            )
-            for (build in ['mingw', '2013']) {
-                jobs = jobs + gen_jobs.gen_windows_testing_job(build)
-            }
+            jobs = jobs + gen_jobs.gen_windows_jobs_for_pr()
 
             /* All.sh jobs */
             for (component in all_sh_components) {
@@ -81,6 +67,8 @@ def run_crypto_tests() {
             )
 
             jobs = jobs + gen_jobs.gen_abi_api_checking_job('ubuntu-16.04')
+
+            jobs = jobs + gen_jobs.gen_all_example_jobs()
 
             jobs.failFast = false
             parallel jobs

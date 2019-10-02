@@ -5,6 +5,8 @@ import groovy.transform.Field
 /* This runs the job using the main TLS development branch and a Mbed Crypto PR */
 def run_tls_tests_with_crypto_pr() {
     env.REPO_TO_CHECKOUT = 'tls'
+    env.MBED_TLS_BRANCH = 'development'
+    env.MBED_TLS_REPO = "git@github.com:ARMmbed/mbedtls.git"
     all_sh_components = common.get_all_sh_components()
     run_tls_tests('tls-')
 }
@@ -61,22 +63,7 @@ def run_tls_tests(label_prefix='') {
             )
 
             /* Windows jobs */
-            jobs = jobs + gen_jobs.gen_simple_windows_jobs(
-                label_prefix + 'win32-mingw',
-                scripts.win32_mingw_test_bat
-            )
-            jobs = jobs + gen_jobs.gen_simple_windows_jobs(
-                label_prefix + 'win32_msvc12_32',
-                scripts.win32_msvc12_32_test_bat
-            )
-            jobs = jobs + gen_jobs.gen_simple_windows_jobs(
-                label_prefix + 'win32-msvc12_64',
-                scripts.win32_msvc12_64_test_bat
-            )
-            jobs = jobs + gen_jobs.gen_simple_windows_jobs(
-                label_prefix + 'iar8-mingw',
-                scripts.iar8_mingw_test_bat
-            )
+            jobs = jobs + gen_jobs.gen_windows_jobs_for_pr(label_prefix)
 
             /* All.sh jobs */
             for (component in all_sh_components) {
@@ -87,6 +74,10 @@ def run_tls_tests(label_prefix='') {
             jobs = jobs + gen_jobs.gen_all_sh_jobs(
                 'ubuntu-18.04', 'build_mingw', label_prefix
             )
+
+            jobs = jobs + gen_jobs.gen_abi_api_checking_job('ubuntu-16.04')
+
+            jobs = jobs + gen_jobs.gen_all_example_jobs()
 
             jobs.failFast = false
             parallel jobs
