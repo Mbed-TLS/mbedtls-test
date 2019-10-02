@@ -1,17 +1,25 @@
-def set_crypto_pr_environment() {
+def set_crypto_pr_environment(production) {
     env.JOB_TYPE = 'PR'
     env.TARGET_REPO = 'crypto'
     env.REPO_TO_CHECKOUT = 'crypto'
-    set_common_pr_production_environment()
-    set_crypto_pr_production_environment()
+    if (production) {
+        set_common_pr_production_environment()
+        set_crypto_pr_production_environment()
+    } else {
+        env.CHECKOUT_METHOD = 'parametrized'
+    }
 }
 
-def set_tls_pr_environment() {
+def set_tls_pr_environment(production) {
     env.JOB_TYPE = 'PR'
     env.TARGET_REPO = 'tls'
     env.REPO_TO_CHECKOUT = 'tls'
-    set_common_pr_production_environment()
-    set_tls_pr_production_environment()
+    if (production) {
+        set_common_pr_production_environment()
+        set_tls_pr_production_environment()
+    } else {
+        env.CHECKOUT_METHOD = 'parametrized'
+    }
 }
 
 def set_common_pr_production_environment() {
