@@ -6,68 +6,80 @@ def run_crypto_tests() {
     node {
         try {
             deleteDir()
+            def jobs = [:]
 
             /* Linux jobs */
-            def jobs = gen_jobs.gen_docker_jobs_foreach(
-                'std-make',
-                common.linux_platforms,
-                common.all_compilers,
-                scripts.std_make_test_sh
-            )
-            jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
-                'std-make-full-config',
-                common.linux_platforms,
-                common.all_compilers,
-                scripts.std_make_full_config_test_sh
-            )
-            jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
-                'cmake',
-                common.linux_platforms,
-                common.all_compilers,
-                scripts.cmake_test_sh
-            )
-            jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
-                'cmake-full',
-                common.linux_platforms,
-                common.gcc_compilers,
-                scripts.cmake_full_test_sh
-            )
-            jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
-                'cmake-asan',
-                common.linux_platforms,
-                common.asan_compilers,
-                scripts.cmake_asan_test_sh
-            )
-
-            /* BSD jobs */
-            jobs = jobs + gen_jobs.gen_node_jobs_foreach(
-                'gmake',
-                common.bsd_platforms,
-                common.bsd_compilers,
-                scripts.gmake_test_sh
-            )
-            jobs = jobs + gen_jobs.gen_node_jobs_foreach(
-                'cmake',
-                common.bsd_platforms,
-                common.bsd_compilers,
-                scripts.cmake_test_sh
-            )
-
-            /* Windows jobs */
-            jobs = jobs + gen_jobs.gen_windows_jobs_for_pr()
-
-            /* All.sh jobs */
-            for (component in all_sh_components) {
-                jobs = jobs + gen_jobs.gen_all_sh_jobs(
-                    'ubuntu-16.04', component
+            if (env.RUN_LINUX_SCRIPTS == "true") {
+                jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
+                    'std-make',
+                    common.linux_platforms,
+                    common.all_compilers,
+                    scripts.std_make_test_sh
+                )
+                jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
+                    'std-make-full-config',
+                    common.linux_platforms,
+                    common.all_compilers,
+                    scripts.std_make_full_config_test_sh
+                )
+                jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
+                    'cmake',
+                    common.linux_platforms,
+                    common.all_compilers,
+                    scripts.cmake_test_sh
+                )
+                jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
+                    'cmake-full',
+                    common.linux_platforms,
+                    common.gcc_compilers,
+                    scripts.cmake_full_test_sh
+                )
+                jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
+                    'cmake-asan',
+                    common.linux_platforms,
+                    common.asan_compilers,
+                    scripts.cmake_asan_test_sh
                 )
             }
-            jobs = jobs + gen_jobs.gen_all_sh_jobs(
-                'ubuntu-18.04', 'build_mingw'
-            )
 
-            jobs = jobs + gen_jobs.gen_abi_api_checking_job('ubuntu-16.04')
+            /* BSD jobs */
+            if (env.RUN_FREEBSD == "true") {
+                jobs = jobs + gen_jobs.gen_node_jobs_foreach(
+                    'gmake',
+                    common.bsd_platforms,
+                    common.bsd_compilers,
+                    scripts.gmake_test_sh
+                )
+                jobs = jobs + gen_jobs.gen_node_jobs_foreach(
+                    'cmake',
+                    common.bsd_platforms,
+                    common.bsd_compilers,
+                    scripts.cmake_test_sh
+                )
+            }
 
+            /* Windows jobs */
+            if (env.RUN_WINDOWS_TEST == "true") {
+                jobs = jobs + gen_jobs.gen_windows_jobs_for_pr()
+            }
+
+            /* All.sh jobs */
+            if (env.RUN_ALL == "true") {
+                for (component in all_sh_components) {
+                    jobs = jobs + gen_jobs.gen_all_sh_jobs(
+                        'ubuntu-16.04', component
+                    )
+                }
+                jobs = jobs + gen_jobs.gen_all_sh_jobs(
+                    'ubuntu-18.04', 'build_mingw'
+                )
+            }
+
+            if (env.RUN_ABI_CHECK == "true") {
+                jobs = jobs + gen_jobs.gen_abi_api_checking_job('ubuntu-16.04')
+            }
+
+            /* Deciding whether to run example jobs is handled within this */
             jobs = jobs + gen_jobs.gen_all_example_jobs()
 
             jobs.failFast = false
@@ -114,11 +126,15 @@ def run_pr_job() {
     }
 
     try {
-        stage('crypto-testing') {
-            run_crypto_tests()
+        if (env.RUN_CRYPTO_TESTS_OF_CRYPTO_PR == "true") {
+            stage('crypto-testing') {
+                run_crypto_tests()
+            }
         }
-        stage('tls-testing') {
-            mbedtls.run_tls_tests_with_crypto_pr()
+        if (env.RUN_TLS_TESTS_OF_CRYPTO_PR == "true") {
+            stage('tls-testing') {
+                mbedtls.run_tls_tests_with_crypto_pr()
+            }
         }
     } finally {
         analysis.analyze_results_and_notify_github()
