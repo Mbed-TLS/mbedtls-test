@@ -15,6 +15,11 @@ def set_tls_pr_environment() {
 }
 
 def set_common_pr_production_environment() {
+    env.RUN_LINUX_SCRIPTS = 'true'
+    env.RUN_FREEBSD = 'true'
+    env.RUN_WINDOWS_TEST = 'true'
+    env.RUN_ALL = 'true'
+    env.RUN_ABI_CHECK = 'true'
     env.MBED_OS_REPO = 'git@github.com:ARMmbed/mbed-os.git'
     env.MBED_OS_BRANCH = 'master'
     env.MBED_OS_TLS_EXAMPLES_REPO = 'git@github.com:ARMmbed/mbed-os-example-tls.git'
@@ -28,6 +33,8 @@ def set_common_pr_production_environment() {
 }
 
 def set_crypto_pr_production_environment() {
+    env.RUN_CRYPTO_TESTS_OF_CRYPTO_PR = 'true'
+    env.RUN_TLS_TESTS_OF_CRYPTO_PR = 'true'
     env.MBED_CRYPTO_BRANCH = env.CHANGE_BRANCH
     env.MBED_OS_CRYPTO_EXAMPLES_REPO = 'git@github.com:ARMmbed/mbed-os-example-mbed-crypto.git'
     env.MBED_OS_CRYPTO_EXAMPLES_BRANCH = 'master'
