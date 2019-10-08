@@ -1,0 +1,32 @@
+name: Project columns automation
+
+on:
+  pull_request:
+    types: [unlabeled, labeled]
+
+jobs:
+  automate-project-columns:
+    runs-on: ubuntu-latest
+    steps:
+      - name: PR needs a reveiw
+        if: >
+          contains(github.event.pull_request.labels.*.name, 'needs review') &&
+          !contains(github.event.pull_request.labels.*.name, 'needs work') &&
+          !contains(github.event.pull_request.labels.*.name, 'do not merge') &&
+          !contains(github.event.pull_request.labels.*.name, 'ready for merge')
+        uses: alex-page/github-project-automation-plus@v0.1.1
+        with:
+          project: Mbed TLS test PRs
+          column: Under review
+          repo-token: ${{ secrets.AUTOMATION_TEST_TOKEN }}
+      - name: PR is in progress
+        if: >
+          (!contains(github.event.pull_request.labels.*.name, 'needs review') ||
+          contains(github.event.pull_request.labels.*.name, 'needs work') ||
+          contains(github.event.pull_request.labels.*.name, 'do not merge')) &&
+          !contains(github.event.pull_request.labels.*.name, 'ready for merge')
+        uses: alex-page/github-project-automation-plus@v0.1.1
+        with:
+          project: Mbed TLS test PRs
+          column: In progress
+          repo-token: ${{ secrets.AUTOMATION_TEST_TOKEN }}
