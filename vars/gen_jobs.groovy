@@ -38,31 +38,29 @@ def gen_docker_jobs_foreach(label, platforms, compilers, script) {
             def shell_script = sprintf(script, common.compiler_paths[compiler])
             jobs[job_name] = {
                 node("mbedtls && ubuntu-16.10-x64") {
-                    timestamps {
-                        deleteDir()
-                        common.get_docker_image(platform)
-                        dir('src') {
-                            checkout_repo.checkout_repo()
-                            writeFile file: 'steps.sh', text: """\
+                    deleteDir()
+                    common.get_docker_image(platform)
+                    dir('src') {
+                        checkout_repo.checkout_repo()
+                        writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
 ulimit -f 20971520
 ${shell_script}
 """
-                        }
-                        timeout(time: common.perJobTimeout.time,
-                                unit: common.perJobTimeout.unit) {
-                            try {
-                                sh """\
+                    }
+                    timeout(time: common.perJobTimeout.time,
+                            unit: common.perJobTimeout.unit) {
+                        try {
+                            sh """\
 chmod +x src/steps.sh
 docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
     -w /var/lib/build -v `pwd`/src:/var/lib/build \
     -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
 """
-                            } finally {
-                                dir('src/tests/') {
-                                    common.archive_zipped_log_files(job_name)
-                                }
+                        } finally {
+                            dir('src/tests/') {
+                                common.archive_zipped_log_files(job_name)
                             }
                         }
                     }
@@ -82,17 +80,15 @@ def gen_node_jobs_foreach(label, platforms, compilers, script) {
             def shell_script = sprintf(script, common.compiler_paths[compiler])
             jobs[job_name] = {
                 node(platform) {
-                    timestamps {
-                        deleteDir()
-                        checkout_repo.checkout_repo()
-                        shell_script = """
+                    deleteDir()
+                    checkout_repo.checkout_repo()
+                    shell_script = """
 ulimit -f 20971520
 export PYTHON=/usr/local/bin/python2.7
 """ + shell_script
-                        timeout(time: common.perJobTimeout.time,
-                                unit: common.perJobTimeout.unit) {
-                            sh shell_script
-                        }
+                    timeout(time: common.perJobTimeout.time,
+                            unit: common.perJobTimeout.unit) {
+                        sh shell_script
                     }
                 }
             }
@@ -108,12 +104,11 @@ def gen_all_sh_jobs(platform, component, label_prefix='') {
     jobs[job_name] = {
         node('ubuntu-16.10-x64 && mbedtls') {
             try {
-                timestamps {
-                    deleteDir()
-                    common.get_docker_image(platform)
-                    dir('src') {
-                        checkout_repo.checkout_repo()
-                        writeFile file: 'steps.sh', text: """\
+                deleteDir()
+                common.get_docker_image(platform)
+                dir('src') {
+                    checkout_repo.checkout_repo()
+                    writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
 ulimit -f 20971520
@@ -126,24 +121,23 @@ export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv'
 set ./tests/scripts/all.sh --seed 4 --keep-going $component
 "\$@"
 """
-                    }
-                    timeout(time: common.perJobTimeout.time,
-                            unit: common.perJobTimeout.unit) {
-                        try {
-                            sh """\
+                }
+                timeout(time: common.perJobTimeout.time,
+                        unit: common.perJobTimeout.unit) {
+                    try {
+                        sh """\
 chmod +x src/steps.sh
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
     -w /var/lib/build -v `pwd`/src:/var/lib/build \
     -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh \
     --cap-add SYS_PTRACE $common.docker_repo:$platform
 """
-                        } finally {
-                            dir('src') {
-                                analysis.stash_outcomes(job_name)
-                            }
-                            dir('src/tests/') {
-                                common.archive_zipped_log_files(job_name)
-                            }
+                    } finally {
+                        dir('src') {
+                            analysis.stash_outcomes(job_name)
+                        }
+                        dir('src/tests/') {
+                            common.archive_zipped_log_files(job_name)
                         }
                     }
                 }
@@ -227,33 +221,31 @@ def gen_abi_api_checking_job(platform) {
 
     jobs[job_name] = {
         node('ubuntu-16.10-x64 && mbedtls') {
-            timestamps {
-                deleteDir()
-                common.get_docker_image(platform)
-                dir('src') {
-                    checkout_repo.checkout_repo()
-                    if (env.TARGET_REPO == 'crypto' && env.REPO_TO_CHECKOUT == 'tls') {
-                        sh "git fetch origin development"
-                    } else {
-                        sh "git fetch origin ${CHANGE_TARGET}"
-                    }
-                    writeFile file: 'steps.sh', text: """\
+            deleteDir()
+            common.get_docker_image(platform)
+            dir('src') {
+                checkout_repo.checkout_repo()
+                if (env.TARGET_REPO == 'crypto' && env.REPO_TO_CHECKOUT == 'tls') {
+                    sh "git fetch origin development"
+                } else {
+                    sh "git fetch origin ${CHANGE_TARGET}"
+                }
+                writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
 ulimit -f 20971520
 tests/scripts/list-identifiers.sh --internal
 scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
 """
-                }
-                timeout(time: common.perJobTimeout.time,
-                        unit: common.perJobTimeout.unit) {
-                    sh """\
+            }
+            timeout(time: common.perJobTimeout.time,
+                    unit: common.perJobTimeout.unit) {
+                sh """\
 chmod +x src/steps.sh
 docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
     -w /var/lib/build -v `pwd`/src:/var/lib/build \
     -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
 """
-                }
             }
         }
     }
@@ -336,38 +328,37 @@ def gen_mbed_os_example_job(repo, branch, example, compiler, platform, raas) {
     jobs["${example}-${platform}-${compiler}"] = {
         node(compiler) {
             try {
-                timestamps {
-                    deleteDir()
-                    checkout_repo.checkout_parametrized_repo(repo, branch)
-                    dir(example) {
+                deleteDir()
+                checkout_repo.checkout_parametrized_repo(repo, branch)
+                dir(example) {
 /* This script appears to do nothing, however it is needed in a few cases.
  * We wish to deploy specific versions of Mbed OS, TLS and Crypto, so we
  * remove mbed-os.lib to not deploy it twice. Mbed deploy is still needed in
  * case other libraries exist to be deployed. */
-                        sh """\
+                    sh """\
 ulimit -f 20971520
 rm -f mbed-os.lib
 mbed config root .
 mbed deploy -vv
 """
-                        dir('mbed-os') {
-                            deleteDir()
-                            checkout_repo.checkout_mbed_os()
+                    dir('mbed-os') {
+                        deleteDir()
+                        checkout_repo.checkout_mbed_os()
+                    }
+                    timeout(time: common.perJobTimeout.time +
+                                  common.perJobTimeout.raasOffset,
+                            unit: common.perJobTimeout.unit) {
+                        def tag_filter = ""
+                        if (example == 'atecc608a') {
+                            tag_filter = "--tag-filters HAS_CRYPTOKIT"
                         }
-                        timeout(time: common.perJobTimeout.time +
-                                      common.perJobTimeout.raasOffset,
-                                unit: common.perJobTimeout.unit) {
-                            def tag_filter = ""
-                            if (example == 'atecc608a') {
-                                tag_filter = "--tag-filters HAS_CRYPTOKIT"
-                            }
-                            sh """\
+                        sh """\
 ulimit -f 20971520
 mbed compile -m ${platform} -t ${compiler}
 """
-                            for (int attempt = 1; attempt <= 3; attempt++) {
-                                try {
-                                    sh """\
+                        for (int attempt = 1; attempt <= 3; attempt++) {
+                            try {
+                                sh """\
 ulimit -f 20971520
 if [ -e BUILD/${platform}/${compiler}/${example}.bin ]
 then
@@ -385,10 +376,9 @@ mbedhtrun -m ${platform} ${tag_filter} \
 -g raas_client:https://${raas}.mbedcloudtesting.com:443 -P 1000 --sync=0 -v \
     --compare-log ../tests/${example}.log -f \$BINARY
 """
-                                    break
-                                } catch (err) {
-                                    if (attempt == 3) throw (err)
-                                }
+                                break
+                            } catch (err) {
+                                if (attempt == 3) throw (err)
                             }
                         }
                     }
