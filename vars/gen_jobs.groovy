@@ -38,31 +38,36 @@ def gen_docker_jobs_foreach(label, platforms, compilers, script) {
             def shell_script = sprintf(script, common.compiler_paths[compiler])
             jobs[job_name] = {
                 node("mbedtls && ubuntu-16.10-x64") {
-                    deleteDir()
-                    common.get_docker_image(platform)
-                    dir('src') {
-                        checkout_repo.checkout_repo()
-                        writeFile file: 'steps.sh', text: """\
+                    try {
+                        deleteDir()
+                        common.get_docker_image(platform)
+                        dir('src') {
+                            checkout_repo.checkout_repo()
+                            writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
 ulimit -f 20971520
 ${shell_script}
 """
-                    }
-                    timeout(time: common.perJobTimeout.time,
-                            unit: common.perJobTimeout.unit) {
-                        try {
-                            sh """\
+                        }
+                        timeout(time: common.perJobTimeout.time,
+                                unit: common.perJobTimeout.unit) {
+                            try {
+                                sh """\
 chmod +x src/steps.sh
 docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
     -w /var/lib/build -v `pwd`/src:/var/lib/build \
     -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
 """
-                        } finally {
-                            dir('src/tests/') {
-                                common.archive_zipped_log_files(job_name)
+                            } finally {
+                                dir('src/tests/') {
+                                    common.archive_zipped_log_files(job_name)
+                                }
                             }
                         }
+                    } catch (err) {
+                        failed_builds[job_name] = true
+                        throw (err)
                     }
                 }
             }
@@ -80,15 +85,20 @@ def gen_node_jobs_foreach(label, platforms, compilers, script) {
             def shell_script = sprintf(script, common.compiler_paths[compiler])
             jobs[job_name] = {
                 node(platform) {
-                    deleteDir()
-                    checkout_repo.checkout_repo()
-                    shell_script = """
+                    try {
+                        deleteDir()
+                        checkout_repo.checkout_repo()
+                        shell_script = """\
 ulimit -f 20971520
 export PYTHON=/usr/local/bin/python2.7
 """ + shell_script
-                    timeout(time: common.perJobTimeout.time,
-                            unit: common.perJobTimeout.unit) {
-                        sh shell_script
+                        timeout(time: common.perJobTimeout.time,
+                                unit: common.perJobTimeout.unit) {
+                            sh shell_script
+                        }
+                    } catch (err) {
+                        failed_builds[job_name] = true
+                        throw (err)
                     }
                 }
             }
@@ -221,31 +231,36 @@ def gen_abi_api_checking_job(platform) {
 
     jobs[job_name] = {
         node('ubuntu-16.10-x64 && mbedtls') {
-            deleteDir()
-            common.get_docker_image(platform)
-            dir('src') {
-                checkout_repo.checkout_repo()
-                if (env.TARGET_REPO == 'crypto' && env.REPO_TO_CHECKOUT == 'tls') {
-                    sh "git fetch origin development"
-                } else {
-                    sh "git fetch origin ${CHANGE_TARGET}"
-                }
-                writeFile file: 'steps.sh', text: """\
+            try {
+                deleteDir()
+                common.get_docker_image(platform)
+                dir('src') {
+                    checkout_repo.checkout_repo()
+                    if (env.TARGET_REPO == 'crypto' && env.REPO_TO_CHECKOUT == 'tls') {
+                        sh "git fetch origin development"
+                    } else {
+                        sh "git fetch origin ${CHANGE_TARGET}"
+                    }
+                    writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
 ulimit -f 20971520
 tests/scripts/list-identifiers.sh --internal
 scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
 """
-            }
-            timeout(time: common.perJobTimeout.time,
-                    unit: common.perJobTimeout.unit) {
-                sh """\
+                }
+                timeout(time: common.perJobTimeout.time,
+                        unit: common.perJobTimeout.unit) {
+                    sh """\
 chmod +x src/steps.sh
 docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
     -w /var/lib/build -v `pwd`/src:/var/lib/build \
     -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
 """
+                }
+            } catch (err) {
+                failed_builds[job_name] = true
+                throw (err)
             }
         }
     }
@@ -272,27 +287,29 @@ ulimit -f 20971520
                 }
                 timeout(time: common.perJobTimeout.time,
                         unit: common.perJobTimeout.unit) {
-                    coverage_log = sh returnStdout: true, script: """
+                    try {
+                        coverage_log = sh returnStdout: true, script: """
 chmod +x src/steps.sh
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
     -w /var/lib/build -v `pwd`/src:/var/lib/build \
     -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
 """
+                        coverage_details['coverage'] = coverage_log.substring(
+                            coverage_log.indexOf('Test Report Summary')
+                        )
+                        coverage_details['coverage'] = coverage_details['coverage'].substring(
+                            coverage_details['coverage'].indexOf('Coverage')
+                        )
+                    } finally {
+                        echo coverage_log
+                        dir('src/tests/') {
+                            common.archive_zipped_log_files(job_name)
+                        }
+                    }
                 }
-                coverage_details['coverage'] = coverage_log.substring(
-                    coverage_log.indexOf('Test Report Summary')
-                )
-                coverage_details['coverage'] = coverage_details['coverage'].substring(
-                    coverage_details['coverage'].indexOf('Coverage')
-                )
             } catch (err) {
                 failed_builds[job_name] = true
                 throw (err)
-            } finally {
-                echo coverage_log
-                dir('src/tests/') {
-                    common.archive_zipped_log_files(job_name)
-                }
             }
         }
     }
@@ -324,8 +341,9 @@ def gen_all_example_jobs() {
 
 def gen_mbed_os_example_job(repo, branch, example, compiler, platform, raas) {
     def jobs = [:]
+    def job_name = "${example}-${platform}-${compiler}"
 
-    jobs["${example}-${platform}-${compiler}"] = {
+    jobs[job_name] = {
         node(compiler) {
             try {
                 deleteDir()
@@ -386,7 +404,7 @@ mbedhtrun -m ${platform} ${tag_filter} \
                     }
                 }
             } catch (err) {
-                failed_builds["${example}-${platform}-${compiler}"] = true
+                failed_builds[job_name] = true
                 throw (err)
             }
         }
