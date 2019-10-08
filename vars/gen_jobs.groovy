@@ -23,6 +23,8 @@ def gen_simple_windows_jobs(label, script) {
             } catch (err) {
                 failed_builds[label] = true
                 throw (err)
+            } finally {
+                deleteDir()
             }
         }
     }
@@ -68,6 +70,8 @@ docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
                     } catch (err) {
                         failed_builds[job_name] = true
                         throw (err)
+                    } finally {
+                        deleteDir()
                     }
                 }
             }
@@ -99,6 +103,8 @@ export PYTHON=/usr/local/bin/python2.7
                     } catch (err) {
                         failed_builds[job_name] = true
                         throw (err)
+                    } finally {
+                        deleteDir()
                     }
                 }
             }
@@ -154,6 +160,8 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
             } catch (err) {
                 failed_builds[job_name] = true
                 throw (err)
+            } finally {
+                deleteDir()
             }
         }
     }
@@ -193,6 +201,8 @@ def gen_windows_testing_job(build, label_prefix='') {
             } catch (err) {
                 failed_builds[job_name] = true
                 throw (err)
+            } finally {
+                deleteDir()
             }
         }
     }
@@ -261,6 +271,8 @@ docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
             } catch (err) {
                 failed_builds[job_name] = true
                 throw (err)
+            } finally {
+                deleteDir()
             }
         }
     }
@@ -310,6 +322,8 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
             } catch (err) {
                 failed_builds[job_name] = true
                 throw (err)
+            } finally {
+                deleteDir()
             }
         }
     }
@@ -406,6 +420,8 @@ mbedhtrun -m ${platform} ${tag_filter} \
             } catch (err) {
                 failed_builds[job_name] = true
                 throw (err)
+            } finally {
+                deleteDir()
             }
         }
     }
