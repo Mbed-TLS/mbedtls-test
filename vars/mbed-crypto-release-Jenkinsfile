@@ -6,7 +6,7 @@ node {
     environ.set_crypto_release_environment()
 
     try {
-        stage('tls-testing') {
+        stage('crypto-testing') {
             def jobs = gen_jobs.gen_release_jobs()
 
             common.run_release_jobs(
