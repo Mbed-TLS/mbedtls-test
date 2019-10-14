@@ -18,7 +18,7 @@ def checkout_repo() {
 }
 
 def checkout_mbedtls_repo() {
-    if (env.TARGET_REPO == 'tls' && env.JOB_TYPE == 'PR') {
+    if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
         checkout scm
     } else {
         checkout_parametrized_repo(MBED_TLS_REPO, MBED_TLS_BRANCH)
@@ -26,7 +26,7 @@ def checkout_mbedtls_repo() {
 }
 
 def checkout_mbed_crypto_repo() {
-    if (env.TARGET_REPO == 'crypto' && env.JOB_TYPE == 'PR') {
+    if (env.TARGET_REPO == 'crypto' && env.CHECKOUT_METHOD == 'scm') {
         checkout scm
     } else {
         checkout_parametrized_repo(MBED_CRYPTO_REPO, MBED_CRYPTO_BRANCH)
