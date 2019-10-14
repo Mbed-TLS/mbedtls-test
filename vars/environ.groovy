@@ -1,8 +1,8 @@
-def set_crypto_pr_environment(production) {
+def set_crypto_pr_environment(is_production) {
     env.JOB_TYPE = 'PR'
     env.TARGET_REPO = 'crypto'
     env.REPO_TO_CHECKOUT = 'crypto'
-    if (production) {
+    if (is_production) {
         set_common_pr_production_environment()
         set_crypto_pr_production_environment()
     } else {
@@ -10,11 +10,11 @@ def set_crypto_pr_environment(production) {
     }
 }
 
-def set_tls_pr_environment(production) {
+def set_tls_pr_environment(is_production) {
     env.JOB_TYPE = 'PR'
     env.TARGET_REPO = 'tls'
     env.REPO_TO_CHECKOUT = 'tls'
-    if (production) {
+    if (is_production) {
         set_common_pr_production_environment()
         set_tls_pr_production_environment()
     } else {
@@ -27,7 +27,7 @@ def set_common_pr_production_environment() {
     env.RUN_LINUX_SCRIPTS = 'true'
     env.RUN_FREEBSD = 'true'
     env.RUN_WINDOWS_TEST = 'true'
-    env.RUN_ALL = 'true'
+    env.RUN_ALL_SH = 'true'
     env.RUN_ABI_CHECK = 'true'
     env.MBED_OS_REPO = 'git@github.com:ARMmbed/mbed-os.git'
     env.MBED_OS_BRANCH = 'master'

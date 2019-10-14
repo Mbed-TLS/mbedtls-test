@@ -29,5 +29,5 @@
 /* main job */
 node {
     library identifier: 'mbedtls-test@master', retriever: legacySCM(scm)
-    mbedtls.run_pr_job(production=false)
+    mbedtls.run_pr_job(is_production=false)
 }

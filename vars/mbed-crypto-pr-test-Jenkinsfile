@@ -37,5 +37,5 @@
 /* main job */
 node {
     library identifier: 'mbedtls-test@master', retriever: legacySCM(scm)
-    mbed_crypto.run_pr_job(production=false)
+    mbed_crypto.run_pr_job(is_production=false)
 }
