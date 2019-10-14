@@ -64,7 +64,7 @@ def run_crypto_tests() {
             }
 
             /* All.sh jobs */
-            if (env.RUN_ALL == "true") {
+            if (env.RUN_ALL_SH == "true") {
                 for (component in all_sh_components) {
                     jobs = jobs + gen_jobs.gen_all_sh_jobs(
                         'ubuntu-16.04', component
@@ -102,7 +102,7 @@ def run_crypto_tests() {
 }
 
 /* main job */
-def run_pr_job(production=true) {
+def run_pr_job(is_production=true) {
     if (env.BRANCH_NAME) {
         githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
                      description: 'Checking if all PR tests can be run',
@@ -117,7 +117,7 @@ def run_pr_job(production=true) {
     stage('pre-test-checks') {
         node {
             try {
-                environ.set_crypto_pr_environment(production)
+                environ.set_crypto_pr_environment(is_production)
                 all_sh_components = common.get_all_sh_components()
                 if (env.BRANCH_NAME) {
                     githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
@@ -143,7 +143,7 @@ def run_pr_job(production=true) {
         }
         if (env.RUN_TLS_TESTS_OF_CRYPTO_PR == "true") {
             stage('tls-testing') {
-                mbedtls.run_tls_tests_with_crypto_pr(production)
+                mbedtls.run_tls_tests_with_crypto_pr(is_production)
             }
         }
     } finally {
