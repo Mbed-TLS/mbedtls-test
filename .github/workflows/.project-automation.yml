@@ -1,4 +1,4 @@
-name: Project columns automation
+name: Code Review Workflow
 
 on:
   pull_request:
@@ -8,7 +8,7 @@ jobs:
   automate-project-columns:
     runs-on: ubuntu-latest
     steps:
-      - name: PR needs a reveiw
+      - name: Needs review
         if: >
           contains(github.event.pull_request.labels.*.name, 'needs review') &&
           !contains(github.event.pull_request.labels.*.name, 'needs work') &&
@@ -17,9 +17,9 @@ jobs:
         uses: alex-page/github-project-automation-plus@v0.1.1
         with:
           project: Mbed TLS test PRs
-          column: Under review
+          column: Needs review
           repo-token: ${{ secrets.AUTOMATION_TEST_TOKEN }}
-      - name: PR is in progress
+      - name: Needs work
         if: >
           (!contains(github.event.pull_request.labels.*.name, 'needs review') ||
           contains(github.event.pull_request.labels.*.name, 'needs work') ||
@@ -28,5 +28,5 @@ jobs:
         uses: alex-page/github-project-automation-plus@v0.1.1
         with:
           project: Mbed TLS test PRs
-          column: In progress
+          column: Needs work
           repo-token: ${{ secrets.AUTOMATION_TEST_TOKEN }}
