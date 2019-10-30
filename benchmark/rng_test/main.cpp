@@ -3,15 +3,18 @@
 #include "inc/ecc.h"
 #include "inc/ecc_dh.h"
 #include "inc/ecc_dsa.h"
-#include "hal/trng_api.h"
 
-trng_t trng_obj;
+#include <stdlib.h>
+
 Timer t;
 
 int rng_function(uint8_t *dest, unsigned int size)
 {
-    size_t generated;
-    trng_get_bytes(&trng_obj, dest, size, &generated);
+    unsigned i;
+
+    for (i = 0; i < size; i++)
+        dest[i] = rand();
+
     return 1;
 }
 
@@ -28,7 +31,6 @@ int main()
     uint8_t sig[2*NUM_ECC_BYTES];
 
     const struct uECC_Curve_t * curve = uECC_secp256r1();
-    trng_init(&trng_obj);
     uECC_set_rng(&rng_function);
     printf("Key generation\n");
     t.start();
@@ -93,7 +95,6 @@ int main()
     printf("Time taken: %d milliseconds\n", t.read_ms());
     printf("\n");
 
-    trng_free(&trng_obj);
 
 }
 
