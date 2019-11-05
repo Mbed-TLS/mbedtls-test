@@ -57,10 +57,14 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define MBEDTLS_USE_TINYCRYPT
+#if !defined(MBEDTLS_CONFIG_FILE)
+#include "mbedtls/config.h"
+#else
+#include MBEDTLS_CONFIG_FILE
+#endif
 
 #if defined(MBEDTLS_USE_TINYCRYPT)
-#include <ecc.h>
+#include <tinycrypt/ecc.h>
 #include <string.h>
 
 /* IMPORTANT: Make sure a cryptographically-secure PRNG is set and the platform
@@ -249,6 +253,16 @@ static void uECC_vli_rshift1(uECC_word_t *vli, wordcount_t num_words)
 	}
 }
 
+/* Compute a * b + r, where r is a double-word with high-order word r1 and
+ * low-order word r0, and store the result in the same double-word (r1, r0),
+ * with the carry bit stored in r2.
+ *
+ * (r2, r1, r0) = a * b + (r1, r0):
+ * [in] a, b: operands to be multiplied
+ * [in] r0, r1: low and high-order words of operand to add
+ * [out] r0, r1: low and high-order words of the result
+ * [out] r2: carry
+ */
 static void muladd(uECC_word_t a, uECC_word_t b, uECC_word_t *r0,
 		   uECC_word_t *r1, uECC_word_t *r2)
 {
@@ -262,15 +276,84 @@ static void muladd(uECC_word_t a, uECC_word_t b, uECC_word_t *r0,
 
 }
 
-/* Computes result = left * right. Result must be 2 * num_words long. */
-static void uECC_vli_mult(uECC_word_t *result, const uECC_word_t *left,
-			  const uECC_word_t *right, wordcount_t num_words)
+/* State for implementing random delays in uECC_vli_mult_rnd().
+ *
+ * The state is initialized by randomizing delays and setting i = 0.
+ * Each call to uECC_vli_mult_rnd() uses one byte of delays and increments i.
+ *
+ * Randomized vli multiplication is used only for point operations
+ * (XYcZ_add_rnd() * and XYcZ_addC_rnd()) in scalar multiplication
+ * (ECCPoint_mult()). Those go in pair, and each pair does 14 calls to
+ * uECC_vli_mult_rnd() (6 in XYcZ_add_rnd() and 8 in XYcZ_addC_rnd(),
+ * indirectly through uECC_vli_modMult_rnd() or uECC_vli_modSquare_rnd()).
+ *
+ * Considering this, in order to minimize the number of calls to the RNG
+ * (which impact performance) while keeping the size of the structure low,
+ * make room for 14 randomized vli mults, which corresponds to one step in the
+ * scalar multiplication routine.
+ */
+typedef struct {
+	uint8_t i;
+	uint8_t delays[14];
+} ecc_wait_state_t;
+
+/*
+ * Reset wait_state so that it's ready to be used.
+ */
+void ecc_wait_state_reset(ecc_wait_state_t *ws)
+{
+	if (ws == NULL)
+		return;
+
+	ws->i = 0;
+	g_rng_function(ws->delays, sizeof(ws->delays));
+}
+
+/* Computes result = left * right. Result must be 2 * num_words long.
+ *
+ * As a counter-measure against horizontal attacks, add noise by performing
+ * a random number of extra computations performing random additional accesses
+ * to limbs of the input.
+ *
+ * Each of the two actual computation loops is surrounded by two
+ * similar-looking waiting loops, to make the beginning and end of the actual
+ * computation harder to spot.
+ *
+ * We add 4 waiting loops of between 0 and 3 calls to muladd() each. That
+ * makes an average of 6 extra calls. Compared to the main computation which
+ * makes 64 such calls, this represents an average performance degradation of
+ * less than 10%.
+ *
+ * Compared to the original uECC_vli_mult(), loose the num_words argument as we
+ * know it's always 8. This saves a bit of code size and execution speed.
+ */
+static void uECC_vli_mult_rnd(uECC_word_t *result, const uECC_word_t *left,
+			      const uECC_word_t *right, ecc_wait_state_t *s)
 {
 
 	uECC_word_t r0 = 0;
 	uECC_word_t r1 = 0;
 	uECC_word_t r2 = 0;
 	wordcount_t i, k;
+	const uint8_t num_words = 8;
+
+	/* Fetch 8 bit worth of delay from the state; 0 if we have no state */
+	uint8_t delays = s ? s->delays[s->i++] : 0;
+	uECC_word_t rr0 = 0, rr1 = 0;
+	volatile uECC_word_t r;
+
+	/* Mimic start of next loop: k in [0, 3] */
+	k = 0 + (delays & 0x03);
+	delays >>= 2;
+	/* k = 0 -> i in [1, 0] -> 0 extra muladd;
+	 * k = 3 -> i in [1, 3] -> 3 extra muladd */
+	for (i = 0; i <= k; ++i) {
+		muladd(left[i], right[k - i], &rr0, &rr1, &r2);
+	}
+	r = rr0;
+	rr0 = rr1;
+	rr1 = r2;
+	r2 = 0;
 
 	/* Compute each digit of result in sequence, maintaining the carries. */
 	for (k = 0; k < num_words; ++k) {
@@ -285,6 +368,32 @@ static void uECC_vli_mult(uECC_word_t *result, const uECC_word_t *left,
 		r2 = 0;
 	}
 
+	/* Mimic end of previous loop: k in [4, 7] */
+	k = 4 + (delays & 0x03);
+	delays >>= 2;
+	/* k = 4 -> i in [5, 4] -> 0 extra muladd;
+	 * k = 7 -> i in [5, 7] -> 3 extra muladd */
+	for (i = 5; i <= k; ++i) {
+		muladd(left[i], right[k - i], &rr0, &rr1, &r2);
+	}
+	r = rr0;
+	rr0 = rr1;
+	rr1 = r2;
+	r2 = 0;
+
+	/* Mimic start of next loop: k in [8, 11] */
+	k = 11 - (delays & 0x03);
+	delays >>= 2;
+	/* k =  8 -> i in [5, 7] -> 3 extra muladd;
+	 * k = 11 -> i in [8, 7] -> 0 extra muladd */
+	for (i = (k + 5) - num_words; i < num_words; ++i) {
+		muladd(left[i], right[k - i], &rr0, &rr1, &r2);
+	}
+	r = rr0;
+	rr0 = rr1;
+	rr1 = r2;
+	r2 = 0;
+
 	for (k = num_words; k < num_words * 2 - 1; ++k) {
 
 		for (i = (k + 1) - num_words; i < num_words; ++i) {
@@ -295,7 +404,32 @@ static void uECC_vli_mult(uECC_word_t *result, const uECC_word_t *left,
 		r1 = r2;
 		r2 = 0;
 	}
+
 	result[num_words * 2 - 1] = r0;
+
+	/* Mimic end of previous loop: k in [12, 15] */
+	k = 15 - (delays & 0x03);
+	delays >>= 2;
+	/* k = 12 -> i in [5, 7] -> 3 extra muladd;
+	 * k = 15 -> i in [8, 7] -> 0 extra muladd */
+	for (i = (k + 1) - num_words; i < num_words; ++i) {
+		muladd(left[i], right[k - i], &rr0, &rr1, &r2);
+	}
+	r = rr0;
+	rr0 = rr1;
+	rr1 = r2;
+	r2 = 0;
+
+	/* avoid warning that r is set but not used */
+	(void) r;
+}
+
+/* Computes result = left * right. Result must be 2 * num_words long. */
+static void uECC_vli_mult(uECC_word_t *result, const uECC_word_t *left,
+			  const uECC_word_t *right, wordcount_t num_words)
+{
+	(void) num_words;
+	uECC_vli_mult_rnd(result, left, right, NULL);
 }
 
 void uECC_vli_modAdd(uECC_word_t *result, const uECC_word_t *left,
@@ -377,6 +511,15 @@ void uECC_vli_modMult(uECC_word_t *result, const uECC_word_t *left,
 	uECC_vli_mmod(result, product, mod, num_words);
 }
 
+static void uECC_vli_modMult_rnd(uECC_word_t *result, const uECC_word_t *left,
+				 const uECC_word_t *right, ecc_wait_state_t *s)
+{
+	uECC_word_t product[2 * NUM_ECC_WORDS];
+	uECC_vli_mult_rnd(product, left, right, s);
+
+	vli_mmod_fast_secp256r1(result, product);
+}
+
 void uECC_vli_modMult_fast(uECC_word_t *result, const uECC_word_t *left,
 			   const uECC_word_t *right, uECC_Curve curve)
 {
@@ -384,6 +527,13 @@ void uECC_vli_modMult_fast(uECC_word_t *result, const uECC_word_t *left,
 	uECC_vli_mult(product, left, right, curve->num_words);
 
 	curve->mmod_fast(result, product);
+}
+
+static void uECC_vli_modSquare_rnd(uECC_word_t *result,
+				   const uECC_word_t *left,
+				   ecc_wait_state_t *s)
+{
+	uECC_vli_modMult_rnd(result, left, left, s);
 }
 
 static void uECC_vli_modSquare_fast(uECC_word_t *result,
@@ -665,68 +815,78 @@ static void XYcZ_initial_double(uECC_word_t * X1, uECC_word_t * Y1,
 	apply_z(X2, Y2, z, curve);
 }
 
-void XYcZ_add(uECC_word_t * X1, uECC_word_t * Y1,
-	      uECC_word_t * X2, uECC_word_t * Y2,
-	      uECC_Curve curve)
+static void XYcZ_add_rnd(uECC_word_t * X1, uECC_word_t * Y1,
+			 uECC_word_t * X2, uECC_word_t * Y2,
+			 ecc_wait_state_t *s)
 {
 	/* t1 = X1, t2 = Y1, t3 = X2, t4 = Y2 */
 	uECC_word_t t5[NUM_ECC_WORDS];
-	wordcount_t num_words = curve->num_words;
+	const uECC_Curve curve = &curve_secp256r1;
+	const wordcount_t num_words = 8;
 
 	uECC_vli_modSub(t5, X2, X1, curve->p, num_words); /* t5 = x2 - x1 */
-	uECC_vli_modSquare_fast(t5, t5, curve); /* t5 = (x2 - x1)^2 = A */
-	uECC_vli_modMult_fast(X1, X1, t5, curve); /* t1 = x1*A = B */
-	uECC_vli_modMult_fast(X2, X2, t5, curve); /* t3 = x2*A = C */
+	uECC_vli_modSquare_rnd(t5, t5, s); /* t5 = (x2 - x1)^2 = A */
+	uECC_vli_modMult_rnd(X1, X1, t5, s); /* t1 = x1*A = B */
+	uECC_vli_modMult_rnd(X2, X2, t5, s); /* t3 = x2*A = C */
 	uECC_vli_modSub(Y2, Y2, Y1, curve->p, num_words); /* t4 = y2 - y1 */
-	uECC_vli_modSquare_fast(t5, Y2, curve); /* t5 = (y2 - y1)^2 = D */
+	uECC_vli_modSquare_rnd(t5, Y2, s); /* t5 = (y2 - y1)^2 = D */
 
 	uECC_vli_modSub(t5, t5, X1, curve->p, num_words); /* t5 = D - B */
 	uECC_vli_modSub(t5, t5, X2, curve->p, num_words); /* t5 = D - B - C = x3 */
 	uECC_vli_modSub(X2, X2, X1, curve->p, num_words); /* t3 = C - B */
-	uECC_vli_modMult_fast(Y1, Y1, X2, curve); /* t2 = y1*(C - B) */
+	uECC_vli_modMult_rnd(Y1, Y1, X2, s); /* t2 = y1*(C - B) */
 	uECC_vli_modSub(X2, X1, t5, curve->p, num_words); /* t3 = B - x3 */
-	uECC_vli_modMult_fast(Y2, Y2, X2, curve); /* t4 = (y2 - y1)*(B - x3) */
+	uECC_vli_modMult_rnd(Y2, Y2, X2, s); /* t4 = (y2 - y1)*(B - x3) */
 	uECC_vli_modSub(Y2, Y2, Y1, curve->p, num_words); /* t4 = y3 */
 
 	uECC_vli_set(X2, t5, num_words);
+}
+
+void XYcZ_add(uECC_word_t * X1, uECC_word_t * Y1,
+	      uECC_word_t * X2, uECC_word_t * Y2,
+	      uECC_Curve curve)
+{
+	(void) curve;
+	XYcZ_add_rnd(X1, Y1, X2, Y2, NULL);
 }
 
 /* Input P = (x1, y1, Z), Q = (x2, y2, Z)
    Output P + Q = (x3, y3, Z3), P - Q = (x3', y3', Z3)
    or P => P - Q, Q => P + Q
  */
-static void XYcZ_addC(uECC_word_t * X1, uECC_word_t * Y1,
-		      uECC_word_t * X2, uECC_word_t * Y2,
-		      uECC_Curve curve)
+static void XYcZ_addC_rnd(uECC_word_t * X1, uECC_word_t * Y1,
+			  uECC_word_t * X2, uECC_word_t * Y2,
+			  ecc_wait_state_t *s)
 {
 	/* t1 = X1, t2 = Y1, t3 = X2, t4 = Y2 */
 	uECC_word_t t5[NUM_ECC_WORDS];
 	uECC_word_t t6[NUM_ECC_WORDS];
 	uECC_word_t t7[NUM_ECC_WORDS];
-	wordcount_t num_words = curve->num_words;
+	const uECC_Curve curve = &curve_secp256r1;
+	const wordcount_t num_words = 8;
 
 	uECC_vli_modSub(t5, X2, X1, curve->p, num_words); /* t5 = x2 - x1 */
-	uECC_vli_modSquare_fast(t5, t5, curve); /* t5 = (x2 - x1)^2 = A */
-	uECC_vli_modMult_fast(X1, X1, t5, curve); /* t1 = x1*A = B */
-	uECC_vli_modMult_fast(X2, X2, t5, curve); /* t3 = x2*A = C */
+	uECC_vli_modSquare_rnd(t5, t5, s); /* t5 = (x2 - x1)^2 = A */
+	uECC_vli_modMult_rnd(X1, X1, t5, s); /* t1 = x1*A = B */
+	uECC_vli_modMult_rnd(X2, X2, t5, s); /* t3 = x2*A = C */
 	uECC_vli_modAdd(t5, Y2, Y1, curve->p, num_words); /* t5 = y2 + y1 */
 	uECC_vli_modSub(Y2, Y2, Y1, curve->p, num_words); /* t4 = y2 - y1 */
 
 	uECC_vli_modSub(t6, X2, X1, curve->p, num_words); /* t6 = C - B */
-	uECC_vli_modMult_fast(Y1, Y1, t6, curve); /* t2 = y1 * (C - B) = E */
+	uECC_vli_modMult_rnd(Y1, Y1, t6, s); /* t2 = y1 * (C - B) = E */
 	uECC_vli_modAdd(t6, X1, X2, curve->p, num_words); /* t6 = B + C */
-	uECC_vli_modSquare_fast(X2, Y2, curve); /* t3 = (y2 - y1)^2 = D */
+	uECC_vli_modSquare_rnd(X2, Y2, s); /* t3 = (y2 - y1)^2 = D */
 	uECC_vli_modSub(X2, X2, t6, curve->p, num_words); /* t3 = D - (B + C) = x3 */
 
 	uECC_vli_modSub(t7, X1, X2, curve->p, num_words); /* t7 = B - x3 */
-	uECC_vli_modMult_fast(Y2, Y2, t7, curve); /* t4 = (y2 - y1)*(B - x3) */
+	uECC_vli_modMult_rnd(Y2, Y2, t7, s); /* t4 = (y2 - y1)*(B - x3) */
 	/* t4 = (y2 - y1)*(B - x3) - E = y3: */
 	uECC_vli_modSub(Y2, Y2, Y1, curve->p, num_words);
 
-	uECC_vli_modSquare_fast(t7, t5, curve); /* t7 = (y2 + y1)^2 = F */
+	uECC_vli_modSquare_rnd(t7, t5, s); /* t7 = (y2 + y1)^2 = F */
 	uECC_vli_modSub(t7, t7, t6, curve->p, num_words); /* t7 = F - (B + C) = x3' */
 	uECC_vli_modSub(t6, t7, X1, curve->p, num_words); /* t6 = x3' - B */
-	uECC_vli_modMult_fast(t6, t6, t5, curve); /* t6 = (y2+y1)*(x3' - B) */
+	uECC_vli_modMult_rnd(t6, t6, t5, s); /* t6 = (y2+y1)*(x3' - B) */
 	/* t2 = (y2+y1)*(x3' - B) - E = y3': */
 	uECC_vli_modSub(Y1, t6, Y1, curve->p, num_words);
 
@@ -745,6 +905,8 @@ void EccPoint_mult(uECC_word_t * result, const uECC_word_t * point,
 	bitcount_t i;
 	uECC_word_t nb;
 	wordcount_t num_words = curve->num_words;
+	ecc_wait_state_t wait_state;
+	ecc_wait_state_t * const ws = g_rng_function ? &wait_state : NULL;
 
 	uECC_vli_set(Rx[1], point, num_words);
   	uECC_vli_set(Ry[1], point + num_words, num_words);
@@ -752,13 +914,15 @@ void EccPoint_mult(uECC_word_t * result, const uECC_word_t * point,
 	XYcZ_initial_double(Rx[1], Ry[1], Rx[0], Ry[0], initial_Z, curve);
 
 	for (i = num_bits - 2; i > 0; --i) {
+		ecc_wait_state_reset(ws);
 		nb = !uECC_vli_testBit(scalar, i);
-		XYcZ_addC(Rx[1 - nb], Ry[1 - nb], Rx[nb], Ry[nb], curve);
-		XYcZ_add(Rx[nb], Ry[nb], Rx[1 - nb], Ry[1 - nb], curve);
+		XYcZ_addC_rnd(Rx[1 - nb], Ry[1 - nb], Rx[nb], Ry[nb], ws);
+		XYcZ_add_rnd(Rx[nb], Ry[nb], Rx[1 - nb], Ry[1 - nb], ws);
 	}
 
+	ecc_wait_state_reset(ws);
 	nb = !uECC_vli_testBit(scalar, 0);
-	XYcZ_addC(Rx[1 - nb], Ry[1 - nb], Rx[nb], Ry[nb], curve);
+	XYcZ_addC_rnd(Rx[1 - nb], Ry[1 - nb], Rx[nb], Ry[nb], ws);
 
 	/* Find final 1/Z value. */
 	uECC_vli_modSub(z, Rx[1], Rx[0], curve->p, num_words); /* X1 - X0 */
@@ -771,7 +935,7 @@ void EccPoint_mult(uECC_word_t * result, const uECC_word_t * point,
 	uECC_vli_modMult_fast(z, z, Rx[1 - nb], curve);
 	/* End 1/Z calculation */
 
-	XYcZ_add(Rx[nb], Ry[nb], Rx[1 - nb], Ry[1 - nb], curve);
+	XYcZ_add_rnd(Rx[nb], Ry[nb], Rx[1 - nb], Ry[1 - nb], ws);
 	apply_z(Rx[0], Ry[0], z, curve);
 
 	uECC_vli_set(result, Rx[0], num_words);

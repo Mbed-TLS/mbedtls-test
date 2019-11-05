@@ -60,12 +60,17 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define MBEDTLS_USE_TINYCRYPT
+#if !defined(MBEDTLS_CONFIG_FILE)
+#include "mbedtls/config.h"
+#else
+#include MBEDTLS_CONFIG_FILE
+#endif
 
 #if defined(MBEDTLS_USE_TINYCRYPT)
-#include <ecc.h>
-#include <ecc_dh.h>
+#include <tinycrypt/ecc.h>
+#include <tinycrypt/ecc_dh.h>
 #include <string.h>
+#include "mbedtls/platform_util.h"
 
 #if default_RNG_defined
 static uECC_RNG_Function g_rng_function = &default_CSPRNG;
@@ -100,7 +105,7 @@ int uECC_make_key_with_d(uint8_t *public_key, uint8_t *private_key,
 				       _public + curve->num_words);
 
 		/* erasing temporary buffer used to store secret: */
-		memset(_private, 0, NUM_ECC_BYTES);
+		mbedtls_platform_memset(_private, 0, NUM_ECC_BYTES);
 
 		return 1;
 	}
@@ -141,7 +146,7 @@ int uECC_make_key(uint8_t *public_key, uint8_t *private_key, uECC_Curve curve)
 					       _public + curve->num_words);
 
 			/* erasing temporary buffer that stored secret: */
-			memset(_private, 0, NUM_ECC_BYTES);
+			mbedtls_platform_memset(_private, 0, NUM_ECC_BYTES);
 
       			return 1;
     		}
@@ -163,6 +168,12 @@ int uECC_shared_secret(const uint8_t *public_key, const uint8_t *private_key,
 	wordcount_t num_words = curve->num_words;
 	wordcount_t num_bytes = curve->num_bytes;
 	int r;
+
+        /* Protect against invalid curve attacks */
+        if (uECC_valid_public_key(public_key, curve) != 0) {
+            r = 0;
+            goto clear_and_out;
+        }
 
 	/* Converting buffers to correct bit order: */
 	uECC_vli_bytesToNative(_private,
@@ -197,9 +208,9 @@ int uECC_shared_secret(const uint8_t *public_key, const uint8_t *private_key,
 
 clear_and_out:
 	/* erasing temporary buffer used to store secret: */
-	memset(p2, 0, sizeof(p2));
-	memset(tmp, 0, sizeof(tmp));
-	memset(_private, 0, sizeof(_private));
+	mbedtls_platform_zeroize(p2, sizeof(p2));
+	mbedtls_platform_zeroize(tmp, sizeof(tmp));
+	mbedtls_platform_zeroize(_private, sizeof(_private));
 
 	return r;
 }
