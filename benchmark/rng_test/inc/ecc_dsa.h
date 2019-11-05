@@ -1,6 +1,11 @@
 /* ecc_dh.h - TinyCrypt interface to EC-DSA implementation */
 
 /*
+ *  Copyright (c) 2019, Arm Limited (or its affiliates), All Rights Reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause
+ */
+
+/*
  * Copyright (c) 2014, Kenneth MacKay
  * All rights reserved.
  *
@@ -75,10 +80,11 @@
  *          the signer's public key and the signature values (r and s).
  */
 
+#if defined(MBEDTLS_USE_TINYCRYPT)
 #ifndef __TC_ECC_DSA_H__
 #define __TC_ECC_DSA_H__
 
-#include "ecc.h"
+#include <tinycrypt/ecc.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -105,15 +111,15 @@ extern "C" {
 int uECC_sign(const uint8_t *p_private_key, const uint8_t *p_message_hash,
 	      unsigned p_hash_size, uint8_t *p_signature, uECC_Curve curve);
 
+#ifdef ENABLE_TESTS
 /*
  * THIS FUNCTION SHOULD BE CALLED FOR TEST PURPOSES ONLY.
  * Refer to uECC_sign() function for real applications.
- * 
- * NOTE: This is called from uECC_sign, not to be used from application.
  */
 int uECC_sign_with_k(const uint8_t *private_key, const uint8_t *message_hash,
 		     unsigned int hash_size, uECC_word_t *k, uint8_t *signature,
 		     uECC_Curve curve);
+#endif
 
 /**
  * @brief Verify an ECDSA signature.
@@ -137,3 +143,4 @@ int uECC_verify(const uint8_t *p_public_key, const uint8_t *p_message_hash,
 #endif
 
 #endif /* __TC_ECC_DSA_H__ */
+#endif /* MBEDTLS_USE_TINYCRYPT */

@@ -1,6 +1,11 @@
 /* ecc_dh.h - TinyCrypt interface to EC-DH implementation */
 
 /*
+ *  Copyright (c) 2019, Arm Limited (or its affiliates), All Rights Reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause
+ */
+
+/*
  * Copyright (c) 2014, Kenneth MacKay
  * All rights reserved.
  *
@@ -66,10 +71,11 @@
  *  Security: The curve NIST p-256 provides approximately 128 bits of security.
  */
 
+#if defined(MBEDTLS_USE_TINYCRYPT)
 #ifndef __TC_ECC_DH_H__
 #define __TC_ECC_DH_H__
 
-#include "ecc.h"
+#include <tinycrypt/ecc.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -129,3 +135,4 @@ int uECC_shared_secret(const uint8_t *p_public_key, const uint8_t *p_private_key
 #endif
 
 #endif /* __TC_ECC_DH_H__ */
+#endif /* MBEDTLS_USE_TINYCRYPT */
