@@ -57,14 +57,10 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if !defined(MBEDTLS_CONFIG_FILE)
-#include "mbedtls/config.h"
-#else
-#include MBEDTLS_CONFIG_FILE
-#endif
+#define MBEDTLS_USE_TINYCRYPT
 
 #if defined(MBEDTLS_USE_TINYCRYPT)
-#include <tinycrypt/ecc.h>
+#include <ecc.h>
 #include <string.h>
 
 /* IMPORTANT: Make sure a cryptographically-secure PRNG is set and the platform
