@@ -77,7 +77,7 @@ int uECC_make_key_with_d(uint8_t *public_key, uint8_t *private_key,
 	/* This function is designed for test purposes-only (such as validating NIST
 	 * test vectors) as it uses a provided value for d instead of generating
 	 * it uniformly at random. */
-	mbedtls_platform_memcpy (_private, d, NUM_ECC_BYTES);
+	memcpy (_private, d, NUM_ECC_BYTES);
 
 	/* Computing public-key from private: */
 	if (EccPoint_compute_public_key(_public, _private, curve)) {
@@ -94,7 +94,7 @@ int uECC_make_key_with_d(uint8_t *public_key, uint8_t *private_key,
 				       _public + curve->num_words);
 
 		/* erasing temporary buffer used to store secret: */
-		mbedtls_platform_memset(_private, 0, NUM_ECC_BYTES);
+		memset(_private, 0, NUM_ECC_BYTES);
 
 		return 1;
 	}
@@ -135,7 +135,7 @@ int uECC_make_key(uint8_t *public_key, uint8_t *private_key, uECC_Curve curve)
 					       _public + curve->num_words);
 
 			/* erasing temporary buffer that stored secret: */
-			mbedtls_platform_memset(_private, 0, NUM_ECC_BYTES);
+			memset(_private, 0, NUM_ECC_BYTES);
 
       			return 1;
     		}
@@ -179,7 +179,7 @@ int uECC_shared_secret(const uint8_t *public_key, const uint8_t *private_key,
 
 clear_and_out:
 	/* erasing temporary buffer used to store secret: */
-	mbedtls_platform_zeroize(_private, sizeof(_private));
+        memset(_private, 0, sizeof(_private));
 
 	return r;
 }
