@@ -60,17 +60,12 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if !defined(MBEDTLS_CONFIG_FILE)
-#include "mbedtls/config.h"
-#else
-#include MBEDTLS_CONFIG_FILE
-#endif
+#define MBEDTLS_USE_TINYCRYPT
 
 #if defined(MBEDTLS_USE_TINYCRYPT)
-#include <tinycrypt/ecc.h>
-#include <tinycrypt/ecc_dh.h>
+#include <ecc.h>
+#include <ecc_dh.h>
 #include <string.h>
-#include "mbedtls/platform_util.h"
 
 int uECC_make_key_with_d(uint8_t *public_key, uint8_t *private_key,
 			 unsigned int *d, uECC_Curve curve)
