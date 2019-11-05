@@ -80,11 +80,12 @@
  *          the signer's public key and the signature values (r and s).
  */
 
+#define MBEDTLS_USE_TINYCRYPT
 #if defined(MBEDTLS_USE_TINYCRYPT)
 #ifndef __TC_ECC_DSA_H__
 #define __TC_ECC_DSA_H__
 
-#include <tinycrypt/ecc.h>
+#include <ecc.h>
 
 #ifdef __cplusplus
 extern "C" {

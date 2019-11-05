@@ -73,6 +73,7 @@
  *
  */
 
+#define MBEDTLS_USE_TINYCRYPT
 #if defined(MBEDTLS_USE_TINYCRYPT)
 #ifndef __TC_UECC_H__
 #define __TC_UECC_H__
