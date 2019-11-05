@@ -60,18 +60,17 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define MBEDTLS_USE_TINYCRYPT
+#if !defined(MBEDTLS_CONFIG_FILE)
+#include "mbedtls/config.h"
+#else
+#include MBEDTLS_CONFIG_FILE
+#endif
 
 #if defined(MBEDTLS_USE_TINYCRYPT)
-#include <ecc.h>
-#include <ecc_dh.h>
+#include <tinycrypt/ecc.h>
+#include <tinycrypt/ecc_dh.h>
 #include <string.h>
-
-#if default_RNG_defined
-static uECC_RNG_Function g_rng_function = &default_CSPRNG;
-#else
-static uECC_RNG_Function g_rng_function = 0;
-#endif
+#include "mbedtls/platform_util.h"
 
 int uECC_make_key_with_d(uint8_t *public_key, uint8_t *private_key,
 			 unsigned int *d, uECC_Curve curve)
@@ -100,7 +99,7 @@ int uECC_make_key_with_d(uint8_t *public_key, uint8_t *private_key,
 				       _public + curve->num_words);
 
 		/* erasing temporary buffer used to store secret: */
-		memset(_private, 0, NUM_ECC_BYTES);
+		mbedtls_platform_memset(_private, 0, NUM_ECC_BYTES);
 
 		return 1;
 	}
@@ -124,7 +123,7 @@ int uECC_make_key(uint8_t *public_key, uint8_t *private_key, uECC_Curve curve)
 		}
 
 		/* computing modular reduction of _random (see FIPS 186.4 B.4.1): */
-		uECC_vli_mmod(_private, _random, curve->n, BITS_TO_WORDS(curve->num_n_bits));
+		uECC_vli_mmod(_private, _random, curve->n);
 
 		/* Computing public-key from private: */
 		if (EccPoint_compute_public_key(_public, _private, curve)) {
@@ -141,7 +140,7 @@ int uECC_make_key(uint8_t *public_key, uint8_t *private_key, uECC_Curve curve)
 					       _public + curve->num_words);
 
 			/* erasing temporary buffer that stored secret: */
-			memset(_private, 0, NUM_ECC_BYTES);
+			mbedtls_platform_memset(_private, 0, NUM_ECC_BYTES);
 
       			return 1;
     		}
@@ -155,11 +154,6 @@ int uECC_shared_secret(const uint8_t *public_key, const uint8_t *private_key,
 
 	uECC_word_t _public[NUM_ECC_WORDS * 2];
 	uECC_word_t _private[NUM_ECC_WORDS];
-
-	uECC_word_t tmp[NUM_ECC_WORDS];
-	uECC_word_t *p2[2] = {_private, tmp};
-	uECC_word_t *initial_Z = 0;
-	uECC_word_t carry;
 	wordcount_t num_words = curve->num_words;
 	wordcount_t num_bytes = curve->num_bytes;
 	int r;
@@ -181,31 +175,16 @@ int uECC_shared_secret(const uint8_t *public_key, const uint8_t *private_key,
 			       public_key + num_bytes,
 			       num_bytes);
 
-	/* Regularize the bitcount for the private key so that attackers cannot use a
-	 * side channel attack to learn the number of leading zeros. */
-	carry = regularize_k(_private, _private, tmp, curve);
-
-	/* If an RNG function was specified, try to get a random initial Z value to
-	 * improve protection against side-channel attacks. */
-	if (g_rng_function) {
-		if (!uECC_generate_random_int(p2[carry], curve->p, num_words)) {
-			r = 0;
-			goto clear_and_out;
-    		}
-    		initial_Z = p2[carry];
-  	}
-
-	EccPoint_mult(_public, _public, p2[!carry], initial_Z, curve->num_n_bits + 1,
-		      curve);
+	r = EccPoint_mult_safer(_public, _public, _private, curve);
+        if (r == 0)
+            goto clear_and_out;
 
 	uECC_vli_nativeToBytes(secret, num_bytes, _public);
 	r = !EccPoint_isZero(_public, curve);
 
 clear_and_out:
 	/* erasing temporary buffer used to store secret: */
-	memset(p2, 0, sizeof(p2));
-	memset(tmp, 0, sizeof(tmp));
-	memset(_private, 0, sizeof(_private));
+	mbedtls_platform_zeroize(_private, sizeof(_private));
 
 	return r;
 }
