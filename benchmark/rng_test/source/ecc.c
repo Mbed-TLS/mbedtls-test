@@ -1,6 +1,11 @@
 /* ecc.c - TinyCrypt implementation of common ECC functions */
 
 /*
+ *  Copyright (c) 2019, Arm Limited (or its affiliates), All Rights Reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause
+ */
+
+/*
  * Copyright (c) 2014, Kenneth MacKay
  * All rights reserved.
  *
@@ -52,12 +57,23 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <inc/ecc.h>
+#if !defined(MBEDTLS_CONFIG_FILE)
+#include "mbedtls/config.h"
+#else
+#include MBEDTLS_CONFIG_FILE
+#endif
+
+#if defined(MBEDTLS_USE_TINYCRYPT)
+#include <tinycrypt/ecc.h>
 #include <string.h>
 
 /* IMPORTANT: Make sure a cryptographically-secure PRNG is set and the platform
  * has access to enough entropy in order to feed the PRNG regularly. */
+#if default_RNG_defined
+static uECC_RNG_Function g_rng_function = &default_CSPRNG;
+#else
 static uECC_RNG_Function g_rng_function = 0;
+#endif
 
 void uECC_set_rng(uECC_RNG_Function rng_function)
 {
@@ -607,7 +623,7 @@ void vli_mmod_fast_secp256r1(unsigned int *result, unsigned int*product)
 		}
 		while (carry < 0);
 	} else  {
-		while (carry ||
+		while (carry || 
 		       uECC_vli_cmp_unsafe(curve_secp256r1.p, result, NUM_ECC_WORDS) != 1) {
 			carry -= uECC_vli_sub(result, result, curve_secp256r1.p, NUM_ECC_WORDS);
 		}
@@ -724,7 +740,7 @@ static void XYcZ_addC(uECC_word_t * X1, uECC_word_t * Y1,
 void EccPoint_mult(uECC_word_t * result, const uECC_word_t * point,
 		   const uECC_word_t * scalar,
 		   const uECC_word_t * initial_Z,
-		   bitcount_t num_bits, uECC_Curve curve)
+		   bitcount_t num_bits, uECC_Curve curve) 
 {
 	/* R0 and R1 */
 	uECC_word_t Rx[2][NUM_ECC_WORDS];
@@ -932,6 +948,7 @@ int uECC_compute_public_key(const uint8_t *private_key, uint8_t *public_key,
 	curve->num_bytes, curve->num_bytes, _public + curve->num_words);
 	return 1;
 }
-
-
+#else
+typedef int mbedtls_dummy_tinycrypt_def;
+#endif /* MBEDTLS_USE_TINYCRYPT */
 

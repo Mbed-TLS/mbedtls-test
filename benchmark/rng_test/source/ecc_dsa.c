@@ -1,5 +1,10 @@
 /* ec_dsa.c - TinyCrypt implementation of EC-DSA */
 
+/*
+ *  Copyright (c) 2019, Arm Limited (or its affiliates), All Rights Reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause
+ */
+
 /* Copyright (c) 2014, Kenneth MacKay
  * All rights reserved.
  *
@@ -53,8 +58,15 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <inc/ecc.h>
-#include <inc/ecc_dsa.h>
+#if !defined(MBEDTLS_CONFIG_FILE)
+#include "mbedtls/config.h"
+#else
+#include MBEDTLS_CONFIG_FILE
+#endif
+
+#if defined(MBEDTLS_USE_TINYCRYPT)
+#include <tinycrypt/ecc.h>
+#include <tinycrypt/ecc_dsa.h>
 
 #if default_RNG_defined
 static uECC_RNG_Function g_rng_function = &default_CSPRNG;
@@ -175,7 +187,7 @@ int uECC_sign(const uint8_t *private_key, const uint8_t *message_hash,
 		// computing k as modular reduction of _random (see FIPS 186.4 B.5.1):
 		uECC_vli_mmod(k, _random, curve->n, BITS_TO_WORDS(curve->num_n_bits));
 
-		if (uECC_sign_with_k(private_key, message_hash, hash_size, k, signature,
+		if (uECC_sign_with_k(private_key, message_hash, hash_size, k, signature, 
 		    curve)) {
 			return 1;
 		}
@@ -291,4 +303,6 @@ int uECC_verify(const uint8_t *public_key, const uint8_t *message_hash,
 	/* Accept only if v == r. */
 	return (int)(uECC_vli_equal(rx, r, num_words) == 0);
 }
-
+#else
+typedef int mbedtls_dummy_tinycrypt_def;
+#endif /* MBEDTLS_USE_TINYCRYPT */

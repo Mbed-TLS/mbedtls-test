@@ -1,6 +1,11 @@
 /* ec_dh.c - TinyCrypt implementation of EC-DH */
 
 /*
+ *  Copyright (c) 2019, Arm Limited (or its affiliates), All Rights Reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause
+ */
+
+/*
  * Copyright (c) 2014, Kenneth MacKay
  * All rights reserved.
  *
@@ -54,17 +59,24 @@
  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
-#include <inc/ecc.h>
-#include <inc/ecc_dh.h>
+
+#if !defined(MBEDTLS_CONFIG_FILE)
+#include "mbedtls/config.h"
+#else
+#include MBEDTLS_CONFIG_FILE
+#endif
+
+#if defined(MBEDTLS_USE_TINYCRYPT)
+#include <tinycrypt/ecc.h>
+#include <tinycrypt/ecc_dh.h>
 #include <string.h>
+#include "mbedtls/platform_util.h"
 
 #if default_RNG_defined
 static uECC_RNG_Function g_rng_function = &default_CSPRNG;
 #else
 static uECC_RNG_Function g_rng_function = 0;
 #endif
-
-#ifdef ENABLE_TESTS
 
 int uECC_make_key_with_d(uint8_t *public_key, uint8_t *private_key,
 			 unsigned int *d, uECC_Curve curve)
@@ -93,14 +105,12 @@ int uECC_make_key_with_d(uint8_t *public_key, uint8_t *private_key,
 				       _public + curve->num_words);
 
 		/* erasing temporary buffer used to store secret: */
-		memset(_private, 0, NUM_ECC_BYTES);
+		mbedtls_platform_memset(_private, 0, NUM_ECC_BYTES);
 
 		return 1;
 	}
 	return 0;
 }
-
-#endif
 
 int uECC_make_key(uint8_t *public_key, uint8_t *private_key, uECC_Curve curve)
 {
@@ -136,7 +146,7 @@ int uECC_make_key(uint8_t *public_key, uint8_t *private_key, uECC_Curve curve)
 					       _public + curve->num_words);
 
 			/* erasing temporary buffer that stored secret: */
-			memset(_private, 0, NUM_ECC_BYTES);
+			mbedtls_platform_memset(_private, 0, NUM_ECC_BYTES);
 
       			return 1;
     		}
@@ -192,12 +202,12 @@ int uECC_shared_secret(const uint8_t *public_key, const uint8_t *private_key,
 
 clear_and_out:
 	/* erasing temporary buffer used to store secret: */
-	memset(p2, 0, sizeof(p2));
-	__asm__ __volatile__("" :: "g"(p2) : "memory");
-	memset(tmp, 0, sizeof(tmp));
-	__asm__ __volatile__("" :: "g"(tmp) : "memory");
-	memset(_private, 0, sizeof(_private));
-	__asm__ __volatile__("" :: "g"(_private) : "memory");
+	mbedtls_platform_zeroize(p2, sizeof(p2));
+	mbedtls_platform_zeroize(tmp, sizeof(tmp));
+	mbedtls_platform_zeroize(_private, sizeof(_private));
 
 	return r;
 }
+#else
+typedef int mbedtls_dummy_tinycrypt_def;
+#endif /* MBEDTLS_USE_TINYCRYPT */
