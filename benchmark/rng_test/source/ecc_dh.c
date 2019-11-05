@@ -94,7 +94,7 @@ int uECC_make_key_with_d(uint8_t *public_key, uint8_t *private_key,
 				       _public + curve->num_words);
 
 		/* erasing temporary buffer used to store secret: */
-		mbedtls_platform_memset(_private, 0, NUM_ECC_BYTES);
+		memset(_private, 0, NUM_ECC_BYTES);
 
 		return 1;
 	}
@@ -135,7 +135,7 @@ int uECC_make_key(uint8_t *public_key, uint8_t *private_key, uECC_Curve curve)
 					       _public + curve->num_words);
 
 			/* erasing temporary buffer that stored secret: */
-			mbedtls_platform_memset(_private, 0, NUM_ECC_BYTES);
+			memset(_private, 0, NUM_ECC_BYTES);
 
       			return 1;
     		}
@@ -179,7 +179,7 @@ int uECC_shared_secret(const uint8_t *public_key, const uint8_t *private_key,
 
 clear_and_out:
 	/* erasing temporary buffer used to store secret: */
-	mbedtls_platform_zeroize(_private, sizeof(_private));
+        memset(_private, 0, sizeof(_private));
 
 	return r;
 }

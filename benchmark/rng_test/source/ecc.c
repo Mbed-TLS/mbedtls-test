@@ -950,9 +950,9 @@ int EccPoint_mult_safer(uECC_word_t * result, const uECC_word_t * point,
 
 clear_and_out:
 	/* erasing temporary buffer used to store secret: */
-	mbedtls_platform_zeroize(k2, sizeof(k2));
-	mbedtls_platform_zeroize(tmp, sizeof(tmp));
-	mbedtls_platform_zeroize(s, sizeof(s));
+	memset(k2, 0, sizeof(k2));
+	memset(tmp, 0, sizeof(tmp));
+	memset(s, 0, sizeof(s));
 
 	return r;
 }
