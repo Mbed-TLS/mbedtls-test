@@ -33,6 +33,14 @@ def checkout_mbed_crypto_repo() {
     }
 }
 
+def checkout_mbed_os_example_repo(repo, branch) {
+    if (env.TARGET_REPO == 'example' && env.CHECKOUT_METHOD == 'scm') {
+        checkout scm
+    } else {
+        checkout_parametrized_repo(repo, branch)
+    }
+}
+
 def checkout_parametrized_repo(repo, branch) {
     checkout([
         scm: [
