@@ -5,18 +5,20 @@ node {
     library identifier: 'mbedtls-test@master', retriever: legacySCM(scm)
     environ.set_crypto_release_environment()
 
-    try {
-        stage('crypto-testing') {
-            def jobs = gen_jobs.gen_release_jobs()
+    timestamps {
+        try {
+            stage('crypto-testing') {
+                def jobs = gen_jobs.gen_release_jobs()
 
-            common.run_release_jobs(
-                "Mbed Crypto nightly tests",
-                jobs,
-                gen_jobs.failed_builds,
-                gen_jobs.coverage_details
-            )
+                common.run_release_jobs(
+                    "Mbed Crypto nightly tests",
+                    jobs,
+                    gen_jobs.failed_builds,
+                    gen_jobs.coverage_details
+                )
+            }
+        } finally {
+            analysis.analyze_results()
         }
-    } finally {
-        analysis.analyze_results()
     }
 }

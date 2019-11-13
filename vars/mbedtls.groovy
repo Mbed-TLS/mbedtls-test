@@ -114,58 +114,61 @@ def run_tls_tests(label_prefix='') {
 
 /* main job */
 def run_pr_job(is_production=true) {
-    if (env.BRANCH_NAME) {
-        githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                     description: 'Checking if all PR tests can be run',
-                     status: 'PENDING'
-        githubNotify context: "${env.BRANCH_NAME} TLS Testing",
-                     description: 'In progress',
-                     status: 'PENDING'
-        githubNotify context: "${env.BRANCH_NAME} Result analysis",
-                     description: 'In progress',
-                     status: 'PENDING'
-    }
-    stage('pre-test-checks') {
-        node {
-            try {
-                environ.set_tls_pr_environment(is_production)
-                all_sh_components = common.get_all_sh_components()
-            } catch (err) {
-                if (env.BRANCH_NAME) {
-                    githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                                 description: 'Base branch out of date. Please rebase',
-                                 status: 'FAILURE'
-                }
-                throw (err)
-            }
-            try {
-                common.check_for_bad_words()
-                if (env.BRANCH_NAME) {
-                    githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                                 description: 'OK',
-                                 status: 'SUCCESS'
-                }
-            } catch (err) {
-                /* We give generic error message to github because we don't wan't to give
-                 * information to external pull requests that failure cause was for example
-                 * bad word like name of our customer.
-                */
-                if (env.BRANCH_NAME) {
-                    githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                                 description: 'Pre Test Checks failed.',
-                                 status: 'FAILURE'
-                }
-                throw (err)
-            }
+    timestamps {
+        if (env.BRANCH_NAME) {
+            githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
+                         description: 'Checking if all PR tests can be run',
+                         status: 'PENDING'
+            githubNotify context: "${env.BRANCH_NAME} TLS Testing",
+                         description: 'In progress',
+                         status: 'PENDING'
+            githubNotify context: "${env.BRANCH_NAME} Result analysis",
+                         description: 'In progress',
+                         status: 'PENDING'
         }
-    }
 
-    try {
-        stage('tls-testing') {
-            run_tls_tests()
+        stage('pre-test-checks') {
+            node {
+                try {
+                    environ.set_tls_pr_environment(is_production)
+                    all_sh_components = common.get_all_sh_components()
+                } catch (err) {
+                    if (env.BRANCH_NAME) {
+                        githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
+                                     description: 'Base branch out of date. Please rebase',
+                                     status: 'FAILURE'
+                    }
+                    throw (err)
+                }
+                try {
+                    common.check_for_bad_words()
+                    if (env.BRANCH_NAME) {
+                        githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
+                                     description: 'OK',
+                                     status: 'SUCCESS'
+                    }
+                } catch (err) {
+                    /* We give generic error message to github because we don't wan't to give
+                     * information to external pull requests that failure cause was for example
+                     * bad word like name of our customer.
+                    */
+                    if (env.BRANCH_NAME) {
+                        githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
+                                     description: 'Pre Test Checks failed.',
+                                     status: 'FAILURE'
+                    }
+                    throw (err)
+                }
+            }
         }
-    } finally {
-        analysis.analyze_results_and_notify_github()
+
+        try {
+            stage('tls-testing') {
+                run_tls_tests()
+            }
+        } finally {
+            analysis.analyze_results_and_notify_github()
+        }
     }
 }
 
