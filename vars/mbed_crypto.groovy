@@ -146,6 +146,7 @@ def run_pr_job(is_production=true) {
                 stage('tls-testing') {
                     mbedtls.run_tls_tests_with_crypto_pr(is_production)
                 }
+            }
         } finally {
             analysis.analyze_results_and_notify_github()
         }
