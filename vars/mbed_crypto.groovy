@@ -103,50 +103,51 @@ def run_crypto_tests() {
 
 /* main job */
 def run_pr_job(is_production=true) {
-    if (env.BRANCH_NAME) {
-        githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                     description: 'Checking if all PR tests can be run',
-                     status: 'PENDING'
-        githubNotify context: "${env.BRANCH_NAME} Crypto Testing",
-                     description: 'In progress',
-                     status: 'PENDING'
-        githubNotify context: "${env.BRANCH_NAME} TLS Testing",
-                     description: 'In progress',
-                     status: 'PENDING'
-    }
-    stage('pre-test-checks') {
-        node {
-            try {
-                environ.set_crypto_pr_environment(is_production)
-                all_sh_components = common.get_all_sh_components()
-                if (env.BRANCH_NAME) {
-                    githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                                 description: 'OK',
-                                 status: 'SUCCESS'
+    timestamps {
+        if (env.BRANCH_NAME) {
+            githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
+                         description: 'Checking if all PR tests can be run',
+                         status: 'PENDING'
+            githubNotify context: "${env.BRANCH_NAME} Crypto Testing",
+                         description: 'In progress',
+                         status: 'PENDING'
+            githubNotify context: "${env.BRANCH_NAME} TLS Testing",
+                         description: 'In progress',
+                         status: 'PENDING'
+        }
+        stage('pre-test-checks') {
+            node {
+                try {
+                    environ.set_crypto_pr_environment(is_production)
+                    all_sh_components = common.get_all_sh_components()
+                    if (env.BRANCH_NAME) {
+                        githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
+                                     description: 'OK',
+                                     status: 'SUCCESS'
+                    }
+                } catch (err) {
+                    if (env.BRANCH_NAME) {
+                        githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
+                                     description: 'Base branch out of date. Please rebase',
+                                     status: 'FAILURE'
+                    }
+                    throw (err)
                 }
-            } catch (err) {
-                if (env.BRANCH_NAME) {
-                    githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                                 description: 'Base branch out of date. Please rebase',
-                                 status: 'FAILURE'
-                }
-                throw (err)
             }
         }
-    }
 
-    try {
-        if (env.RUN_CRYPTO_TESTS_OF_CRYPTO_PR == "true") {
-            stage('crypto-testing') {
-                run_crypto_tests()
+        try {
+            if (env.RUN_CRYPTO_TESTS_OF_CRYPTO_PR == "true") {
+                stage('crypto-testing') {
+                    run_crypto_tests()
+                }
             }
+            if (env.RUN_TLS_TESTS_OF_CRYPTO_PR == "true") {
+                stage('tls-testing') {
+                    mbedtls.run_tls_tests_with_crypto_pr(is_production)
+                }
+        } finally {
+            analysis.analyze_results_and_notify_github()
         }
-        if (env.RUN_TLS_TESTS_OF_CRYPTO_PR == "true") {
-            stage('tls-testing') {
-                mbedtls.run_tls_tests_with_crypto_pr(is_production)
-            }
-        }
-    } finally {
-        analysis.analyze_results_and_notify_github()
     }
 }
