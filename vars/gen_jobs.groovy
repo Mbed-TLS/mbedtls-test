@@ -361,21 +361,32 @@ def gen_mbed_os_example_job(repo, branch, example, compiler, platform, raas) {
         node(compiler) {
             try {
                 deleteDir()
-                checkout_repo.checkout_parametrized_repo(repo, branch)
+                checkout_repo.checkout_mbed_os_example_repo(repo, branch)
                 dir(example) {
-/* This script appears to do nothing, however it is needed in a few cases.
- * We wish to deploy specific versions of Mbed OS, TLS and Crypto, so we
- * remove mbed-os.lib to not deploy it twice. Mbed deploy is still needed in
- * case other libraries exist to be deployed. */
-                    sh """\
+/* If the job is targeting an example repo, then we wish to use the versions
+ * of Mbed OS, TLS and Crypto specified by the mbed-os.lib file. */
+                    if (env.TARGET_REPO == 'example') {
+                        sh """\
+ulimit -f 20971520
+mbed config root .
+mbed deploy -vv
+"""
+                    } else {
+/* If the job isn't targeting an example repo, the versions of Mbed OS, TLS and
+ * Crypto will be specified by the job. We remove mbed-os.lib so we aren't
+ * checking it out twice. Mbed deploy is still run in case other libraries
+ * are required to be deployed. We then check out Mbed OS, TLS and Crypto
+ * according to the job parameters. */
+                        sh """\
 ulimit -f 20971520
 rm -f mbed-os.lib
 mbed config root .
 mbed deploy -vv
 """
-                    dir('mbed-os') {
-                        deleteDir()
-                        checkout_repo.checkout_mbed_os()
+                        dir('mbed-os') {
+                            deleteDir()
+                            checkout_repo.checkout_mbed_os()
+                        }
                     }
                     timeout(time: common.perJobTimeout.time +
                                   common.perJobTimeout.raasOffset,

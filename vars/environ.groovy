@@ -84,3 +84,25 @@ def set_tls_release_environment() {
     env.REPO_TO_CHECKOUT = 'tls'
     env.CHECKOUT_METHOD = 'parametrized'
 }
+
+def set_mbed_os_example_pr_environment(example) {
+    env.JOB_TYPE = 'PR'
+    env.CHECKOUT_METHOD = 'scm'
+    env.TARGET_REPO = 'example'
+    switch (example) {
+        case 'TLS':
+            env.TEST_MBED_OS_AUTHCRYPT_EXAMPLE = 'true'
+            env.TEST_MBED_OS_BENCHMARK_EXAMPLE = 'true'
+            env.TEST_MBED_OS_HASHING_EXAMPLE = 'true'
+            env.TEST_MBED_OS_TLS_CLIENT_EXAMPLE = 'true'
+            break
+        case 'Crypto':
+            env.TEST_MBED_OS_CRYPTO_EXAMPLES = 'true'
+            break
+        case 'ATECC608A':
+            env.TEST_MBED_OS_ATECC608A_EXAMPLES = 'true'
+            break
+        default:
+            throw new Exception("No example specified")
+    }
+}
