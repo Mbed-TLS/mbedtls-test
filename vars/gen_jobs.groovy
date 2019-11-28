@@ -126,14 +126,8 @@ def gen_all_sh_jobs(platform, component, label_prefix='') {
 #!/bin/sh
 set -eux
 ulimit -f 20971520
-git config --global user.email "you@example.com"
-git config --global user.name "Your Name"
-git init
-git add .
-git commit -m 'CI code copy'
 export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv'
-set ./tests/scripts/all.sh --seed 4 --keep-going $component
-"\$@"
+./tests/scripts/all.sh --seed 4 --keep-going $component
 """
                     sh 'chmod +x steps.sh'
                 }
