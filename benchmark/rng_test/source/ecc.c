@@ -57,10 +57,15 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define MBEDTLS_USE_TINYCRYPT
+#if !defined(MBEDTLS_CONFIG_FILE)
+#include "mbedtls/config.h"
+#else
+#include MBEDTLS_CONFIG_FILE
+#endif
 
 #if defined(MBEDTLS_USE_TINYCRYPT)
-#include <ecc.h>
+#include <tinycrypt/ecc.h>
+#include "mbedtls/platform_util.h"
 #include <string.h>
 
 /* IMPORTANT: Make sure a cryptographically-secure PRNG is set and the platform
@@ -180,7 +185,7 @@ uECC_word_t uECC_vli_equal(const uECC_word_t *left, const uECC_word_t *right)
 	for (i = NUM_ECC_WORDS - 1; i >= 0; --i) {
 		diff |= (left[i] ^ right[i]);
 	}
-	return !(diff == 0);
+	return diff;
 }
 
 uECC_word_t cond_set(uECC_word_t p_true, uECC_word_t p_false, unsigned int cond)
@@ -950,9 +955,9 @@ int EccPoint_mult_safer(uECC_word_t * result, const uECC_word_t * point,
 
 clear_and_out:
 	/* erasing temporary buffer used to store secret: */
-	memset(k2, 0, sizeof(k2));
-	memset(tmp, 0, sizeof(tmp));
-	memset(s, 0, sizeof(s));
+	mbedtls_platform_zeroize(k2, sizeof(k2));
+	mbedtls_platform_zeroize(tmp, sizeof(tmp));
+	mbedtls_platform_zeroize(s, sizeof(s));
 
 	return r;
 }

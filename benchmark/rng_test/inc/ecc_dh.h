@@ -71,12 +71,11 @@
  *  Security: The curve NIST p-256 provides approximately 128 bits of security.
  */
 
-#define MBEDTLS_USE_TINYCRYPT
 #if defined(MBEDTLS_USE_TINYCRYPT)
 #ifndef __TC_ECC_DH_H__
 #define __TC_ECC_DH_H__
 
-#include <ecc.h>
+#include <tinycrypt/ecc.h>
 
 #ifdef __cplusplus
 extern "C" {
