@@ -30,6 +30,15 @@ def get_docker_image(docker_image) {
     sh "\$(aws ecr get-login) && docker pull $docker_repo:$docker_image"
 }
 
+def docker_script(platform, entrypoint, entrypoint_arguments='') {
+    return """\
+docker run -u \$(id -u):\$(id -g) --rm --entrypoint $entrypoint \
+    -w /var/lib/build -v `pwd`/src:/var/lib/build \
+    -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh \
+    --cap-add SYS_PTRACE $docker_repo:$platform $entrypoint_arguments
+"""
+}
+
 def get_all_sh_components() {
     node {
         /* Get components of all.sh */
