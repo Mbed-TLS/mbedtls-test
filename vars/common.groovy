@@ -27,6 +27,7 @@ import groovy.transform.Field
 @Field asan_compilers = ['clang']
 
 @Field all_sh_components = [:]
+@Field all_all_sh_components = []
 
 def get_docker_image(docker_image) {
     sh "\$(aws ecr get-login) && docker pull $docker_repo:$docker_image"
@@ -63,10 +64,32 @@ def get_all_sh_components(platform_list) {
                     ),
                     returnStdout: true
                 ).trim().split('\n')
+                if (all_all_sh_components == []) {
+                    all_all_sh_components = sh(
+                        script: docker_script(
+                            platform, "./tests/scripts/all.sh",
+                            "--list-all-components"
+                        ),
+                        returnStdout: true
+                    ).trim().split('\n')
+                }
             } else {
                 error('Pre Test Checks failed: Base branch out of date. Please rebase')
             }
         }
+    }
+}
+
+def check_every_all_sh_component_will_be_run() {
+    def untested_all_sh_components = all_all_sh_components
+    all_sh_components.each { platform, components ->
+        untested_all_sh_components -= components
+    }
+    if (untested_all_sh_components != []) {
+        error(
+            "Pre Test Checks failed: Unable to run all.sh components: \
+            ${untested_all_sh_components.join(",")}"
+        )
     }
 }
 
