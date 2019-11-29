@@ -26,6 +26,8 @@ import groovy.transform.Field
 @Field gcc_compilers = ['gcc']
 @Field asan_compilers = ['clang']
 
+@Field all_sh_components = []
+
 def get_docker_image(docker_image) {
     sh "\$(aws ecr get-login) && docker pull $docker_repo:$docker_image"
 }
@@ -58,7 +60,6 @@ def get_all_sh_components() {
                 error('Base branch out of date. Please rebase')
             }
         }
-        return all_sh_components
     }
 }
 /* Check for any bad words found from pull request code and commit messages.
