@@ -6,7 +6,7 @@ def checkout_repo() {
     if (env.TARGET_REPO == 'crypto' && env.REPO_TO_CHECKOUT == 'tls') {
         checkout_mbedtls_repo()
         dir('crypto') {
-            checkout scm
+            checkout_mbed_crypto_repo()
         }
     } else if (env.TARGET_REPO == 'tls') {
         checkout_mbedtls_repo()
