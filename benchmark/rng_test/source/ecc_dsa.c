@@ -63,6 +63,7 @@
 #if defined(MBEDTLS_USE_TINYCRYPT)
 #include <ecc.h>
 #include <ecc_dsa.h>
+#include <platform.h>
 
 #if default_RNG_defined
 static uECC_RNG_Function g_rng_function = &default_CSPRNG;
