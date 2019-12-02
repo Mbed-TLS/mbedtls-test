@@ -122,8 +122,12 @@ def run_pr_job(is_production=true) {
                 }
             } catch (err) {
                 if (env.BRANCH_NAME) {
+                    def description = 'Pre Test Checks failed.'
+                    if (err.getMessage().contains('Pre Test Checks')) {
+                        description = err.getMessage()
+                    }
                     githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                                 description: 'Base branch out of date. Please rebase',
+                                 description: description,
                                  status: 'FAILURE'
                 }
                 throw (err)

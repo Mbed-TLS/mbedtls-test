@@ -64,7 +64,7 @@ def get_all_sh_components(platform_list) {
                     returnStdout: true
                 ).trim().split('\n')
             } else {
-                error('Base branch out of date. Please rebase')
+                error('Pre Test Checks failed: Base branch out of date. Please rebase')
             }
         }
     }
@@ -96,7 +96,11 @@ def check_for_bad_words() {
                     )
             echo std_output
             if (std_output) {
-                throw new Exception("Pre Test Checks failed")
+                /* We give generic error message to github because we don't
+                 * want to give information to external pull requests that
+                 * failure cause was for example bad word like name of our customer.
+                 */
+                error("Pre Test Checks failed.")
             }
         }
     }
