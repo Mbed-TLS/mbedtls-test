@@ -29,24 +29,22 @@
  */
 
 /* main job */
-node {
-    library identifier: 'mbedtls-test@master', retriever: legacySCM(scm)
-    environ.set_tls_release_environment()
+library identifier: 'mbedtls-test@master', retriever: legacySCM(scm)
+environ.set_tls_release_environment()
 
-    timestamps {
-        try {
-            stage('tls-testing') {
-                def jobs = gen_jobs.gen_release_jobs()
-                common.run_release_jobs(
-                    "Mbed TLS nightly tests",
-                    jobs,
-                    gen_jobs.failed_builds,
-                    gen_jobs.coverage_details
-                )
-            }
+timestamps {
+    try {
+        stage('tls-testing') {
+            def jobs = gen_jobs.gen_release_jobs()
+            common.run_release_jobs(
+                "Mbed TLS nightly tests",
+                jobs,
+                gen_jobs.failed_builds,
+                gen_jobs.coverage_details
+            )
         }
-        finally {
-            analysis.analyze_results()
-        }
+    }
+    finally {
+        analysis.analyze_results()
     }
 }
