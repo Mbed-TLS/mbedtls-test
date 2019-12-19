@@ -28,7 +28,9 @@ def set_common_pr_production_environment() {
     env.RUN_FREEBSD = 'true'
     env.RUN_WINDOWS_TEST = 'true'
     env.RUN_ALL_SH = 'true'
-    env.RUN_ABI_CHECK = 'true'
+    if (!env.BRANCH_NAME.contains('-head')) {
+        env.RUN_ABI_CHECK = 'true'
+    }
     env.MBED_OS_REPO = 'git@github.com:ARMmbed/mbed-os.git'
     env.MBED_OS_BRANCH = 'master'
     env.MBED_OS_TLS_EXAMPLES_REPO = 'git@github.com:ARMmbed/mbed-os-example-tls.git'
