@@ -1,7 +1,3 @@
-import groovy.transform.Field
-
-@Field all_sh_components = []
-
 def run_crypto_tests() {
     node {
         try {
@@ -65,14 +61,17 @@ def run_crypto_tests() {
 
             /* All.sh jobs */
             if (env.RUN_ALL_SH == "true") {
-                for (component in all_sh_components) {
+                for (component in common.all_sh_components['ubuntu-16.04']) {
                     jobs = jobs + gen_jobs.gen_all_sh_jobs(
                         'ubuntu-16.04', component
                     )
                 }
-                jobs = jobs + gen_jobs.gen_all_sh_jobs(
-                    'ubuntu-18.04', 'build_mingw'
-                )
+                for (component in (common.all_sh_components['ubuntu-18.04'] -
+                                   common.all_sh_components['ubuntu-16.04'])) {
+                    jobs = jobs + gen_jobs.gen_all_sh_jobs(
+                        'ubuntu-18.04', component
+                    )
+                }
             }
 
             if (env.RUN_ABI_CHECK == "true") {
@@ -119,7 +118,7 @@ def run_pr_job(is_production=true) {
             node {
                 try {
                     environ.set_crypto_pr_environment(is_production)
-                    all_sh_components = common.get_all_sh_components()
+                    common.get_all_sh_components(['ubuntu-16.04', 'ubuntu-18.04'])
                     if (env.BRANCH_NAME) {
                         githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
                                      description: 'OK',
