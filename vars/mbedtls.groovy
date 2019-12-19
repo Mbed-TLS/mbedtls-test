@@ -5,7 +5,7 @@ def run_tls_tests_with_crypto_pr(is_production) {
         env.MBED_TLS_BRANCH = 'development'
         env.MBED_TLS_REPO = "git@github.com:ARMmbed/mbedtls.git"
     }
-    common.get_all_sh_components(['ubuntu-16.04'])
+    common.get_all_sh_components(['ubuntu-16.04', 'ubuntu-18.04'])
     run_tls_tests('tls-')
 }
 
@@ -77,9 +77,12 @@ def run_tls_tests(label_prefix='') {
                         'ubuntu-16.04', component, label_prefix
                     )
                 }
-                jobs = jobs + gen_jobs.gen_all_sh_jobs(
-                    'ubuntu-18.04', 'build_mingw', label_prefix
-                )
+                for (component in (common.all_sh_components['ubuntu-18.04'] -
+                                   common.all_sh_components['ubuntu-16.04'])) {
+                    jobs = jobs + gen_jobs.gen_all_sh_jobs(
+                        'ubuntu-18.04', component, label_prefix
+                    )
+                }
             }
 
             if (env.RUN_ABI_CHECK == "true") {
@@ -127,7 +130,7 @@ def run_pr_job(is_production=true) {
             node {
                 try {
                     environ.set_tls_pr_environment(is_production)
-                    common.get_all_sh_components(['ubuntu-16.04'])
+                    common.get_all_sh_components(['ubuntu-16.04', 'ubuntu-18.04'])
                 } catch (err) {
                     if (env.BRANCH_NAME) {
                         githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
