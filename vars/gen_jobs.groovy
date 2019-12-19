@@ -51,16 +51,14 @@ set -eux
 ulimit -f 20971520
 ${shell_script}
 """
+                            sh 'chmod +x steps.sh'
                         }
                         timeout(time: common.perJobTimeout.time,
                                 unit: common.perJobTimeout.unit) {
                             try {
-                                sh """\
-chmod +x src/steps.sh
-docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
-    -w /var/lib/build -v `pwd`/src:/var/lib/build \
-    -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
-"""
+                                sh common.docker_script(
+                                    platform, "/var/lib/build/steps.sh"
+                                )
                             } finally {
                                 dir('src/tests/') {
                                     common.archive_zipped_log_files(job_name)
@@ -128,26 +126,17 @@ def gen_all_sh_jobs(platform, component, label_prefix='') {
 #!/bin/sh
 set -eux
 ulimit -f 20971520
-git config --global user.email "you@example.com"
-git config --global user.name "Your Name"
-git init
-git add .
-git commit -m 'CI code copy'
 export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv'
-set ./tests/scripts/all.sh --seed 4 --keep-going $component
-"\$@"
+./tests/scripts/all.sh --seed 4 --keep-going $component
 """
+                    sh 'chmod +x steps.sh'
                 }
                 timeout(time: common.perJobTimeout.time,
                         unit: common.perJobTimeout.unit) {
                     try {
-                        sh """\
-chmod +x src/steps.sh
-docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
-    -w /var/lib/build -v `pwd`/src:/var/lib/build \
-    -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh \
-    --cap-add SYS_PTRACE $common.docker_repo:$platform
-"""
+                        sh common.docker_script(
+                            platform, "/var/lib/build/steps.sh"
+                        )
                     } finally {
                         dir('src') {
                             analysis.stash_outcomes(job_name)
@@ -258,15 +247,13 @@ ulimit -f 20971520
 tests/scripts/list-identifiers.sh --internal
 scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
 """
+                    sh 'chmod +x steps.sh'
                 }
                 timeout(time: common.perJobTimeout.time,
                         unit: common.perJobTimeout.unit) {
-                    sh """\
-chmod +x src/steps.sh
-docker run --rm -u \$(id -u):\$(id -g) --entrypoint /var/lib/build/steps.sh \
-    -w /var/lib/build -v `pwd`/src:/var/lib/build \
-    -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
-"""
+                    sh common.docker_script(
+                        platform, "/var/lib/build/steps.sh"
+                    )
                 }
             } catch (err) {
                 failed_builds[job_name] = true
@@ -296,16 +283,17 @@ set -eux
 ulimit -f 20971520
 ./tests/scripts/basic-build-test.sh 2>&1
 '''
+                    sh 'chmod +x steps.sh'
                 }
                 timeout(time: common.perJobTimeout.time,
                         unit: common.perJobTimeout.unit) {
                     try {
-                        coverage_log = sh returnStdout: true, script: """
-chmod +x src/steps.sh
-docker run -u \$(id -u):\$(id -g) --rm --entrypoint /var/lib/build/steps.sh \
-    -w /var/lib/build -v `pwd`/src:/var/lib/build \
-    -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh $common.docker_repo:$platform
-"""
+                        coverage_log = sh(
+                            script: common.docker_script(
+                                platform, "/var/lib/build/steps.sh"
+                            ),
+                            returnStdout: true
+                        )
                         coverage_details['coverage'] = coverage_log.substring(
                             coverage_log.indexOf('Test Report Summary')
                         )
@@ -445,11 +433,14 @@ def gen_release_jobs() {
     }
 
     if (RUN_ALL == "true") {
-        all_sh_components = common.get_all_sh_components()
-        for (component in all_sh_components) {
+        common.get_all_sh_components(['ubuntu-16.04', 'ubuntu-18.04'])
+        for (component in common.all_sh_components['ubuntu-16.04']) {
             jobs = jobs + gen_all_sh_jobs('ubuntu-16.04', component)
         }
-        jobs = jobs + gen_all_sh_jobs('ubuntu-18.04', 'build_mingw')
+        for (component in (common.all_sh_components['ubuntu-18.04'] -
+                           common.all_sh_components['ubuntu-16.04'])) {
+            jobs = jobs + gen_all_sh_jobs('ubuntu-18.04', component)
+        }
     }
 
     if (RUN_WINDOWS_TEST == "true") {
