@@ -10,103 +10,100 @@ def run_tls_tests_with_crypto_pr(is_production) {
 }
 
 def run_tls_tests(label_prefix='') {
-    node {
-        try {
-            deleteDir()
-            def jobs = [:]
+    try {
+        def jobs = [:]
 
-            /* Linux jobs */
-            if (env.RUN_LINUX_SCRIPTS == "true") {
-                jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
-                    label_prefix + 'std-make',
-                    common.linux_platforms,
-                    common.all_compilers,
-                    scripts.std_make_test_sh
-                )
-                jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
-                    label_prefix + 'std-make-full-config',
-                    common.linux_platforms,
-                    common.all_compilers,
-                    scripts.std_make_full_config_test_sh
-                )
-                jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
-                    label_prefix + 'cmake',
-                    common.linux_platforms,
-                    common.all_compilers,
-                    scripts.cmake_test_sh
-                )
-                jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
-                    label_prefix + 'cmake-full',
-                    common.linux_platforms,
-                    common.gcc_compilers,
-                    scripts.cmake_full_test_sh
-                )
-                jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
-                    label_prefix + 'cmake-asan',
-                    common.linux_platforms,
-                    common.asan_compilers,
-                    scripts.cmake_asan_test_sh
+        /* Linux jobs */
+        if (env.RUN_LINUX_SCRIPTS == "true") {
+            jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
+                label_prefix + 'std-make',
+                common.linux_platforms,
+                common.all_compilers,
+                scripts.std_make_test_sh
+            )
+            jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
+                label_prefix + 'std-make-full-config',
+                common.linux_platforms,
+                common.all_compilers,
+                scripts.std_make_full_config_test_sh
+            )
+            jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
+                label_prefix + 'cmake',
+                common.linux_platforms,
+                common.all_compilers,
+                scripts.cmake_test_sh
+            )
+            jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
+                label_prefix + 'cmake-full',
+                common.linux_platforms,
+                common.gcc_compilers,
+                scripts.cmake_full_test_sh
+            )
+            jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
+                label_prefix + 'cmake-asan',
+                common.linux_platforms,
+                common.asan_compilers,
+                scripts.cmake_asan_test_sh
+            )
+        }
+
+        /* BSD jobs */
+        if (env.RUN_FREEBSD == "true") {
+            jobs = jobs + gen_jobs.gen_node_jobs_foreach(
+                label_prefix + 'gmake',
+                common.bsd_platforms,
+                common.bsd_compilers,
+                scripts.gmake_test_sh
+            )
+            jobs = jobs + gen_jobs.gen_node_jobs_foreach(
+                label_prefix + 'cmake',
+                common.bsd_platforms,
+                common.bsd_compilers,
+                scripts.cmake_test_sh
+            )
+        }
+
+        /* Windows jobs */
+        if (env.RUN_WINDOWS_TEST == "true") {
+            jobs = jobs + gen_jobs.gen_windows_jobs_for_pr(label_prefix)
+        }
+
+        /* All.sh jobs */
+        if (env.RUN_ALL_SH == "true") {
+            for (component in common.all_sh_components['ubuntu-16.04']) {
+                jobs = jobs + gen_jobs.gen_all_sh_jobs(
+                    'ubuntu-16.04', component, label_prefix
                 )
             }
-
-            /* BSD jobs */
-            if (env.RUN_FREEBSD == "true") {
-                jobs = jobs + gen_jobs.gen_node_jobs_foreach(
-                    label_prefix + 'gmake',
-                    common.bsd_platforms,
-                    common.bsd_compilers,
-                    scripts.gmake_test_sh
-                )
-                jobs = jobs + gen_jobs.gen_node_jobs_foreach(
-                    label_prefix + 'cmake',
-                    common.bsd_platforms,
-                    common.bsd_compilers,
-                    scripts.cmake_test_sh
+            for (component in (common.all_sh_components['ubuntu-18.04'] -
+                               common.all_sh_components['ubuntu-16.04'])) {
+                jobs = jobs + gen_jobs.gen_all_sh_jobs(
+                    'ubuntu-18.04', component, label_prefix
                 )
             }
+        }
 
-            /* Windows jobs */
-            if (env.RUN_WINDOWS_TEST == "true") {
-                jobs = jobs + gen_jobs.gen_windows_jobs_for_pr(label_prefix)
-            }
+        if (env.RUN_ABI_CHECK == "true") {
+            jobs = jobs + gen_jobs.gen_abi_api_checking_job('ubuntu-16.04')
+        }
 
-            /* All.sh jobs */
-            if (env.RUN_ALL_SH == "true") {
-                for (component in common.all_sh_components['ubuntu-16.04']) {
-                    jobs = jobs + gen_jobs.gen_all_sh_jobs(
-                        'ubuntu-16.04', component, label_prefix
-                    )
-                }
-                for (component in (common.all_sh_components['ubuntu-18.04'] -
-                                   common.all_sh_components['ubuntu-16.04'])) {
-                    jobs = jobs + gen_jobs.gen_all_sh_jobs(
-                        'ubuntu-18.04', component, label_prefix
-                    )
-                }
-            }
+        /* Deciding whether to run example jobs is handled within this */
+        jobs = jobs + gen_jobs.gen_all_example_jobs()
 
-            if (env.RUN_ABI_CHECK == "true") {
-                jobs = jobs + gen_jobs.gen_abi_api_checking_job('ubuntu-16.04')
-            }
-
-            /* Deciding whether to run example jobs is handled within this */
-            jobs = jobs + gen_jobs.gen_all_example_jobs()
-
-            jobs.failFast = false
-            parallel jobs
-            if (env.BRANCH_NAME) {
-                githubNotify context: "${env.BRANCH_NAME} TLS Testing",
-                             description: 'All tests passed',
-                             status: 'SUCCESS'
-            }
-        } catch (err) {
-            echo "Caught: ${err}"
-            currentBuild.result = 'FAILURE'
-            if (env.BRANCH_NAME) {
-                githubNotify context: "${env.BRANCH_NAME} TLS Testing",
-                             description: 'Test failure',
-                             status: 'FAILURE'
-            }
+        jobs.failFast = false
+        parallel jobs
+        if (env.BRANCH_NAME) {
+            githubNotify context: "${env.BRANCH_NAME} TLS Testing",
+                         description: 'All tests passed',
+                         status: 'SUCCESS'
+        }
+    } catch (err) {
+        echo "Caught: ${err}"
+        currentBuild.result = 'FAILURE'
+        if (env.BRANCH_NAME) {
+            githubNotify context: "${env.BRANCH_NAME} TLS Testing",
+                         description: 'Test failure',
+                         status: 'FAILURE'
         }
     }
 }
@@ -127,37 +124,35 @@ def run_pr_job(is_production=true) {
         }
 
         stage('pre-test-checks') {
-            node {
-                try {
-                    environ.set_tls_pr_environment(is_production)
-                    common.get_all_sh_components(['ubuntu-16.04', 'ubuntu-18.04'])
-                } catch (err) {
-                    if (env.BRANCH_NAME) {
-                        githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                                     description: 'Base branch out of date. Please rebase',
-                                     status: 'FAILURE'
-                    }
-                    throw (err)
+            try {
+                environ.set_tls_pr_environment(is_production)
+                common.get_all_sh_components(['ubuntu-16.04', 'ubuntu-18.04'])
+            } catch (err) {
+                if (env.BRANCH_NAME) {
+                    githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
+                                 description: 'Base branch out of date. Please rebase',
+                                 status: 'FAILURE'
                 }
-                try {
-                    common.check_for_bad_words()
-                    if (env.BRANCH_NAME) {
-                        githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                                     description: 'OK',
-                                     status: 'SUCCESS'
-                    }
-                } catch (err) {
-                    /* We give generic error message to github because we don't wan't to give
-                     * information to external pull requests that failure cause was for example
-                     * bad word like name of our customer.
-                    */
-                    if (env.BRANCH_NAME) {
-                        githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                                     description: 'Pre Test Checks failed.',
-                                     status: 'FAILURE'
-                    }
-                    throw (err)
+                throw (err)
+            }
+            try {
+                common.check_for_bad_words()
+                if (env.BRANCH_NAME) {
+                    githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
+                                 description: 'OK',
+                                 status: 'SUCCESS'
                 }
+            } catch (err) {
+                /* We give generic error message to github because we don't wan't to give
+                 * information to external pull requests that failure cause was for example
+                 * bad word like name of our customer.
+                */
+                if (env.BRANCH_NAME) {
+                    githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
+                                 description: 'Pre Test Checks failed.',
+                                 status: 'FAILURE'
+                }
+                throw (err)
             }
         }
 
