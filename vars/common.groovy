@@ -26,32 +26,50 @@ import groovy.transform.Field
 @Field gcc_compilers = ['gcc']
 @Field asan_compilers = ['clang']
 
+@Field all_sh_components = [:]
+
 def get_docker_image(docker_image) {
     sh "\$(aws ecr get-login) && docker pull $docker_repo:$docker_image"
 }
 
-def get_all_sh_components() {
-    node {
-        /* Get components of all.sh */
+def docker_script(platform, entrypoint, entrypoint_arguments='') {
+    return """\
+docker run -u \$(id -u):\$(id -g) --rm --entrypoint $entrypoint \
+    -w /var/lib/build -v `pwd`/src:/var/lib/build \
+    -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh \
+    --cap-add SYS_PTRACE $docker_repo:$platform $entrypoint_arguments
+"""
+}
+
+/* Get components of all.sh for a list of platforms*/
+def get_all_sh_components(platform_list) {
+    node('ubuntu-16.10-x64 && mbedtls') {
         dir('src') {
             deleteDir()
             checkout_repo.checkout_repo()
+        }
+        for (platform in platform_list) {
+            get_docker_image(platform)
             def all_sh_help = sh(
-                script: "./tests/scripts/all.sh --help",
+                script: docker_script(
+                    platform, "./tests/scripts/all.sh", "--help"
+                ),
                 returnStdout: true
             )
             if (all_sh_help.contains('list-components')) {
-                all_sh_components = sh(
-                    script: "./tests/scripts/all.sh --list-components",
+                all_sh_components[platform] = sh(
+                    script: docker_script(
+                        platform, "./tests/scripts/all.sh", "--list-components"
+                    ),
                     returnStdout: true
                 ).trim().split('\n')
             } else {
                 error('Base branch out of date. Please rebase')
             }
         }
-        return all_sh_components
     }
 }
+
 /* Check for any bad words found from pull request code and commit messages.
  * Bad words list is in file resources/bad_words.txt
  * Bad words may be a customer which can't be shown to public.
