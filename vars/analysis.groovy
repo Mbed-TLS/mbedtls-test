@@ -14,7 +14,7 @@ def stash_outcomes(job_name) {
 }
 
 def gather_outcomes() {
-    node("ubuntu-16.10-x64") {
+    node {
         // After running on an old branch which doesn't have the outcome
         // file generation mechanism, or after running a partial run,
         // there may not be any outcome file. In this case, silently
@@ -44,21 +44,19 @@ def analyze_results() {
 }
 
 def analyze_results_and_notify_github() {
-    node {
-        try {
-            analyze_results()
-            if (env.BRANCH_NAME) {
-                githubNotify context: "${env.BRANCH_NAME} Result analysis",
-                             description: 'OK',
-                             status: 'SUCCESS'
-            }
-        } catch (err) {
-            if (env.BRANCH_NAME) {
-                githubNotify context: "${env.BRANCH_NAME} Result analysis",
-                             description: 'Analysis failed',
-                             status: 'FAILURE'
-            }
-            throw (err)
+    try {
+        analyze_results()
+        if (env.BRANCH_NAME) {
+            githubNotify context: "${env.BRANCH_NAME} Result analysis",
+                         description: 'OK',
+                         status: 'SUCCESS'
         }
+    } catch (err) {
+        if (env.BRANCH_NAME) {
+            githubNotify context: "${env.BRANCH_NAME} Result analysis",
+                         description: 'Analysis failed',
+                         status: 'FAILURE'
+        }
+        throw (err)
     }
 }
