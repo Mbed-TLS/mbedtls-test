@@ -84,6 +84,8 @@ def check_for_bad_words() {
         writeFile file: 'bad_words_exclude.txt', text: BAD_EXCLUDE
 
         dir('src') {
+            deleteDir()
+            checkout_repo.checkout_repo()
             std_output = sh(
                         script: '''
                         set +e
@@ -95,6 +97,7 @@ def check_for_bad_words() {
                         returnStdout: true
                     )
             echo std_output
+            deleteDir()
             if (std_output) {
                 throw new Exception("Pre Test Checks failed")
             }
