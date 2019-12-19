@@ -61,7 +61,7 @@ def run_crypto_tests() {
 
             /* All.sh jobs */
             if (env.RUN_ALL_SH == "true") {
-                for (component in common.all_sh_components) {
+                for (component in common.all_sh_components['ubuntu-16.04']) {
                     jobs = jobs + gen_jobs.gen_all_sh_jobs(
                         'ubuntu-16.04', component
                     )
@@ -115,7 +115,7 @@ def run_pr_job(is_production=true) {
             node {
                 try {
                     environ.set_crypto_pr_environment(is_production)
-                    common.get_all_sh_components()
+                    common.get_all_sh_components(['ubuntu-16.04'])
                     if (env.BRANCH_NAME) {
                         githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
                                      description: 'OK',
