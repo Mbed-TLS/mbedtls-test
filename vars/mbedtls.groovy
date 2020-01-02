@@ -127,15 +127,7 @@ def run_pr_job(is_production=true) {
             try {
                 environ.set_tls_pr_environment(is_production)
                 common.get_all_sh_components(['ubuntu-16.04', 'ubuntu-18.04'])
-            } catch (err) {
-                if (env.BRANCH_NAME) {
-                    githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                                 description: 'Base branch out of date. Please rebase',
-                                 status: 'FAILURE'
-                }
-                throw (err)
-            }
-            try {
+                common.check_every_all_sh_component_will_be_run()
                 common.check_for_bad_words()
                 if (env.BRANCH_NAME) {
                     githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
@@ -143,13 +135,13 @@ def run_pr_job(is_production=true) {
                                  status: 'SUCCESS'
                 }
             } catch (err) {
-                /* We give generic error message to github because we don't wan't to give
-                 * information to external pull requests that failure cause was for example
-                 * bad word like name of our customer.
-                */
                 if (env.BRANCH_NAME) {
+                    def description = 'Pre Test Checks failed.'
+                    if (err.getMessage().contains('Pre Test Checks')) {
+                        description = err.getMessage()
+                    }
                     githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                                 description: 'Pre Test Checks failed.',
+                                 description: description,
                                  status: 'FAILURE'
                 }
                 throw (err)
