@@ -115,6 +115,7 @@ def run_pr_job(is_production=true) {
             try {
                 environ.set_crypto_pr_environment(is_production)
                 common.get_all_sh_components(['ubuntu-16.04', 'ubuntu-18.04'])
+                common.check_every_all_sh_component_will_be_run()
                 if (env.BRANCH_NAME) {
                     githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
                                  description: 'OK',
@@ -122,8 +123,12 @@ def run_pr_job(is_production=true) {
                 }
             } catch (err) {
                 if (env.BRANCH_NAME) {
+                    def description = 'Pre Test Checks failed.'
+                    if (err.getMessage().contains('Pre Test Checks')) {
+                        description = err.getMessage()
+                    }
                     githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                                 description: 'Base branch out of date. Please rebase',
+                                 description: description,
                                  status: 'FAILURE'
                 }
                 throw (err)

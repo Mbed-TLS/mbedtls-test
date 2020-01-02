@@ -65,6 +65,7 @@ RUN apt-get update > /dev/null && \
                        gcc-mingw-w64-i686 \
                        clang \
                        wget \
+                       pylint3 \
                        lsof > /dev/null && \
     apt-get clean && rm -rf /var/lib/apt/lists/
 
