@@ -202,6 +202,11 @@ RUN wget -q https://github.com/lvc/abi-compliance-checker/archive/2.3.tar.gz && 
 RUN git clone --branch 1.1 https://github.com/lvc/abi-dumper.git && \
     cd abi-dumper && make install prefix=/usr && cd .. && rm -rf abi-dumper
 
+# Install zlib and its headers (used by MBEDTLS_ZLIB_SUPPORT)
+RUN apt-get update > /dev/null && \
+    apt-get install -y zlib1g zlib1g-dev > /dev/null && \
+    apt-get clean && rm -rf /var/lib/apt/lists/
+
 # Remove Ubuntu unattended-upgrades to prevent unwanted changes to system while it is running
 RUN apt-get purge -y unattended-upgrades
 
