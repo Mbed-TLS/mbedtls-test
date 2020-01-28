@@ -22,19 +22,21 @@ def gather_outcomes() {
         if (!outcome_stashes.isEmpty()) {
             dir('outcomes') {
                 deleteDir()
-                for (stash_name in outcome_stashes) {
-                    unstash(stash_name)
+                dir('csvs') {
+                    for (stash_name in outcome_stashes) {
+                        unstash(stash_name)
+                    }
+                    // Use separate commands, not a pipeline, to get an error
+                    // if cat fails.
+                    sh """\
+cat *.csv >../outcomes.csv
+xz ../outcomes.csv
+"""
+                    deleteDir()
                 }
-                // Use separate commands, not a pipeline, to get an error
-                // if cat fails.
-                sh """
-    cat *.csv >../outcomes.csv
-    xz ../outcomes.csv
-    """
-                deleteDir()
+                archiveArtifacts(artifacts: 'outcomes.csv.xz',
+                                 fingerprint: true, allowEmptyArchive: true)
             }
-            archiveArtifacts(artifacts: 'outcomes.csv.xz',
-                             fingerprint: true, allowEmptyArchive: true)
         }
     }
 }
