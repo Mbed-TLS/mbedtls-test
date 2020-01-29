@@ -24,6 +24,12 @@
  *  - TEST_MBED_OS_HASHING_EXAMPLE
  *  - TEST_MBED_OS_TLS_CLIENT_EXAMPLE
  *
+ * Other parameters
+ *  - TEST_BRANCH
+ *
+ * Environment variables:
+ *  - GIT_CREDENTIALS_ID
+ *
  */
 
 /* main job */
