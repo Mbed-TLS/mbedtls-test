@@ -19,12 +19,12 @@
  *
  * Test options
  *  - RUN_BASIC_BUILD_TEST
- *  - RUN_ALL
+ *  - RUN_ALL_SH
  *  - RUN_WINDOWS_TEST
  *  - TEST_MBED_OS_TLS_EXAMPLES
  *  - TEST_MBED_OS_CRYPTO_EXAMPLES
  *  - TEST_MBED_OS_ATECC608A_EXAMPLES
- *  - EXAMPLES_TO_BUILD
+ *  - PLATFORMS_TO_TEST
  *
  * Other parameters
  *  - TEST_FAIL_EMAIL_ADDRESS - (only in nightly jobs)

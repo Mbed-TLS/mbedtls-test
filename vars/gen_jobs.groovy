@@ -434,7 +434,7 @@ def gen_release_jobs() {
         jobs = jobs + gen_code_coverage_job('ubuntu-16.04');
     }
 
-    if (RUN_ALL == "true") {
+    if (RUN_ALL_SH == "true") {
         common.get_all_sh_components(['ubuntu-16.04', 'ubuntu-18.04'])
         for (component in common.all_sh_components['ubuntu-16.04']) {
             jobs = jobs + gen_all_sh_jobs('ubuntu-16.04', component)

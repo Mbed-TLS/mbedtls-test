@@ -110,7 +110,7 @@ def platforms_to_test() {
     if (env.JOB_TYPE == 'PR') {
         return pull_request_platforms
     }
-    switch (env.EXAMPLES_TO_BUILD) {
+    switch (env.PLATFORMS_TO_TEST) {
         case 'Pull Request':
             return pull_request_platforms
         case 'Mbed OS Gold Boards':
