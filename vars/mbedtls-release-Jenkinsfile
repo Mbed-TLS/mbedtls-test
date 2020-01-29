@@ -6,8 +6,8 @@
  * Repos and branches
  *  - MBED_TLS_REPO
  *  - MBED_TLS_BRANCH
- *  - MBED_CRYPTO_REPO - optional
- *  - MBED_CRYPTO_BRANCH - optional
+ *  - MBED_CRYPTO_REPO - (optional, not present in nightly jobs)
+ *  - MBED_CRYPTO_BRANCH - (optional, not present in nightly jobs)
  *  - MBED_OS_REPO
  *  - MBED_OS_BRANCH
  *  - MBED_OS_TLS_EXAMPLES_REPO
@@ -21,11 +21,14 @@
  *  - TEST_MBED_OS_BENCHMARK_EXAMPLE
  *  - TEST_MBED_OS_HASHING_EXAMPLE
  *  - TEST_MBED_OS_TLS_CLIENT_EXAMPLE
+ *  - EXAMPLES_TO_BUILD
+ *
+ * Other parameters
+ *  - TEST_FAIL_EMAIL_ADDRESS - (only in nightly jobs)
+ *  - TEST_PASS_EMAIL_ADDRESS - (only in nightly jobs)
  *
  * Environment variables:
  *  - GIT_CREDENTIALS_ID
- *  - TEST_FAIL_EMAIL_ADDRESS - (used for scheduled jobs)
- *  - TEST_PASS_EMAIL_ADDRESS - (used for scheduled jobs)
  */
 
 /* main job */
