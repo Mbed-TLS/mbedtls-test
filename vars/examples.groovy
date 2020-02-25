@@ -103,7 +103,7 @@ import groovy.transform.Field
         'repo': env.MBED_OS_ATECC608A_EXAMPLES_REPO,
         'branch': env.MBED_OS_ATECC608A_EXAMPLES_BRANCH,
         'platforms': {['K64F']},
-        'compilers': ['GCC_ARM']],
+        'compilers': compilers],
 ]
 
 def platforms_to_test() {
