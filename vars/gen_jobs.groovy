@@ -349,6 +349,14 @@ def gen_mbed_os_example_job(repo, branch, example, compiler, platform, raas) {
         node(compiler) {
             try {
                 deleteDir()
+/* Create python virtual environment and install mbed tools */
+                sh """\
+ulimit -f 20971520
+virtualenv $WORKSPACE/mbed-venv
+. $WORKSPACE/mbed-venv/bin/activate
+pip install mbed-cli
+pip install mbed-host-tests
+"""
                 dir('mbed-os-example') {
                     deleteDir()
                     checkout_repo.checkout_mbed_os_example_repo(repo, branch)
@@ -358,6 +366,7 @@ def gen_mbed_os_example_job(repo, branch, example, compiler, platform, raas) {
                         if (env.TARGET_REPO == 'example') {
                             sh """\
 ulimit -f 20971520
+. $WORKSPACE/mbed-venv/bin/activate
 mbed config root .
 mbed deploy -vv
 """
@@ -369,6 +378,7 @@ mbed deploy -vv
  * according to the job parameters. */
                             sh """\
 ulimit -f 20971520
+. $WORKSPACE/mbed-venv/bin/activate
 rm -f mbed-os.lib
 mbed config root .
 mbed deploy -vv
@@ -376,6 +386,12 @@ mbed deploy -vv
                             dir('mbed-os') {
                                 deleteDir()
                                 checkout_repo.checkout_mbed_os()
+/* Check that python requirements are up to date */
+                                sh """\
+ulimit -f 20971520
+. $WORKSPACE/mbed-venv/bin/activate
+pip install -r requirements.txt
+"""
                             }
                         }
                         timeout(time: common.perJobTimeout.time +
@@ -387,6 +403,7 @@ mbed deploy -vv
                             }
                             sh """\
 ulimit -f 20971520
+. $WORKSPACE/mbed-venv/bin/activate
 mbed compile -m ${platform} -t ${compiler}
 """
                             for (int attempt = 1; attempt <= 3; attempt++) {
