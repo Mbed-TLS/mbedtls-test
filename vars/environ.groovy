@@ -87,9 +87,8 @@ def set_tls_release_environment() {
     env.CHECKOUT_METHOD = 'parametrized'
 }
 
-def set_mbed_os_example_pr_environment(example) {
+def set_mbed_os_example_pr_environment(example, is_production) {
     env.JOB_TYPE = 'PR'
-    env.CHECKOUT_METHOD = 'scm'
     env.TARGET_REPO = 'example'
     switch (example) {
         case 'TLS':
@@ -106,5 +105,10 @@ def set_mbed_os_example_pr_environment(example) {
             break
         default:
             throw new Exception("No example specified")
+    }
+    if (is_production) {
+        env.CHECKOUT_METHOD = 'scm'
+    } else {
+        env.CHECKOUT_METHOD = 'parametrized'
     }
 }
