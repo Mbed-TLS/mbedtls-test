@@ -349,47 +349,49 @@ def gen_mbed_os_example_job(repo, branch, example, compiler, platform, raas) {
         node(compiler) {
             try {
                 deleteDir()
-                checkout_repo.checkout_mbed_os_example_repo(repo, branch)
-                dir(example) {
+                dir('mbed-os-example') {
+                    deleteDir()
+                    checkout_repo.checkout_mbed_os_example_repo(repo, branch)
+                    dir(example) {
 /* If the job is targeting an example repo, then we wish to use the versions
  * of Mbed OS, TLS and Crypto specified by the mbed-os.lib file. */
-                    if (env.TARGET_REPO == 'example') {
-                        sh """\
+                        if (env.TARGET_REPO == 'example') {
+                            sh """\
 ulimit -f 20971520
 mbed config root .
 mbed deploy -vv
 """
-                    } else {
+                        } else {
 /* If the job isn't targeting an example repo, the versions of Mbed OS, TLS and
  * Crypto will be specified by the job. We remove mbed-os.lib so we aren't
  * checking it out twice. Mbed deploy is still run in case other libraries
  * are required to be deployed. We then check out Mbed OS, TLS and Crypto
  * according to the job parameters. */
-                        sh """\
+                            sh """\
 ulimit -f 20971520
 rm -f mbed-os.lib
 mbed config root .
 mbed deploy -vv
 """
-                        dir('mbed-os') {
-                            deleteDir()
-                            checkout_repo.checkout_mbed_os()
+                            dir('mbed-os') {
+                                deleteDir()
+                                checkout_repo.checkout_mbed_os()
+                            }
                         }
-                    }
-                    timeout(time: common.perJobTimeout.time +
-                                  common.perJobTimeout.raasOffset,
-                            unit: common.perJobTimeout.unit) {
-                        def tag_filter = ""
-                        if (example == 'atecc608a') {
-                            tag_filter = "--tag-filters HAS_CRYPTOKIT"
-                        }
-                        sh """\
+                        timeout(time: common.perJobTimeout.time +
+                                      common.perJobTimeout.raasOffset,
+                                unit: common.perJobTimeout.unit) {
+                            def tag_filter = ""
+                            if (example == 'atecc608a') {
+                                tag_filter = "--tag-filters HAS_CRYPTOKIT"
+                            }
+                            sh """\
 ulimit -f 20971520
 mbed compile -m ${platform} -t ${compiler}
 """
-                        for (int attempt = 1; attempt <= 3; attempt++) {
-                            try {
-                                sh """\
+                            for (int attempt = 1; attempt <= 3; attempt++) {
+                                try {
+                                    sh """\
 ulimit -f 20971520
 if [ -e BUILD/${platform}/${compiler}/${example}.bin ]
 then
@@ -409,9 +411,10 @@ mbedhtrun -m ${platform} ${tag_filter} \
 -g raas_client:https://${raas}.mbedcloudtesting.com:443 -P 1000 --sync=0 -v \
     --compare-log ../tests/${example}.log -f \$BINARY
 """
-                                break
-                            } catch (err) {
-                                if (attempt == 3) throw (err)
+                                    break
+                                } catch (err) {
+                                    if (attempt == 3) throw (err)
+                                }
                             }
                         }
                     }
