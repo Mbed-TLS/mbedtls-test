@@ -1,0 +1,21 @@
+#!/usr/bin/env groovy
+
+/*
+ * This script takes the following parameters:
+ *
+ * Repos and branches
+ *  - MBED_OS_TLS_EXAMPLES_REPO
+ *  - MBED_OS_TLS_EXAMPLES_BRANCH
+ *  - MBED_OS_CRYPTO_EXAMPLES_REPO
+ *  - MBED_OS_CRYPTO_EXAMPLES_BRANCH
+ *  - MBED_OS_ATECC608A_EXAMPLES_REPO
+ *  - MBED_OS_ATECC608A_EXAMPLES_BRANCH
+ *
+ * Test options
+ *  - MBED_OS_EXAMPLE
+ *
+ */
+
+/* main job */
+library identifier: 'mbedtls-test@master', retriever: legacySCM(scm)
+mbed_os_example.run_pr_job(MBED_OS_EXAMPLE, is_production=false)
