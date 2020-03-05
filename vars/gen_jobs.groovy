@@ -343,7 +343,7 @@ def gen_all_example_jobs() {
 
 def gen_mbed_os_example_job(repo, branch, example, compiler, platform, raas) {
     def jobs = [:]
-    def job_name = "${example}-${platform}-${compiler}"
+    def job_name = "mbed-os-${example}-${platform}-${compiler}"
 
     jobs[job_name] = {
         node(compiler) {
