@@ -1,6 +1,6 @@
 import groovy.transform.Field
 
-@Field compilers = ['ARM', 'GCC_ARM', 'IAR']
+@Field compilers = ['ARM', 'GCC_ARM']
 
 @Field platforms_without_entropy_sources = [
     'NUCLEO_F411RE', 'NUCLEO_F303RE', 'GR_LYCHEE'
