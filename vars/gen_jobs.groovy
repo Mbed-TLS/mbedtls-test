@@ -218,9 +218,6 @@ def gen_windows_jobs_for_release(label_prefix='') {
     for (build in common.get_supported_windows_builds()) {
         jobs = jobs + gen_windows_testing_job(build, label_prefix)
     }
-    jobs = jobs + gen_simple_windows_jobs(
-        label_prefix + 'iar8-mingw', scripts.iar8_mingw_test_bat
-    )
     return jobs
 }
 
