@@ -78,7 +78,7 @@ make clean
 if [ ! -f "./tests/seedfile" ]; then
     dd if=/dev/urandom of=./tests/seedfile bs=64 count=1
 fi
-if [ -d ./crypto -a ! -f "./crypto/tests/seedfile" ]; then
+if [ -d ./crypto/tests -a ! -f "./crypto/tests/seedfile" ]; then
     cp tests/seedfile crypto/tests/seedfile
 fi
 scripts/config.pl full
