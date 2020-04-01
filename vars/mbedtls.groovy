@@ -6,10 +6,10 @@ def run_tls_tests_with_crypto_pr(is_production) {
         env.MBED_TLS_REPO = "git@github.com:ARMmbed/mbedtls.git"
     }
     common.get_all_sh_components(['ubuntu-16.04', 'ubuntu-18.04'])
-    run_tls_tests('tls-', true)
+    run_tls_tests('tls-')
 }
 
-def run_tls_tests(label_prefix='', include_mbed_os=false) {
+def run_tls_tests(label_prefix='') {
     try {
         def jobs = [:]
 
@@ -85,10 +85,6 @@ def run_tls_tests(label_prefix='', include_mbed_os=false) {
 
         if (env.RUN_ABI_CHECK == "true") {
             jobs = jobs + gen_jobs.gen_abi_api_checking_job('ubuntu-16.04')
-        }
-
-        if (include_mbed_os) {
-            jobs = jobs + gen_jobs.gen_all_example_jobs()
         }
 
         jobs.failFast = false
