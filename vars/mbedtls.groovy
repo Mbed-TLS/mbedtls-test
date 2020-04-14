@@ -132,6 +132,20 @@ def run_mbed_os_tests() {
 /* main job */
 def run_pr_job(is_production=true) {
     timestamps {
+        /* During the nightly branch indexing, if a target branch has been
+         * updated, new merge jobs are triggered for each PR to that branch.
+         * If a PR has the "needs: work" label, don't run the merge job for
+         * that PR.
+         */
+        if (env.BRANCH_NAME ==~ /PR-\d+-merge/) {
+            if (pullRequest.labels.contains('needs: work')) {
+                if (currentBuild.rawBuild.getCauses()[0].toString().contains('BranchIndexingCause')) {
+                    echo 'Not running due to "needs: work" label.'
+                    return
+                }
+            }
+        }
+
         if (env.BRANCH_NAME) {
             githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
                          description: 'Checking if all PR tests can be run',
