@@ -140,8 +140,7 @@ def run_pr_job(is_production=true) {
         if (env.BRANCH_NAME ==~ /PR-\d+-merge/) {
             if (pullRequest.labels.contains('needs: work')) {
                 if (currentBuild.rawBuild.getCauses()[0].toString().contains('BranchIndexingCause')) {
-                    echo 'Not running due to "needs: work" label.'
-                    return
+                    error('Not running due to "needs: work" label.')
                 }
             }
         }
