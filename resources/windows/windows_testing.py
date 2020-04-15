@@ -419,7 +419,8 @@ class MbedWindowsTesting(object):
                                        solution_dir,
                                        test_run,
                                        solution_type,
-                                       logger):
+                                       logger,
+                                       c89):
         logger.info("Building mbed TLS using Visual Studio v{}".format(
             test_run.vs_version
         ))
@@ -430,8 +431,11 @@ class MbedWindowsTesting(object):
             retarget = "v{}".format(
                 self.vs_version_toolsets[test_run.vs_version]
             )
-        else:
+        elif c89:
             retarget = "Windows7.1SDK"  # Workaround for missing 2010 x64 tools
+        else:
+            retarget = "v120" # Visual Studio 2013
+        logger.info("retarget={}".format(retarget))
         for solution_file in os.listdir(solution_dir):
             if re.match(self.solution_file_pattern, solution_file):
                 break
@@ -533,8 +537,8 @@ class MbedWindowsTesting(object):
             git_worktree_path = self.get_clean_worktree_for_git_reference(
                 vs_logger
             )
-            if test_run.vs_version == '2010' and \
-               not self.this_version_forbids_c99(git_worktree_path):
+            c89 = self.this_version_forbids_c99(git_worktree_path)
+            if test_run.vs_version == '2010' and not c89:
                 for key in test_run.results:
                     test_run.results[key] = 'Skipped'
                 return
@@ -552,7 +556,7 @@ class MbedWindowsTesting(object):
                     git_worktree_path, "visualc", "VS2010"
                 )
             build_result = self.build_code_using_visual_studio(
-                solution_dir, test_run, solution_type, vs_logger
+                solution_dir, test_run, solution_type, vs_logger, c89
             )
             if build_result:
                 if solution_type == "cmake":
