@@ -146,7 +146,7 @@ def run_pr_job(is_production=true) {
 
             upd_timestamp_ms = pullRequest.updatedAt.getTime()
             now_timestamp_ms = currentBuild.startTimeInMillis
-            month_ms = 30 * 24 * 60 * 60 * 1000
+            long month_ms = 30L * 24L * 60L * 60L * 1000L
             if (now_timestamp_ms - upd_timestamp_ms > month_ms) {
                 error('Not running: PR has not been updated in over a month.')
             }
