@@ -15,7 +15,7 @@ def run_tls_tests(label_prefix='') {
 
         /* Windows jobs */
         if (env.RUN_WINDOWS_TEST == "true") {
-            jobs = jobs + gen_jobs.gen_windows_jobs_for_pr(label_prefix)
+            jobs = jobs + gen_jobs.gen_windows_jobs(label_prefix)
         }
 
         /* Linux all.sh jobs */
