@@ -116,10 +116,24 @@ def platform_has_docker(platform) {
     return ['debian', 'ubuntu'].contains(os)
 }
 
+def platform_lacks_tls_tools(platform) {
+    def os = platform.replaceFirst(/-.*/, "")
+    return ['freebsd'].contains(os)
+}
+
 def gen_all_sh_jobs(platform, component, label_prefix='') {
     def jobs = [:]
     def job_name = "${label_prefix}all_sh-${platform}-${component}"
     def use_docker = platform_has_docker(platform)
+    def extra_env = ''
+
+    if (platform_lacks_tls_tools(platform)) {
+        /* The check_tools function in all.sh insists on the existence of the
+         * TLS tools, even if no test happens to use them. Passing 'false'
+         * pacifies check_tools, but will cause tests to fail if they
+         * do try to use it. */
+        extra_env += ' OPENSSL=false GNUTLS_CLI=false GNUTLS_SERV=false'
+    }
 
     jobs[job_name] = {
         node('ubuntu-16.10-x64 && mbedtls') {
@@ -134,7 +148,7 @@ def gen_all_sh_jobs(platform, component, label_prefix='') {
 #!/bin/sh
 set -eux
 ulimit -f 20971520
-export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv'
+export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv' ${extra_env}
 ./tests/scripts/all.sh --seed 4 --keep-going $component
 """
                     sh 'chmod +x steps.sh'
