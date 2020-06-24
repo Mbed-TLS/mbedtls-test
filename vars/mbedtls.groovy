@@ -13,25 +13,7 @@ def run_tls_tests(label_prefix='') {
     try {
         def jobs = [:]
 
-        /* Windows jobs */
-        if (env.RUN_WINDOWS_TEST == "true") {
-            jobs = jobs + gen_jobs.gen_windows_jobs(label_prefix)
-        }
-
-        /* Linux all.sh jobs */
-        if (env.RUN_ALL_SH == "true") {
-            for (component in common.available_all_sh_components['ubuntu-16.04']) {
-                jobs = jobs + gen_jobs.gen_all_sh_jobs(
-                    'ubuntu-16.04', component, label_prefix
-                )
-            }
-            for (component in (common.available_all_sh_components['ubuntu-18.04'] -
-                               common.available_all_sh_components['ubuntu-16.04'])) {
-                jobs = jobs + gen_jobs.gen_all_sh_jobs(
-                    'ubuntu-18.04', component, label_prefix
-                )
-            }
-        }
+        jobs = jobs + gen_jobs.gen_release_jobs(label_prefix, false)
 
         /* FreeBSD all.sh jobs */
         if (env.RUN_FREEBSD == "true") {
