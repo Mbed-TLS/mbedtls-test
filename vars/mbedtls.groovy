@@ -13,40 +13,6 @@ def run_tls_tests(label_prefix='') {
     try {
         def jobs = [:]
 
-        /* Linux jobs */
-        if (env.RUN_LINUX_SCRIPTS == "true") {
-            jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
-                label_prefix + 'std-make',
-                common.linux_platforms,
-                common.all_compilers,
-                scripts.std_make_test_sh
-            )
-            jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
-                label_prefix + 'std-make-full-config',
-                common.linux_platforms,
-                common.all_compilers,
-                scripts.std_make_full_config_test_sh
-            )
-            jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
-                label_prefix + 'cmake',
-                common.linux_platforms,
-                common.all_compilers,
-                scripts.cmake_test_sh
-            )
-            jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
-                label_prefix + 'cmake-full',
-                common.linux_platforms,
-                common.gcc_compilers,
-                scripts.cmake_full_test_sh
-            )
-            jobs = jobs + gen_jobs.gen_docker_jobs_foreach(
-                label_prefix + 'cmake-asan',
-                common.linux_platforms,
-                common.asan_compilers,
-                scripts.cmake_asan_test_sh
-            )
-        }
-
         /* BSD jobs */
         if (env.RUN_FREEBSD == "true") {
             jobs = jobs + gen_jobs.gen_node_jobs_foreach(
