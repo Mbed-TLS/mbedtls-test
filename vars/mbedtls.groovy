@@ -13,28 +13,12 @@ def run_tls_tests(label_prefix='') {
     try {
         def jobs = [:]
 
-        /* BSD jobs */
-        if (env.RUN_FREEBSD == "true") {
-            jobs = jobs + gen_jobs.gen_node_jobs_foreach(
-                label_prefix + 'gmake',
-                common.bsd_platforms,
-                common.bsd_compilers,
-                scripts.gmake_test_sh
-            )
-            jobs = jobs + gen_jobs.gen_node_jobs_foreach(
-                label_prefix + 'cmake',
-                common.bsd_platforms,
-                common.bsd_compilers,
-                scripts.cmake_test_sh
-            )
-        }
-
         /* Windows jobs */
         if (env.RUN_WINDOWS_TEST == "true") {
             jobs = jobs + gen_jobs.gen_windows_jobs_for_pr(label_prefix)
         }
 
-        /* All.sh jobs */
+        /* Linux all.sh jobs */
         if (env.RUN_ALL_SH == "true") {
             for (component in common.available_all_sh_components['ubuntu-16.04']) {
                 jobs = jobs + gen_jobs.gen_all_sh_jobs(
@@ -46,6 +30,16 @@ def run_tls_tests(label_prefix='') {
                 jobs = jobs + gen_jobs.gen_all_sh_jobs(
                     'ubuntu-18.04', component, label_prefix
                 )
+            }
+        }
+
+        /* FreeBSD all.sh jobs */
+        if (env.RUN_FREEBSD == "true") {
+            for (platform in common.bsd_platforms) {
+                for (component in common.other_platform_all_sh_components) {
+                    jobs = jobs + gen_jobs.gen_all_sh_jobs(
+                        platform, component, label_prefix)
+                }
             }
         }
 
