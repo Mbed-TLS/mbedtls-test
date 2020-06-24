@@ -487,7 +487,7 @@ def gen_release_jobs(label_prefix='', run_examples=true) {
     /* FreeBSD all.sh jobs */
     if (env.RUN_FREEBSD == "true") {
         for (platform in common.bsd_platforms) {
-            for (component in common.other_platform_all_sh_components) {
+            for (component in common.freebsd_all_sh_components) {
                 jobs = jobs + gen_all_sh_jobs(platform, component, label_prefix)
             }
         }
