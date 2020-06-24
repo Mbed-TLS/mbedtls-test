@@ -54,7 +54,7 @@ def run_crypto_tests() {
 
         /* Windows jobs */
         if (env.RUN_WINDOWS_TEST == "true") {
-            jobs = jobs + gen_jobs.gen_windows_jobs_for_pr()
+            jobs = jobs + gen_jobs.gen_windows_jobs()
         }
 
         /* All.sh jobs */
