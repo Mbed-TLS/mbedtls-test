@@ -26,7 +26,7 @@ import groovy.transform.Field
 @Field gcc_compilers = ['gcc']
 @Field asan_compilers = ['clang']
 
-@Field all_sh_components = [:]
+@Field available_all_sh_components = [:]
 @Field all_all_sh_components = []
 
 def get_docker_image(docker_image) {
@@ -58,7 +58,7 @@ def get_all_sh_components(platform_list) {
                 returnStdout: true
             )
             if (all_sh_help.contains('list-components')) {
-                all_sh_components[platform] = sh(
+                available_all_sh_components[platform] = sh(
                     script: docker_script(
                         platform, "./tests/scripts/all.sh", "--list-components"
                     ),
@@ -82,7 +82,7 @@ def get_all_sh_components(platform_list) {
 
 def check_every_all_sh_component_will_be_run() {
     def untested_all_sh_components = all_all_sh_components
-    all_sh_components.each { platform, components ->
+    available_all_sh_components.each { platform, components ->
         untested_all_sh_components -= components
     }
     if (untested_all_sh_components != []) {
