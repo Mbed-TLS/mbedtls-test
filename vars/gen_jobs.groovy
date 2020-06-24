@@ -456,6 +456,15 @@ def gen_release_jobs(label_prefix='', run_examples=true) {
         }
     }
 
+    /* FreeBSD all.sh jobs */
+    if (env.RUN_FREEBSD == "true") {
+        for (platform in common.bsd_platforms) {
+            for (component in common.other_platform_all_sh_components) {
+                jobs = jobs + gen_all_sh_jobs(platform, component, label_prefix)
+            }
+        }
+    }
+
     if (RUN_WINDOWS_TEST == "true") {
         jobs = jobs + gen_windows_jobs(label_prefix)
     }
