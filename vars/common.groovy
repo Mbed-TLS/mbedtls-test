@@ -29,15 +29,13 @@ import groovy.transform.Field
 @Field available_all_sh_components = [:]
 @Field all_all_sh_components = []
 
-/* These are the components that we want to run on all platforms where
- * all.sh runs (currently: FreeBSD). Components not listed here are only
- * run on the platform where we run everything (Linux). */
-@Field other_platform_all_sh_components = [
+@Field freebsd_all_sh_components = [
     /* Do not include any components that do TLS system testing, because
      * we don't maintain suitable versions of OpenSSL and GnuTLS on
      * secondary platforms. */
     'test_default_out_of_box',          // out of box, make
-    'test_clang_opt',                   // clang, make
+    /* FreeBSD on the CI is too old to have clang. */
+    //'test_clang_opt',                   // clang, make
     'test_gcc_opt',                     // gcc, make
     'test_cmake_shared',                // cmake
     'test_cmake_out_of_source',         // cmake
