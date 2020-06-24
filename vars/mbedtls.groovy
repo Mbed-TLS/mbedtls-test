@@ -15,16 +15,6 @@ def run_tls_tests(label_prefix='') {
 
         jobs = jobs + gen_jobs.gen_release_jobs(label_prefix, false)
 
-        /* FreeBSD all.sh jobs */
-        if (env.RUN_FREEBSD == "true") {
-            for (platform in common.bsd_platforms) {
-                for (component in common.other_platform_all_sh_components) {
-                    jobs = jobs + gen_jobs.gen_all_sh_jobs(
-                        platform, component, label_prefix)
-                }
-            }
-        }
-
         if (env.RUN_ABI_CHECK == "true") {
             jobs = jobs + gen_jobs.gen_abi_api_checking_job('ubuntu-16.04')
         }
