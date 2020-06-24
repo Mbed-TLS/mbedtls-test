@@ -436,7 +436,7 @@ mbedhtrun -m ${platform} ${tag_filter} \
     return jobs
 }
 
-def gen_release_jobs() {
+def gen_release_jobs(label_prefix='', run_examples=true) {
     def jobs = [:]
 
     if (RUN_BASIC_BUILD_TEST == "true") {
@@ -446,19 +446,21 @@ def gen_release_jobs() {
     if (RUN_ALL_SH == "true") {
         common.get_all_sh_components(['ubuntu-16.04', 'ubuntu-18.04'])
         for (component in common.available_all_sh_components['ubuntu-16.04']) {
-            jobs = jobs + gen_all_sh_jobs('ubuntu-16.04', component)
+            jobs = jobs + gen_all_sh_jobs('ubuntu-16.04', component, label_prefix)
         }
         for (component in (common.available_all_sh_components['ubuntu-18.04'] -
                            common.available_all_sh_components['ubuntu-16.04'])) {
-            jobs = jobs + gen_all_sh_jobs('ubuntu-18.04', component)
+            jobs = jobs + gen_all_sh_jobs('ubuntu-18.04', component, label_prefix)
         }
     }
 
     if (RUN_WINDOWS_TEST == "true") {
-        jobs = jobs + gen_windows_jobs()
+        jobs = jobs + gen_windows_jobs(label_prefix)
     }
 
-    jobs = jobs + gen_all_example_jobs()
+    if (run_examples) {
+        jobs = jobs + gen_all_example_jobs()
+    }
 
     return jobs
 }
