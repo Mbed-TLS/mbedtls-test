@@ -111,15 +111,23 @@ export PYTHON=/usr/local/bin/python2.7
     return jobs
 }
 
+def platform_has_docker(platform) {
+    def os = platform.replaceFirst(/-.*/, "")
+    return ['debian', 'ubuntu'].contains(os)
+}
+
 def gen_all_sh_jobs(platform, component, label_prefix='') {
     def jobs = [:]
     def job_name = "${label_prefix}all_sh-${platform}-${component}"
+    def use_docker = platform_has_docker(platform)
 
     jobs[job_name] = {
         node('ubuntu-16.10-x64 && mbedtls') {
             try {
                 deleteDir()
-                common.get_docker_image(platform)
+                if (use_docker) {
+                    common.get_docker_image(platform)
+                }
                 dir('src') {
                     checkout_repo.checkout_repo()
                     writeFile file: 'steps.sh', text: """\
@@ -134,9 +142,15 @@ export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv'
                 timeout(time: common.perJobTimeout.time,
                         unit: common.perJobTimeout.unit) {
                     try {
-                        sh common.docker_script(
-                            platform, "/var/lib/build/steps.sh"
-                        )
+                        if (use_docker) {
+                            sh common.docker_script(
+                                platform, "/var/lib/build/steps.sh"
+                            )
+                        } else {
+                            dir('src') {
+                                sh './steps.sh'
+                            }
+                        }
                     } finally {
                         dir('src') {
                             analysis.stash_outcomes(job_name)
