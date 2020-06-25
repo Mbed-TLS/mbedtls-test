@@ -14,29 +14,30 @@ def stash_outcomes(job_name) {
 }
 
 def gather_outcomes() {
+    // After running on an old branch which doesn't have the outcome
+    // file generation mechanism, or after running a partial run,
+    // there may not be any outcome file. In this case, silently
+    // do nothing.
+    if (outcome_stashes.isEmpty()) {
+        return
+    }
     node {
-        // After running on an old branch which doesn't have the outcome
-        // file generation mechanism, or after running a partial run,
-        // there may not be any outcome file. In this case, silently
-        // do nothing.
-        if (!outcome_stashes.isEmpty()) {
-            dir('outcomes') {
-                deleteDir()
-                dir('csvs') {
-                    for (stash_name in outcome_stashes) {
-                        unstash(stash_name)
-                    }
-                    // Use separate commands, not a pipeline, to get an error
-                    // if cat fails.
-                    sh """\
+        dir('outcomes') {
+            deleteDir()
+            dir('csvs') {
+                for (stash_name in outcome_stashes) {
+                    unstash(stash_name)
+                }
+                // Use separate commands, not a pipeline, to get an error
+                // if cat fails.
+                sh """\
 cat *.csv >../outcomes.csv
 xz ../outcomes.csv
 """
-                    deleteDir()
-                }
-                archiveArtifacts(artifacts: 'outcomes.csv.xz',
-                                 fingerprint: true, allowEmptyArchive: true)
+                deleteDir()
             }
+            archiveArtifacts(artifacts: 'outcomes.csv.xz',
+            fingerprint: true, allowEmptyArchive: true)
         }
     }
 }
