@@ -28,14 +28,10 @@ def gather_outcomes() {
                 for (stash_name in outcome_stashes) {
                     unstash(stash_name)
                 }
-                // Use separate commands, not a pipeline, to get an error
-                // if cat fails.
-                sh """\
-cat *.csv >../outcomes.csv
-xz ../outcomes.csv
-"""
+                sh 'cat *.csv >../outcomes.csv'
                 deleteDir()
             }
+            sh 'xz outcomes.csv'
             archiveArtifacts(artifacts: 'outcomes.csv.xz',
             fingerprint: true, allowEmptyArchive: true)
         }
