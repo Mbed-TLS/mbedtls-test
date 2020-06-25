@@ -24,16 +24,27 @@ def gather_outcomes() {
     node {
         dir('outcomes') {
             deleteDir()
-            dir('csvs') {
-                for (stash_name in outcome_stashes) {
-                    unstash(stash_name)
+            try {
+                checkout_repo.checkout_repo()
+                dir('csvs') {
+                    for (stash_name in outcome_stashes) {
+                        unstash(stash_name)
+                    }
+                    sh 'cat *.csv >../outcomes.csv'
+                    deleteDir()
                 }
-                sh 'cat *.csv >../outcomes.csv'
+                try {
+                    if (fileExists('tests/scripts/analyze_outcomes.py')) {
+                        sh 'tests/scripts/analyze_outcomes.py outcomes.csv'
+                    }
+                } finally {
+                    sh 'xz outcomes.csv'
+                    archiveArtifacts(artifacts: 'outcomes.csv.xz',
+                    fingerprint: true, allowEmptyArchive: true)
+                }
+            } finally {
                 deleteDir()
             }
-            sh 'xz outcomes.csv'
-            archiveArtifacts(artifacts: 'outcomes.csv.xz',
-            fingerprint: true, allowEmptyArchive: true)
         }
     }
 }
