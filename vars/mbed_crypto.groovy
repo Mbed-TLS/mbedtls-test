@@ -54,18 +54,18 @@ def run_crypto_tests() {
 
         /* Windows jobs */
         if (env.RUN_WINDOWS_TEST == "true") {
-            jobs = jobs + gen_jobs.gen_windows_jobs_for_pr()
+            jobs = jobs + gen_jobs.gen_windows_jobs()
         }
 
         /* All.sh jobs */
         if (env.RUN_ALL_SH == "true") {
-            for (component in common.all_sh_components['ubuntu-16.04']) {
+            for (component in common.available_all_sh_components['ubuntu-16.04']) {
                 jobs = jobs + gen_jobs.gen_all_sh_jobs(
                     'ubuntu-16.04', component
                 )
             }
-            for (component in (common.all_sh_components['ubuntu-18.04'] -
-                               common.all_sh_components['ubuntu-16.04'])) {
+            for (component in (common.available_all_sh_components['ubuntu-18.04'] -
+                               common.available_all_sh_components['ubuntu-16.04'])) {
                 jobs = jobs + gen_jobs.gen_all_sh_jobs(
                     'ubuntu-18.04', component
                 )

@@ -111,22 +111,44 @@ export PYTHON=/usr/local/bin/python2.7
     return jobs
 }
 
+def platform_has_docker(platform) {
+    def os = platform.replaceFirst(/-.*/, "")
+    return ['debian', 'ubuntu'].contains(os)
+}
+
+def platform_lacks_tls_tools(platform) {
+    def os = platform.replaceFirst(/-.*/, "")
+    return ['freebsd'].contains(os)
+}
+
 def gen_all_sh_jobs(platform, component, label_prefix='') {
     def jobs = [:]
     def job_name = "${label_prefix}all_sh-${platform}-${component}"
+    def use_docker = platform_has_docker(platform)
+    def extra_env = ''
+
+    if (platform_lacks_tls_tools(platform)) {
+        /* The check_tools function in all.sh insists on the existence of the
+         * TLS tools, even if no test happens to use them. Passing 'false'
+         * pacifies check_tools, but will cause tests to fail if they
+         * do try to use it. */
+        extra_env += ' OPENSSL=false GNUTLS_CLI=false GNUTLS_SERV=false'
+    }
 
     jobs[job_name] = {
         node('ubuntu-16.10-x64 && mbedtls') {
             try {
                 deleteDir()
-                common.get_docker_image(platform)
+                if (use_docker) {
+                    common.get_docker_image(platform)
+                }
                 dir('src') {
                     checkout_repo.checkout_repo()
                     writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
 ulimit -f 20971520
-export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv'
+export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv' ${extra_env}
 ./tests/scripts/all.sh --seed 4 --keep-going $component
 """
                     sh 'chmod +x steps.sh'
@@ -134,9 +156,15 @@ export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv'
                 timeout(time: common.perJobTimeout.time,
                         unit: common.perJobTimeout.unit) {
                     try {
-                        sh common.docker_script(
-                            platform, "/var/lib/build/steps.sh"
-                        )
+                        if (use_docker) {
+                            sh common.docker_script(
+                                platform, "/var/lib/build/steps.sh"
+                            )
+                        } else {
+                            dir('src') {
+                                sh './steps.sh'
+                            }
+                        }
                     } finally {
                         dir('src') {
                             analysis.stash_outcomes(job_name)
@@ -198,7 +226,7 @@ def gen_windows_testing_job(build, label_prefix='') {
     return jobs
 }
 
-def gen_windows_jobs_for_pr(label_prefix='') {
+def gen_windows_jobs(label_prefix='') {
     def jobs = [:]
     jobs = jobs + gen_simple_windows_jobs(
         label_prefix + 'win32-mingw', scripts.win32_mingw_test_bat
@@ -209,12 +237,6 @@ def gen_windows_jobs_for_pr(label_prefix='') {
     jobs = jobs + gen_simple_windows_jobs(
         label_prefix + 'win32-msvc12_64', scripts.win32_msvc12_64_test_bat
     )
-    jobs = jobs + gen_windows_jobs_for_release(label_prefix)
-    return jobs
-}
-
-def gen_windows_jobs_for_release(label_prefix='') {
-    def jobs = [:]
     for (build in common.get_supported_windows_builds()) {
         jobs = jobs + gen_windows_testing_job(build, label_prefix)
     }
@@ -442,29 +464,40 @@ mbedhtrun -m ${platform} ${tag_filter} \
     return jobs
 }
 
-def gen_release_jobs() {
+def gen_release_jobs(label_prefix='', run_examples=true) {
     def jobs = [:]
 
-    if (RUN_BASIC_BUILD_TEST == "true") {
+    if (env.RUN_BASIC_BUILD_TEST == "true") {
         jobs = jobs + gen_code_coverage_job('ubuntu-16.04');
     }
 
-    if (RUN_ALL_SH == "true") {
+    if (env.RUN_ALL_SH == "true") {
         common.get_all_sh_components(['ubuntu-16.04', 'ubuntu-18.04'])
-        for (component in common.all_sh_components['ubuntu-16.04']) {
-            jobs = jobs + gen_all_sh_jobs('ubuntu-16.04', component)
+        for (component in common.available_all_sh_components['ubuntu-16.04']) {
+            jobs = jobs + gen_all_sh_jobs('ubuntu-16.04', component, label_prefix)
         }
-        for (component in (common.all_sh_components['ubuntu-18.04'] -
-                           common.all_sh_components['ubuntu-16.04'])) {
-            jobs = jobs + gen_all_sh_jobs('ubuntu-18.04', component)
+        for (component in (common.available_all_sh_components['ubuntu-18.04'] -
+                           common.available_all_sh_components['ubuntu-16.04'])) {
+            jobs = jobs + gen_all_sh_jobs('ubuntu-18.04', component, label_prefix)
         }
     }
 
-    if (RUN_WINDOWS_TEST == "true") {
-        jobs = jobs + gen_windows_jobs_for_release()
+    /* FreeBSD all.sh jobs */
+    if (env.RUN_FREEBSD == "true") {
+        for (platform in common.bsd_platforms) {
+            for (component in common.freebsd_all_sh_components) {
+                jobs = jobs + gen_all_sh_jobs(platform, component, label_prefix)
+            }
+        }
     }
 
-    jobs = jobs + gen_all_example_jobs()
+    if (env.RUN_WINDOWS_TEST == "true") {
+        jobs = jobs + gen_windows_jobs(label_prefix)
+    }
+
+    if (run_examples) {
+        jobs = jobs + gen_all_example_jobs()
+    }
 
     return jobs
 }
