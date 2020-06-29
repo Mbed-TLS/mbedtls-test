@@ -26,8 +26,20 @@ import groovy.transform.Field
 @Field gcc_compilers = ['gcc']
 @Field asan_compilers = ['clang']
 
-@Field all_sh_components = [:]
+@Field available_all_sh_components = [:]
 @Field all_all_sh_components = []
+
+@Field freebsd_all_sh_components = [
+    /* Do not include any components that do TLS system testing, because
+     * we don't maintain suitable versions of OpenSSL and GnuTLS on
+     * secondary platforms. */
+    'test_default_out_of_box',          // out of box, make
+    /* FreeBSD on the CI is too old to have clang. */
+    //'test_clang_opt',                   // clang, make
+    'test_gcc_opt',                     // gcc, make
+    'test_cmake_shared',                // cmake
+    'test_cmake_out_of_source',         // cmake
+]
 
 def get_docker_image(docker_image) {
     sh "\$(aws ecr get-login) && docker pull $docker_repo:$docker_image"
@@ -58,7 +70,7 @@ def get_all_sh_components(platform_list) {
                 returnStdout: true
             )
             if (all_sh_help.contains('list-components')) {
-                all_sh_components[platform] = sh(
+                available_all_sh_components[platform] = sh(
                     script: docker_script(
                         platform, "./tests/scripts/all.sh", "--list-components"
                     ),
@@ -82,7 +94,7 @@ def get_all_sh_components(platform_list) {
 
 def check_every_all_sh_component_will_be_run() {
     def untested_all_sh_components = all_all_sh_components
-    all_sh_components.each { platform, components ->
+    available_all_sh_components.each { platform, components ->
         untested_all_sh_components -= components
     }
     if (untested_all_sh_components != []) {
