@@ -144,6 +144,11 @@ def gen_all_sh_jobs(platform, component, label_prefix='') {
                 }
                 dir('src') {
                     checkout_repo.checkout_repo()
+                    /* ARMLMD_LICENSE_FILE is supposed to be set in the
+                     * Dockerfile, but the value there is out-of-date and we
+                     * have trouble re-building the images (due to the death
+                     * of Python 2), so we override it here as a temporary
+                     * work-around. */
                     writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
@@ -421,6 +426,8 @@ pip install -r requirements.txt
                             if (example == 'atecc608a') {
                                 tag_filter = "--tag-filters HAS_CRYPTOKIT"
                             }
+                            /* See gen_all_sh_jobs() regarding setting of
+                             * ARMLMD_LICENSE_FILE here. */
                             sh """\
 ulimit -f 20971520
 . $WORKSPACE/mbed-venv/bin/activate
