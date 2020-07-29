@@ -424,6 +424,7 @@ pip install -r requirements.txt
                             sh """\
 ulimit -f 20971520
 . $WORKSPACE/mbed-venv/bin/activate
+export ARMLMD_LICENSE_FILE=8225@licenses.isgtesting.com
 mbed compile -m ${platform} -t ${compiler}
 """
                             for (int attempt = 1; attempt <= 3; attempt++) {
