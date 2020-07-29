@@ -148,6 +148,7 @@ def gen_all_sh_jobs(platform, component, label_prefix='') {
 #!/bin/sh
 set -eux
 ulimit -f 20971520
+export ARMLMD_LICENSE_FILE=8225@licenses.isgtesting.com
 export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv' ${extra_env};
 ./tests/scripts/all.sh --seed 4 --keep-going $component
 """
