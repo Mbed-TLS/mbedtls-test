@@ -144,10 +144,16 @@ def gen_all_sh_jobs(platform, component, label_prefix='') {
                 }
                 dir('src') {
                     checkout_repo.checkout_repo()
+                    /* ARMLMD_LICENSE_FILE is supposed to be set in the
+                     * Dockerfile, but the value there is out-of-date and we
+                     * have trouble re-building the images (due to the death
+                     * of Python 2), so we override it here as a temporary
+                     * work-around. */
                     writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
 ulimit -f 20971520
+export ARMLMD_LICENSE_FILE=8225@licenses.isgtesting.com
 export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv' ${extra_env};
 ./tests/scripts/all.sh --seed 4 --keep-going $component
 """
@@ -420,9 +426,12 @@ pip install -r requirements.txt
                             if (example == 'atecc608a') {
                                 tag_filter = "--tag-filters HAS_CRYPTOKIT"
                             }
+                            /* See gen_all_sh_jobs() regarding setting of
+                             * ARMLMD_LICENSE_FILE here. */
                             sh """\
 ulimit -f 20971520
 . $WORKSPACE/mbed-venv/bin/activate
+export ARMLMD_LICENSE_FILE=8225@licenses.isgtesting.com
 mbed compile -m ${platform} -t ${compiler}
 """
                             for (int attempt = 1; attempt <= 3; attempt++) {
