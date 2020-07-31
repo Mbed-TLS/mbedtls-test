@@ -56,7 +56,7 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint $entrypoint \
 
 /* Get components of all.sh for a list of platforms*/
 def get_all_sh_components(platform_list) {
-    node('ubuntu-16.10-x64 && mbedtls') {
+    node('container-host') {
         dir('src') {
             deleteDir()
             checkout_repo.checkout_repo()
@@ -113,7 +113,7 @@ def check_every_all_sh_component_will_be_run() {
  * If words are found, this method will throw an error and PR will fail.
  */
 def check_for_bad_words() {
-    node {
+    node('container-host') {
         // can't access file bad_words.txt from the sh so we must write it there as a new file
         def BAD_WORDS = libraryResource 'bad_words.txt'
         writeFile file: 'bad_words.txt', text: BAD_WORDS
@@ -149,7 +149,7 @@ def check_for_bad_words() {
 def get_supported_windows_builds() {
     def is_c89 = null
     def vs_builds = []
-    node {
+    node('container-host') {
         dir('src') {
             deleteDir()
             checkout_repo.checkout_repo()
