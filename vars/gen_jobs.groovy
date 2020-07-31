@@ -10,7 +10,7 @@ def gen_simple_windows_jobs(label, script) {
     def jobs = [:]
 
     jobs[label] = {
-        node("windows-tls") {
+        node("windows") {
             try {
                 dir("src") {
                     deleteDir()
@@ -39,7 +39,7 @@ def gen_docker_jobs_foreach(label, platforms, compilers, script) {
             def job_name = "${label}-${compiler}-${platform}"
             def shell_script = sprintf(script, common.compiler_paths[compiler])
             jobs[job_name] = {
-                node("mbedtls && ubuntu-16.10-x64") {
+                node('container-host') {
                     try {
                         deleteDir()
                         common.get_docker_image(platform)
@@ -113,9 +113,9 @@ export PYTHON=/usr/local/bin/python2.7
 
 def node_label_for_platform(platform) {
     switch (platform) {
-    case ~/^(debian|ubuntu)(-.*)?/: return 'ubuntu-16.10-x64 && mbedtls';
+    case ~/^(debian|ubuntu)(-.*)?/: return 'container-host';
     case ~/^freebsd(-.*)?/: return 'freebsd';
-    case ~/^windows(-.*)?/: return 'windows-tls';
+    case ~/^windows(-.*)?/: return 'windows';
     default: return platform;
     }
 }
@@ -246,7 +246,7 @@ def gen_windows_testing_job(build, label_prefix='') {
     def job_name = "${label_prefix}Windows-${build}"
 
     jobs[job_name] = {
-        node("windows-tls") {
+        node("windows") {
             try {
                 dir("src") {
                     deleteDir()
@@ -304,7 +304,7 @@ def gen_abi_api_checking_job(platform) {
     def job_name = "ABI-API-checking"
 
     jobs[job_name] = {
-        node('ubuntu-16.10-x64 && mbedtls') {
+        node('container-host') {
             try {
                 deleteDir()
                 common.get_docker_image(platform)
@@ -347,7 +347,7 @@ def gen_code_coverage_job(platform) {
     def coverage_log = ''
 
     jobs[job_name] = {
-        node('mbedtls && ubuntu-16.10-x64') {
+        node('container-host') {
             try {
                 deleteDir()
                 common.get_docker_image(platform)
