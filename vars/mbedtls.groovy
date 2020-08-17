@@ -66,16 +66,12 @@ def run_pr_job(is_production=true) {
     timestamps {
         /* During the nightly branch indexing, if a target branch has been
          * updated, new merge jobs are triggered for each PR to that branch.
-         * If a PR has the "needs: work" label, or hasn't been updated in over
-         * a month, don't run the merge job for that PR.
+         * If a PR hasn't been updated in over a month, don't run the merge
+         * job for that PR.
          */
         if (env.BRANCH_NAME ==~ /PR-\d+-merge/ &&
             currentBuild.rawBuild.getCauses()[0].toString().contains('BranchIndexingCause'))
         {
-            if (pullRequest.labels.contains('needs: work')) {
-                error('Not running due to "needs: work" label.')
-            }
-
             upd_timestamp_ms = pullRequest.updatedAt.getTime()
             now_timestamp_ms = currentBuild.startTimeInMillis
             long month_ms = 30L * 24L * 60L * 60L * 1000L
