@@ -30,16 +30,6 @@ def set_common_pr_production_environment() {
     if (!env.BRANCH_NAME.contains('-head')) {
         env.RUN_ABI_CHECK = 'true'
     }
-    env.MBED_OS_REPO = 'git@github.com:ARMmbed/mbed-os.git'
-    env.MBED_OS_BRANCH = 'master'
-    env.MBED_OS_TLS_EXAMPLES_REPO = 'git@github.com:ARMmbed/mbed-os-example-tls.git'
-    env.MBED_OS_TLS_EXAMPLES_BRANCH = 'master'
-    if (['development', 'development-restricted', 'feature-psa'].contains(CHANGE_TARGET)) {
-        env.TEST_MBED_OS_AUTHCRYPT_EXAMPLE = 'true'
-        env.TEST_MBED_OS_BENCHMARK_EXAMPLE = 'true'
-        env.TEST_MBED_OS_HASHING_EXAMPLE = 'true'
-        env.TEST_MBED_OS_TLS_CLIENT_EXAMPLE = 'true'
-    }
 }
 
 def set_crypto_pr_production_environment() {
