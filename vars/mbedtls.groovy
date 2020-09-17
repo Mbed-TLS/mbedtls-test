@@ -27,11 +27,13 @@ def run_tls_tests(label_prefix='') {
                          status: 'SUCCESS'
         }
     } catch (err) {
+        def failed_names = gen_jobs.failed_builds.keySet().sort().join(" ")
         echo "Caught: ${err}"
+        echo "Failed jobs: ${failed_names}"
         currentBuild.result = 'FAILURE'
         if (env.BRANCH_NAME) {
             githubNotify context: "${env.BRANCH_NAME} TLS Testing",
-                         description: 'Test failure',
+                         description: "Failures: ${failed_names}",
                          status: 'FAILURE'
         }
     }
