@@ -111,6 +111,15 @@ export PYTHON=/usr/local/bin/python2.7
     return jobs
 }
 
+def node_label_for_platform(platform) {
+    switch (platform) {
+    case ~/^(debian|ubuntu)(-.*)?/: return 'ubuntu-16.10-x64 && mbedtls';
+    case ~/^freebsd(-.*)?/: return 'freebsd';
+    case ~/^windows(-.*)?/: return 'windows-tls';
+    default: return platform;
+    }
+}
+
 def platform_has_docker(platform) {
     def os = platform.replaceFirst(/-.*/, "")
     return ['debian', 'ubuntu'].contains(os)
@@ -126,6 +135,7 @@ def gen_all_sh_jobs(platform, component, label_prefix='') {
     def job_name = "${label_prefix}all_sh-${platform}-${component}"
     def use_docker = platform_has_docker(platform)
     def extra_env = ''
+    def node_label = node_label_for_platform(platform)
 
     if (platform_lacks_tls_tools(platform)) {
         /* The check_tools function in all.sh insists on the existence of the
@@ -136,7 +146,7 @@ def gen_all_sh_jobs(platform, component, label_prefix='') {
     }
 
     jobs[job_name] = {
-        node('ubuntu-16.10-x64 && mbedtls') {
+        node(node_label) {
             try {
                 deleteDir()
                 if (use_docker) {
