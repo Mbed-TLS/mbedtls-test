@@ -134,7 +134,7 @@ def gen_all_sh_jobs(platform, component, label_prefix='') {
     def jobs = [:]
     def job_name = "${label_prefix}all_sh-${platform}-${component}"
     def use_docker = platform_has_docker(platform)
-    def extra_env = ''
+    def extra_setup_code = ''
     def node_label = node_label_for_platform(platform)
 
     if (platform_lacks_tls_tools(platform)) {
@@ -142,7 +142,21 @@ def gen_all_sh_jobs(platform, component, label_prefix='') {
          * TLS tools, even if no test happens to use them. Passing 'false'
          * pacifies check_tools, but will cause tests to fail if they
          * do try to use it. */
-        extra_env += ' OPENSSL=false GNUTLS_CLI=false GNUTLS_SERV=false'
+        extra_setup_code += '''
+export OPENSSL=false GNUTLS_CLI=false GNUTLS_SERV=false
+'''
+    }
+    if (platform.contains('bsd')) {
+        /* At the time of writing, all.sh assumes that make is GNU make.
+         * But on FreeBSD, make is BSD make and gmake is GNU make.
+         * So put a "make" which is GNU make ahead of the system "make"
+         * in $PATH. */
+        extra_setup_code += '''
+[ -d bin ] || mkdir bin
+[ -x bin/make ] || ln -s /usr/local/bin/gmake bin/make
+PATH="$PWD/bin:$PATH"
+echo >&2 'Note: "make" will run /usr/local/bin/gmake (GNU make)'
+'''
     }
 
     jobs[job_name] = {
@@ -164,7 +178,8 @@ def gen_all_sh_jobs(platform, component, label_prefix='') {
 set -eux
 ulimit -f 20971520
 export ARMLMD_LICENSE_FILE=8225@licenses.isgtesting.com
-export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv' ${extra_env};
+export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv'
+${extra_setup_code}
 ./tests/scripts/all.sh --seed 4 --keep-going $component
 """
                     sh 'chmod +x steps.sh'
