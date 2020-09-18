@@ -6,8 +6,6 @@
  * Repos and branches
  *  - MBED_TLS_REPO
  *  - MBED_TLS_BRANCH
- *  - MBED_CRYPTO_REPO - (optional, not present in nightly jobs)
- *  - MBED_CRYPTO_BRANCH - (optional, not present in nightly jobs)
  *  - MBED_OS_REPO
  *  - MBED_OS_BRANCH
  *  - MBED_OS_TLS_EXAMPLES_REPO
