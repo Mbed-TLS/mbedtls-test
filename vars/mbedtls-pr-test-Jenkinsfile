@@ -14,7 +14,6 @@
  *  - MBED_OS_TLS_EXAMPLES_BRANCH
  *
  * Test options
- *  - RUN_LINUX_SCRIPTS
  *  - RUN_FREEBSD
  *  - RUN_WINDOWS_TEST
  *  - RUN_ALL_SH

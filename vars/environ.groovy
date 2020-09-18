@@ -24,7 +24,6 @@ def set_tls_pr_environment(is_production) {
 
 def set_common_pr_production_environment() {
     env.CHECKOUT_METHOD = 'scm'
-    env.RUN_LINUX_SCRIPTS = 'true'
     env.RUN_FREEBSD = 'true'
     env.RUN_WINDOWS_TEST = 'true'
     env.RUN_ALL_SH = 'true'
