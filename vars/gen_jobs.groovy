@@ -157,6 +157,24 @@ export OPENSSL=false GNUTLS_CLI=false GNUTLS_SERV=false
 PATH="$PWD/bin:$PATH"
 echo >&2 'Note: "make" will run /usr/local/bin/gmake (GNU make)'
 '''
+        /* At the time of writing, `all.sh test_clang_opt` fails on FreeBSD
+         * because it uses `-std=c99 -pedantic` and Clang on FreeBSD
+         * thinks that our code is trying to use a C11 feature
+         * (static_assert). Which is true, but harmless since our code
+         * checks for this feature's availability. As a workaround,
+         * instrument the compilation not to treat the use of C11 features
+         * as errors, only as warnings.
+         * https://github.com/ARMmbed/mbedtls/issues/3693
+         */
+        extra_setup_code += '''
+# We added the bin/ subdirectory to the beginning of $PATH above.
+cat >bin/clang <<'EOF'
+#!/bin/sh
+exec /usr/bin/clang -Wno-error=c11-extensions "$@"
+EOF
+chmod +x bin/clang
+echo >&2 'Note: "clang" will run /usr/bin/clang -Wno-error=c11-extensions'
+'''
     }
 
     jobs[job_name] = {
