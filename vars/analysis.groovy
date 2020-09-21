@@ -56,15 +56,10 @@ def analyze_results() {
 def analyze_results_and_notify_github() {
     try {
         analyze_results()
-        if (env.BRANCH_NAME) {
-            common.maybe_notify_github "Result analysis", 'SUCCESS',
-                                       'OK'
-        }
+        common.maybe_notify_github "Result analysis", 'SUCCESS', 'OK'
     } catch (err) {
-        if (env.BRANCH_NAME) {
-            common.maybe_notify_github "Result analysis", 'FAILURE',
-                                       'Analysis failed'
-        }
+        common.maybe_notify_github "Result analysis", 'FAILURE',
+                                   'Analysis failed'
         throw (err)
     }
 }
