@@ -57,15 +57,13 @@ def analyze_results_and_notify_github() {
     try {
         analyze_results()
         if (env.BRANCH_NAME) {
-            githubNotify context: "${env.BRANCH_NAME} Result analysis",
-                         description: 'OK',
-                         status: 'SUCCESS'
+            common.maybe_notify_github "Result analysis", 'SUCCESS',
+                                       'OK'
         }
     } catch (err) {
         if (env.BRANCH_NAME) {
-            githubNotify context: "${env.BRANCH_NAME} Result analysis",
-                         description: 'Analysis failed',
-                         status: 'FAILURE'
+            common.maybe_notify_github "Result analysis", 'FAILURE',
+                                       'Analysis failed'
         }
         throw (err)
     }
