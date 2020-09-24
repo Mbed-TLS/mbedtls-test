@@ -111,6 +111,15 @@ export PYTHON=/usr/local/bin/python2.7
     return jobs
 }
 
+def node_label_for_platform(platform) {
+    switch (platform) {
+    case ~/^(debian|ubuntu)(-.*)?/: return 'ubuntu-16.10-x64 && mbedtls';
+    case ~/^freebsd(-.*)?/: return 'freebsd';
+    case ~/^windows(-.*)?/: return 'windows-tls';
+    default: return platform;
+    }
+}
+
 def platform_has_docker(platform) {
     def os = platform.replaceFirst(/-.*/, "")
     return ['debian', 'ubuntu'].contains(os)
@@ -125,18 +134,51 @@ def gen_all_sh_jobs(platform, component, label_prefix='') {
     def jobs = [:]
     def job_name = "${label_prefix}all_sh-${platform}-${component}"
     def use_docker = platform_has_docker(platform)
-    def extra_env = ''
+    def extra_setup_code = ''
+    def node_label = node_label_for_platform(platform)
 
     if (platform_lacks_tls_tools(platform)) {
         /* The check_tools function in all.sh insists on the existence of the
          * TLS tools, even if no test happens to use them. Passing 'false'
          * pacifies check_tools, but will cause tests to fail if they
          * do try to use it. */
-        extra_env += ' OPENSSL=false GNUTLS_CLI=false GNUTLS_SERV=false'
+        extra_setup_code += '''
+export OPENSSL=false GNUTLS_CLI=false GNUTLS_SERV=false
+'''
+    }
+    if (platform.contains('bsd')) {
+        /* At the time of writing, all.sh assumes that make is GNU make.
+         * But on FreeBSD, make is BSD make and gmake is GNU make.
+         * So put a "make" which is GNU make ahead of the system "make"
+         * in $PATH. */
+        extra_setup_code += '''
+[ -d bin ] || mkdir bin
+[ -x bin/make ] || ln -s /usr/local/bin/gmake bin/make
+PATH="$PWD/bin:$PATH"
+echo >&2 'Note: "make" will run /usr/local/bin/gmake (GNU make)'
+'''
+        /* At the time of writing, `all.sh test_clang_opt` fails on FreeBSD
+         * because it uses `-std=c99 -pedantic` and Clang on FreeBSD
+         * thinks that our code is trying to use a C11 feature
+         * (static_assert). Which is true, but harmless since our code
+         * checks for this feature's availability. As a workaround,
+         * instrument the compilation not to treat the use of C11 features
+         * as errors, only as warnings.
+         * https://github.com/ARMmbed/mbedtls/issues/3693
+         */
+        extra_setup_code += '''
+# We added the bin/ subdirectory to the beginning of $PATH above.
+cat >bin/clang <<'EOF'
+#!/bin/sh
+exec /usr/bin/clang -Wno-error=c11-extensions "$@"
+EOF
+chmod +x bin/clang
+echo >&2 'Note: "clang" will run /usr/bin/clang -Wno-error=c11-extensions'
+'''
     }
 
     jobs[job_name] = {
-        node('ubuntu-16.10-x64 && mbedtls') {
+        node(node_label) {
             try {
                 deleteDir()
                 if (use_docker) {
@@ -154,7 +196,8 @@ def gen_all_sh_jobs(platform, component, label_prefix='') {
 set -eux
 ulimit -f 20971520
 export ARMLMD_LICENSE_FILE=8225@licenses.isgtesting.com
-export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv' ${extra_env};
+export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv'
+${extra_setup_code}
 ./tests/scripts/all.sh --seed 4 --keep-going $component
 """
                     sh 'chmod +x steps.sh'
