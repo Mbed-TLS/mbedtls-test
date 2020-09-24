@@ -34,9 +34,9 @@ import groovy.transform.Field
      * we don't maintain suitable versions of OpenSSL and GnuTLS on
      * secondary platforms. */
     'test_default_out_of_box',          // out of box, make
-    /* FreeBSD on the CI is too old to have clang. */
-    //'test_clang_opt',                   // clang, make
-    'test_gcc_opt',                     // gcc, make
+    /* FreeBSD on the CI doesn't have gcc. */
+    'test_clang_opt',                   // clang, make
+    //'test_gcc_opt',                     // gcc, make
     'test_cmake_shared',                // cmake
     'test_cmake_out_of_source',         // cmake
 ]
