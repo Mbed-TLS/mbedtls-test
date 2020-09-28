@@ -61,6 +61,8 @@ def get_all_sh_components(platform_list) {
             deleteDir()
             checkout_repo.checkout_repo()
         }
+        // Log the environment for debugging purposes
+        sh script: 'export'
         for (platform in platform_list) {
             get_docker_image(platform)
             def all_sh_help = sh(

@@ -24,22 +24,11 @@ def set_tls_pr_environment(is_production) {
 
 def set_common_pr_production_environment() {
     env.CHECKOUT_METHOD = 'scm'
-    env.RUN_LINUX_SCRIPTS = 'true'
     env.RUN_FREEBSD = 'true'
     env.RUN_WINDOWS_TEST = 'true'
     env.RUN_ALL_SH = 'true'
     if (!env.BRANCH_NAME.contains('-head')) {
         env.RUN_ABI_CHECK = 'true'
-    }
-    env.MBED_OS_REPO = 'git@github.com:ARMmbed/mbed-os.git'
-    env.MBED_OS_BRANCH = 'master'
-    env.MBED_OS_TLS_EXAMPLES_REPO = 'git@github.com:ARMmbed/mbed-os-example-tls.git'
-    env.MBED_OS_TLS_EXAMPLES_BRANCH = 'master'
-    if (['development', 'development-restricted', 'feature-psa'].contains(CHANGE_TARGET)) {
-        env.TEST_MBED_OS_AUTHCRYPT_EXAMPLE = 'true'
-        env.TEST_MBED_OS_BENCHMARK_EXAMPLE = 'true'
-        env.TEST_MBED_OS_HASHING_EXAMPLE = 'true'
-        env.TEST_MBED_OS_TLS_CLIENT_EXAMPLE = 'true'
     }
 }
 
