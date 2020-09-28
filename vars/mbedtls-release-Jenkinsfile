@@ -6,22 +6,11 @@
  * Repos and branches
  *  - MBED_TLS_REPO
  *  - MBED_TLS_BRANCH
- *  - MBED_CRYPTO_REPO - (optional, not present in nightly jobs)
- *  - MBED_CRYPTO_BRANCH - (optional, not present in nightly jobs)
- *  - MBED_OS_REPO
- *  - MBED_OS_BRANCH
- *  - MBED_OS_TLS_EXAMPLES_REPO
- *  - MBED_OS_TLS_EXAMPLES_BRANCH
  *
  * Test options
  *  - RUN_BASIC_BUILD_TEST
  *  - RUN_ALL_SH
  *  - RUN_WINDOWS_TEST
- *  - TEST_MBED_OS_AUTHCRYPT_EXAMPLE
- *  - TEST_MBED_OS_BENCHMARK_EXAMPLE
- *  - TEST_MBED_OS_HASHING_EXAMPLE
- *  - TEST_MBED_OS_TLS_CLIENT_EXAMPLE
- *  - PLATFORMS_TO_TEST
  *
  * Other parameters
  *  - TEST_FAIL_EMAIL_ADDRESS - (only in nightly jobs)
