@@ -157,6 +157,13 @@ export OPENSSL=false GNUTLS_CLI=false GNUTLS_SERV=false
 PATH="$PWD/bin:$PATH"
 echo >&2 'Note: "make" will run /usr/local/bin/gmake (GNU make)'
 '''
+        /* Sometimes the FreeBSD slaves are overloaded and jobs take
+         * so long that they time out. In the hope of alleviating the peak
+         * load, don't do individual builds in parallel. Set MAKEFLAGS,
+         * so that all.sh doesn't fall back to MAKEFLAGS="-j". */
+        extra_setup_code += '''
+export MAKEFLAGS=' '
+'''
         /* At the time of writing, `all.sh test_clang_opt` fails on FreeBSD
          * because it uses `-std=c99 -pedantic` and Clang on FreeBSD
          * thinks that our code is trying to use a C11 feature
