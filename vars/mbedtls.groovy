@@ -37,30 +37,6 @@ def run_tls_tests(label_prefix='') {
     }
 }
 
-def run_mbed_os_tests() {
-    try {
-        /* Deciding whether to run example jobs is handled within this */
-        def jobs = gen_jobs.gen_all_example_jobs()
-
-        jobs.failFast = false
-        parallel jobs
-        if (env.BRANCH_NAME) {
-            githubNotify context: "${env.BRANCH_NAME} Mbed OS Testing",
-                         description: 'All tests passed',
-                         status: 'SUCCESS'
-        }
-    } catch (err) {
-        echo "Caught: ${err}"
-        // Mbed OS tests are optional, ie they don't fail the overall job.
-        // But they're still reported as failed to github.
-        if (env.BRANCH_NAME) {
-            githubNotify context: "${env.BRANCH_NAME} Mbed OS Testing",
-                         description: 'Test failure',
-                         status: 'FAILURE'
-        }
-    }
-}
-
 /* main job */
 def run_pr_job(is_production=true) {
     timestamps {
@@ -85,9 +61,6 @@ def run_pr_job(is_production=true) {
                          description: 'Checking if all PR tests can be run',
                          status: 'PENDING'
             githubNotify context: "${env.BRANCH_NAME} TLS Testing",
-                         description: 'In progress',
-                         status: 'PENDING'
-            githubNotify context: "${env.BRANCH_NAME} Mbed OS Testing",
                          description: 'In progress',
                          status: 'PENDING'
             githubNotify context: "${env.BRANCH_NAME} Result analysis",
@@ -123,9 +96,6 @@ def run_pr_job(is_production=true) {
         try {
             stage('tls-testing') {
                 run_tls_tests()
-            }
-            stage('mbed-os-testing') {
-                run_mbed_os_tests()
             }
         } finally {
             analysis.analyze_results_and_notify_github()
