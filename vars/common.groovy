@@ -172,6 +172,35 @@ def get_supported_windows_builds() {
     return ['mingw'] + vs_builds
 }
 
+/* In the PR job (recognized because we set the BRANCH_NAME environment
+ * variable), report an additional context to GitHub.
+ * Do nothing from a job that isn't triggered from GitHub.
+ *
+ * context: a short string identifying which part of the job this is a
+ *          status for. GitHub only shows the latest state and description
+ *          for a given context. This function prepends the BRANCH_NAME.
+ * state: one of 'PENDING', 'SUCCESS' or 'FAILURE' (case-insensitive).
+ *        Contexts used in a CI job should be marked as PENDING at the
+ *        beginning of job and as SUCCESS or FAILURE once the outcome is known.
+ * description: a free-form description shown next to the state. It is
+ *              truncated to 140 characters (GitHub limitation).
+ */
+def maybe_notify_github(context, state, description) {
+    if (!env.BRANCH_NAME) {
+        return;
+    }
+
+    /* Truncate the description. Otherwise githubNotify fails. */
+    final MAX_DESCRIPTION_LENGTH = 140
+    if (description.length() > MAX_DESCRIPTION_LENGTH) {
+        description = description.take(MAX_DESCRIPTION_LENGTH - 1) + '…'
+    }
+
+    githubNotify context: "${env.BRANCH_NAME} ${context}",
+                 status: state,
+                 description: description
+}
+
 def archive_zipped_log_files(job_name) {
     sh """\
 for i in *.log; do
