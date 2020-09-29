@@ -21,19 +21,15 @@ def run_tls_tests(label_prefix='') {
 
         jobs.failFast = false
         parallel jobs
-        if (env.BRANCH_NAME) {
-            githubNotify context: "${env.BRANCH_NAME} TLS Testing",
-                         description: 'All tests passed',
-                         status: 'SUCCESS'
-        }
+        common.maybe_notify_github "TLS Testing", 'SUCCESS',
+                                   'All tests passed'
     } catch (err) {
+        def failed_names = gen_jobs.failed_builds.keySet().sort().join(" ")
         echo "Caught: ${err}"
+        echo "Failed jobs: ${failed_names}"
         currentBuild.result = 'FAILURE'
-        if (env.BRANCH_NAME) {
-            githubNotify context: "${env.BRANCH_NAME} TLS Testing",
-                         description: 'Test failure',
-                         status: 'FAILURE'
-        }
+        common.maybe_notify_github "TLS Testing", 'FAILURE',
+                                   "Failures: ${failed_names}"
     }
 }
 
@@ -56,17 +52,12 @@ def run_pr_job(is_production=true) {
             }
         }
 
-        if (env.BRANCH_NAME) {
-            githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                         description: 'Checking if all PR tests can be run',
-                         status: 'PENDING'
-            githubNotify context: "${env.BRANCH_NAME} TLS Testing",
-                         description: 'In progress',
-                         status: 'PENDING'
-            githubNotify context: "${env.BRANCH_NAME} Result analysis",
-                         description: 'In progress',
-                         status: 'PENDING'
-        }
+        common.maybe_notify_github "Pre Test Checks", 'PENDING',
+                                   'Checking if all PR tests can be run'
+        common.maybe_notify_github "TLS Testing", 'PENDING',
+                                   'In progress'
+        common.maybe_notify_github "Result analysis", 'PENDING',
+                                   'In progress'
 
         stage('pre-test-checks') {
             try {
@@ -74,20 +65,15 @@ def run_pr_job(is_production=true) {
                 common.get_all_sh_components(['ubuntu-16.04', 'ubuntu-18.04'])
                 common.check_every_all_sh_component_will_be_run()
                 common.check_for_bad_words()
-                if (env.BRANCH_NAME) {
-                    githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                                 description: 'OK',
-                                 status: 'SUCCESS'
-                }
+                common.maybe_notify_github "Pre Test Checks", 'SUCCESS', 'OK'
             } catch (err) {
                 if (env.BRANCH_NAME) {
                     def description = 'Pre Test Checks failed.'
                     if (err.getMessage().contains('Pre Test Checks')) {
                         description = err.getMessage()
                     }
-                    githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                                 description: description,
-                                 status: 'FAILURE'
+                    common.maybe_notify_github "Pre Test Checks", 'FAILURE',
+                                               description
                 }
                 throw (err)
             }

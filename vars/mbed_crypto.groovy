@@ -81,55 +81,39 @@ def run_crypto_tests() {
 
         jobs.failFast = false
         parallel jobs
-        if (env.BRANCH_NAME) {
-            githubNotify context: "${env.BRANCH_NAME} Crypto Testing",
-                         description: 'All tests passed',
-                         status: 'SUCCESS'
-        }
+        common.maybe_notify_github "Crypto Testing", 'SUCCESS',
+                                   'All tests passed'
     } catch (err) {
         echo "Caught: ${err}"
         currentBuild.result = 'FAILURE'
-        if (env.BRANCH_NAME) {
-            githubNotify context: "${env.BRANCH_NAME} Crypto Testing",
-                         description: 'Test failure',
-                         status: 'FAILURE'
-        }
+        common.maybe_notify_github "Crypto Testing", 'FAILURE',
+                                   'Test failure'
     }
 }
 
 /* main job */
 def run_pr_job(is_production=true) {
     timestamps {
-        if (env.BRANCH_NAME) {
-            githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                         description: 'Checking if all PR tests can be run',
-                         status: 'PENDING'
-            githubNotify context: "${env.BRANCH_NAME} Crypto Testing",
-                         description: 'In progress',
-                         status: 'PENDING'
-            githubNotify context: "${env.BRANCH_NAME} TLS Testing",
-                         description: 'In progress',
-                         status: 'PENDING'
-        }
+        common.maybe_notify_github "Pre Test Checks", 'PENDING',
+                                   'Checking if all PR tests can be run'
+        common.maybe_notify_github "Crypto Testing", 'PENDING',
+                                   'In progress'
+        common.maybe_notify_github "TLS Testing", 'PENDING',
+                                   'In progress'
         stage('pre-test-checks') {
             try {
                 environ.set_crypto_pr_environment(is_production)
                 common.get_all_sh_components(['ubuntu-16.04', 'ubuntu-18.04'])
                 common.check_every_all_sh_component_will_be_run()
-                if (env.BRANCH_NAME) {
-                    githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                                 description: 'OK',
-                                 status: 'SUCCESS'
-                }
+                common.maybe_notify_github "Pre Test Checks", 'SUCCESS', 'OK'
             } catch (err) {
                 if (env.BRANCH_NAME) {
                     def description = 'Pre Test Checks failed.'
                     if (err.getMessage().contains('Pre Test Checks')) {
                         description = err.getMessage()
                     }
-                    githubNotify context: "${env.BRANCH_NAME} Pre Test Checks",
-                                 description: description,
-                                 status: 'FAILURE'
+                    common.maybe_notify_github "Pre Test Checks", 'FAILURE',
+                                               description
                 }
                 throw (err)
             }
