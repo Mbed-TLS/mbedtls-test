@@ -21,7 +21,7 @@ def gather_outcomes() {
     if (outcome_stashes.isEmpty()) {
         return
     }
-    node('container-host') {
+    node('helper-container-host') {
         dir('outcomes') {
             deleteDir()
             try {
