@@ -42,7 +42,14 @@ import groovy.transform.Field
 ]
 
 def get_docker_image(docker_image) {
-    sh "\$(aws ecr get-login) && docker pull $docker_repo:$docker_image"
+    for (int attempt = 1; attempt <= 3; attempt++) {
+        try {
+            sh "\$(aws ecr get-login) && docker pull $docker_repo:$docker_image"
+            break
+        } catch (err) {
+            if (attempt == 3) throw (err)
+        }
+    }
 }
 
 def docker_script(platform, entrypoint, entrypoint_arguments='') {
