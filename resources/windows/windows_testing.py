@@ -389,7 +389,7 @@ class MbedWindowsTesting(object):
             self.visual_studio_architecture_flags[test_run.architecture]
         ))
         msbuild_test_process.stdin.write(
-            "msbuild /p:Configuration={} /m RUN_TESTS.vcxproj\n".format(
+            "msbuild /nodeReuse:false /p:Configuration={} /m RUN_TESTS.vcxproj\n".format(
                 test_run.configuration
             )
         )
@@ -458,7 +458,7 @@ class MbedWindowsTesting(object):
             self.visual_studio_architecture_flags[test_run.architecture]
         ))
         msbuild_process.stdin.write(
-            "msbuild /t:Rebuild /p:Configuration={},Platform={},"
+            "msbuild /nodeReuse:false /t:Rebuild /p:Configuration={},Platform={},"
             "PlatformToolset={} /m \"{}\"\n".format(
                 test_run.configuration, test_run.architecture,
                 retarget, solution_file
