@@ -212,7 +212,10 @@ RUN apt-get purge -y unattended-upgrades
 
 
 # Install Python pip packages
-RUN pip install pip setuptools --upgrade > /dev/null
+# pip < 9.0 Doesn't understand the Requires-Python directive, and tries to install the Python 3 version of setuptools
+RUN pip install pip --upgrade > /dev/null
+
+RUN pip install setuptools --upgrade > /dev/null
 
 RUN pip install yotta matplotlib > /dev/null
 
