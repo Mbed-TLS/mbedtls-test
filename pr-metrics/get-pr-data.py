@@ -18,8 +18,13 @@ r = g.get_repo("ARMMbed/mbedtls")
 
 prs = list()
 for p in r.get_pulls(state="all"):
-    # accessing p.mergeable forces completion of PR data
-    print(p.number, p.mergeable)
+    print(p.number)
+    # Accessing p.mergeable forces completion of PR data (by default, only
+    # basic info such as status and dates is available) but makes the script
+    # slower (about 10x).
+    # Leave commented as we only need the basic info for do.sh.
+    # (Uncomment if you want to use extended PR data with other scripts.)
+    #dummy = p.mergeable
     prs.append(p)
 
 with open("pr-data.p", "wb") as f:
