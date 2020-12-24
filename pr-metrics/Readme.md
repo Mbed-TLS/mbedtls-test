@@ -18,6 +18,12 @@ These scripts require:
 - matplotlib >= 3.1 (3.0 doesn't work)
 - PyGithub >= 1.43 (any version should work, that was just the oldest tested)
 
+### Ubuntu 20.04 (and probaly 18.04)
+
+A simple `apt install python3-github python3-matplotlib` is enough.
+
+### Ubuntu 16.04
+
 On Ubuntu 16.04, by default only Python 3.5 is available, which doesn't
 support a recent enough matplotlib to support those scripts, so the following
 was used to run those scripts on 16.04:
