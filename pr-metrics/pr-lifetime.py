@@ -8,22 +8,27 @@ from prs import pr_dates, quarter
 from collections import defaultdict
 
 import matplotlib.pyplot as plt
+from datetime import datetime
 
 cutoff = "15q1"
 
 lifetimes_all = defaultdict(list)
 lifetimes_com = defaultdict(list)
 
-for beg, end, com, cur in pr_dates():
-    lt = (end - beg).days
-    # If the PR is still open and it's recent (< 1 quarter), assign an
-    # arbitrary large lifetime. (The exact value doesn't matter for computing
-    # the median, as long as it's greater than the median.) Otherwise, if
-    # a large enough number of PRs were created shortly enough before this
-    # script is run, they could make the median look artifically low, because
-    # pr_dates() returns tomorrow as the 'end' date for still-open PRs.
-    if cur and lt < 90:
-        lt = 365
+for beg, end, com in pr_dates():
+    # If the PR is still open and it's recent, assign an arbitrary large
+    # lifetime. (The exact value doesn't matter for computing the median, as
+    # long as it's greater than the median.) Otherwise, if a large enough
+    # number of PRs were created shortly enough before this script is run,
+    # they could make the median look artifically low, because pr_dates()
+    # returns tomorrow as the 'end' date for still-open PRs.
+    if end is None:
+        today = datetime.now().date()
+        lt_so_far = (today - beg).days
+        lt = max(365, lt_so_far)
+    else:
+        lt = (end - beg).days
+
     q = quarter(beg)
     lifetimes_all[q].append(lt)
     if com:

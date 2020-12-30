@@ -5,7 +5,7 @@
 
 from prs import pr_dates
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from collections import Counter
 
 import matplotlib.pyplot as plt
@@ -15,8 +15,12 @@ cutoff = date(2015, 1, 1)
 cnt_tot = Counter()
 cnt_com = Counter()
 
-for beg, end, com, cur in pr_dates():
-    n_days = (end - beg).days
+for beg, end, com in pr_dates():
+    if end is None:
+        tomorrow = datetime.now().date() + timedelta(days=1)
+        n_days = (tomorrow - beg).days
+    else:
+        n_days = (end - beg).days
     dates = Counter(beg + timedelta(days=i) for i in range(n_days))
     cnt_tot.update(dates)
     if com:

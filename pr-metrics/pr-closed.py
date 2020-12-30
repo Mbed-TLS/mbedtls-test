@@ -14,8 +14,8 @@ cutoff = "15q1"
 cnt_all = Counter()
 cnt_com = Counter()
 
-for beg, end, com, cur in pr_dates():
-    if cur:
+for beg, end, com in pr_dates():
+    if end is None:
         continue
     q = quarter(end)
     cnt_all[q] += 1
