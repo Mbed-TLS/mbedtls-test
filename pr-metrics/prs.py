@@ -3,7 +3,6 @@
 
 """PR data an misc common functions."""
 
-from datetime import datetime, timedelta
 import pickle
 
 with open("pr-data.p", "rb") as f:
@@ -54,14 +53,10 @@ def quarter(date):
     return q
 
 
-_tomorrow = datetime.now().date() + timedelta(days=1)
-
-
 def pr_dates():
     """Iterate over PRs with open/close dates and community status."""
     for pr in prs:
         beg = pr.created_at.date()
-        end = pr.closed_at.date() if pr.closed_at else _tomorrow
+        end = pr.closed_at.date() if pr.closed_at else None
         com = is_community(pr)
-        cur = not pr.closed_at
-        yield (beg, end, com, cur)
+        yield (beg, end, com)
