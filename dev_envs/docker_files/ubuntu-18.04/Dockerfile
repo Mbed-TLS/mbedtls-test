@@ -53,6 +53,11 @@ RUN apt-get update > /dev/null && \
                        python-distutils-extra > /dev/null && \
     apt-get clean && rm -rf /var/lib/apt/lists/
 
+# Install Python 3 pip
+RUN apt-get update > /dev/null && \
+    apt-get install -y python3-pip > /dev/null && \
+    apt-get clean && rm -rf /var/lib/apt/lists/
+
 # Install build tools
 RUN apt-get update > /dev/null && \
     apt-get install -y cmake \
@@ -65,7 +70,6 @@ RUN apt-get update > /dev/null && \
                        gcc-mingw-w64-i686 \
                        clang \
                        wget \
-                       pylint3 \
                        lsof > /dev/null && \
     apt-get clean && rm -rf /var/lib/apt/lists/
 
@@ -211,10 +215,16 @@ ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.6.5/bin/gnutls-serv
 RUN apt-get purge -y unattended-upgrades
 
 
-# Install Python pip packages
-RUN pip install pip setuptools --upgrade > /dev/null
+# Install Python 2 pip packages
+# The pip wrapper scripts can get out of sync with pip due to upgrading it outside the package manager, so invoke the module directly
+RUN python2 -m pip install pip setuptools --upgrade > /dev/null
 
-RUN pip install yotta matplotlib > /dev/null
+RUN python2 -m pip install yotta matplotlib > /dev/null
+
+# Install Python 3 pip packages
+RUN python3 -m pip install pip setuptools --upgrade > /dev/null
+
+RUN python3 -m pip install pylint==2.4.4 > /dev/null
 
 # Set the locale
 RUN apt-get clean && apt-get update && apt-get install -y locales zip python-tk
