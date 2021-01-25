@@ -218,15 +218,16 @@ RUN apt-get purge -y unattended-upgrades
 
 # Install Python 2 pip packages
 # The pip wrapper scripts can get out of sync with pip due to upgrading it outside the package manager, so invoke the module directly
-# pip < 9.0 Doesn't understand the Requires-Python directive, and tries to install the Python 3 version of setuptools
-RUN python2 -m pip install pip --upgrade > /dev/null
+# pip < 9.0 Doesn't understand the Requires-Python directive, and tries to install the wrong versions pip and setuptools
+# pip 21 drops support for Python 2.7 and 3.5
+RUN python2 -m pip install 'pip<21' --upgrade > /dev/null
 
 RUN python2 -m pip install setuptools --upgrade > /dev/null
 
 RUN python2 -m pip install yotta matplotlib > /dev/null
 
 # Install Python 3 pip packages
-RUN python3 -m pip install pip --upgrade > /dev/null
+RUN python3 -m pip install 'pip<21' --upgrade > /dev/null
 
 RUN python3 -m pip install setuptools --upgrade > /dev/null
 
