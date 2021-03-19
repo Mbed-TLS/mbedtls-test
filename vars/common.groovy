@@ -7,7 +7,7 @@ import groovy.transform.Field
  * Raas has its own resource queue with the timeout of 1000s, we need to take
  * it into account for the on-target test jobs.
  */
-@Field perJobTimeout = [time: 45, raasOffset: 17, unit: 'MINUTES']
+@Field perJobTimeout = [time: 60, raasOffset: 17, unit: 'MINUTES']
 
 @Field compiler_paths = [
     'gcc' : 'gcc',
