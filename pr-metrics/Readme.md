@@ -38,3 +38,10 @@ was used to run those scripts on 16.04:
     pip install pygithub
 
 See `requirements.txt` for an example of a set of working versions.
+
+Note: if you do this, I strongly recommend uninstalling python3.6,
+python3.6-venv and all their dependencies, then removing the deadsnakes PPA
+before any upgrade to 18.04. Failing to do so will result in
+dependency-related headaches as some packages in 18.04 depend on a specific
+version of python3.6 but the version from deadsnakes is higher, so apt won't
+downgrade it and manual intervention will be required.
