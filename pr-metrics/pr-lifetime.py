@@ -3,7 +3,7 @@
 
 """Produce graph of lifetime of PRs over time."""
 
-from prs import pr_dates, quarter, first
+from prs import pr_dates, quarter, first, last
 
 from collections import defaultdict
 
@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 
 first_q = quarter(first)
+last_q = quarter(last)
 
 lifetimes_all = defaultdict(list)
 lifetimes_com = defaultdict(list)
@@ -33,7 +34,7 @@ for beg, end, com in pr_dates():
     if com:
         lifetimes_com[q].append(lt)
 
-quarters = tuple(sorted(q for q in lifetimes_all if q >= first_q))
+quarters = tuple(sorted(q for q in lifetimes_all if first_q <= q <= last_q))
 
 for q in quarters:
     lifetimes_all[q].sort()
