@@ -24,7 +24,7 @@ for p in r.get_pulls(state="all"):
     # slower (about 10x).
     # Leave commented as we only need the basic info for do.sh.
     # (Uncomment if you want to use extended PR data with other scripts.)
-    #dummy = p.mergeable
+    # dummy = p.mergeable
     prs.append(p)
 
 with open("pr-data.p", "wb") as f:

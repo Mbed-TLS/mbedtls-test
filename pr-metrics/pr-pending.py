@@ -5,7 +5,7 @@
 
 from prs import pr_dates, first, last
 
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from collections import Counter
 
 import matplotlib.pyplot as plt
