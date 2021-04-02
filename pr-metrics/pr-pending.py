@@ -3,14 +3,12 @@
 
 """Produce graph of PRs pending over time."""
 
-from prs import pr_dates
+from prs import pr_dates, first
 
 from datetime import date, datetime, timedelta
 from collections import Counter
 
 import matplotlib.pyplot as plt
-
-cutoff = date(2015, 1, 1)
 
 cnt_tot = Counter()
 cnt_com = Counter()
@@ -26,7 +24,7 @@ for beg, end, com in pr_dates():
     if com:
         cnt_com.update(dates)
 
-dates = tuple(sorted(d for d in cnt_tot.keys() if d >= cutoff))
+dates = tuple(sorted(d for d in cnt_tot.keys() if d >= first))
 
 
 def avg(cnt, date):
