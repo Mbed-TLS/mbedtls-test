@@ -4,6 +4,7 @@
 """PR data an misc common functions."""
 
 import pickle
+import datetime
 
 with open("pr-data.p", "rb") as f:
     prs = pickle.load(f)
@@ -66,3 +67,6 @@ def pr_dates():
         end = pr.closed_at.date() if pr.closed_at else None
         com = is_community(pr)
         yield (beg, end, com)
+
+
+first = datetime.date(2015, 1, 1)
