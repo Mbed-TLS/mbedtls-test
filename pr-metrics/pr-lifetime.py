@@ -18,10 +18,9 @@ lifetimes_com = defaultdict(list)
 for beg, end, com in pr_dates():
     # If the PR is still open and it's recent, assign an arbitrary large
     # lifetime. (The exact value doesn't matter for computing the median, as
-    # long as it's greater than the median.) Otherwise, if a large enough
-    # number of PRs were created shortly enough before this script is run,
-    # they could make the median look artifically low, because pr_dates()
-    # returns tomorrow as the 'end' date for still-open PRs.
+    # long as it's greater than the median - that is, as long as we've closed
+    # at least half the PRs created that quarter. Otherwise the large value
+    # will make that pretty visible.)
     if end is None:
         today = datetime.now().date()
         lt_so_far = (today - beg).days
