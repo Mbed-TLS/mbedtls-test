@@ -3,13 +3,14 @@
 
 """Produce graph of PRs created by time period."""
 
-from prs import pr_dates, quarter, first
+from prs import pr_dates, quarter, first, last
 
 from collections import Counter
 
 import matplotlib.pyplot as plt
 
 first_q = quarter(first)
+last_q = quarter(last)
 
 cnt_all = Counter()
 cnt_com = Counter()
@@ -20,7 +21,7 @@ for beg, end, com in pr_dates():
     if com:
         cnt_com[q] += 1
 
-quarters = tuple(sorted(q for q in cnt_all if q >= first_q))
+quarters = tuple(sorted(q for q in cnt_all if first_q <= q <= last_q))
 
 prs_com = tuple(cnt_com[q] for q in quarters)
 prs_team = tuple(cnt_all[q] - cnt_com[q] for q in quarters)

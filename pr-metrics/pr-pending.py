@@ -3,7 +3,7 @@
 
 """Produce graph of PRs pending over time."""
 
-from prs import pr_dates, first
+from prs import pr_dates, first, last
 
 from datetime import date, datetime, timedelta
 from collections import Counter
@@ -24,7 +24,7 @@ for beg, end, com in pr_dates():
     if com:
         cnt_com.update(dates)
 
-dates = tuple(sorted(d for d in cnt_tot.keys() if d >= first))
+dates = tuple(sorted(d for d in cnt_tot.keys() if first <= d <= last))
 
 
 def avg(cnt, date):

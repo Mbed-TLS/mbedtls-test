@@ -5,6 +5,7 @@
 
 import pickle
 import datetime
+import os
 
 with open("pr-data.p", "rb") as f:
     prs = pickle.load(f)
@@ -70,3 +71,10 @@ def pr_dates():
 
 
 first = datetime.date(2015, 1, 1)
+last = datetime.date(2099, 12, 31)
+if "PR_LAST_DATE" in os.environ:
+    last_str = os.environ["PR_LAST_DATE"]
+    last = datetime.datetime.strptime(last_str, "%Y-%m-%d").date()
+if "PR_FIRST_DATE" in os.environ:
+    first_str = os.environ["PR_FIRST_DATE"]
+    first = datetime.datetime.strptime(first_str, "%Y-%m-%d").date()
