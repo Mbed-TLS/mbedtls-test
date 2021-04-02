@@ -63,6 +63,7 @@ ax.legend(loc="upper right")
 ax.grid(True)
 ax.set_xlabel("quarter")
 ax.set_ylabel("median lifetime in days of PRs created that quarter")
+ax.tick_params(axis="x", labelrotation=90)
 bot, top = ax.set_ylim()
 ax.set_ylim(0, min(365, top))  # we don't care about values over 1 year
 fig.suptitle("Median lifetime of PRs per quarter (less is better)")

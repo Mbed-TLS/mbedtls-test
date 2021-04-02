@@ -36,6 +36,7 @@ ax.legend(loc="upper left")
 ax.grid(True)
 ax.set_xlabel("quarter")
 ax.set_ylabel("Number or PRs closed")
+ax.tick_params(axis="x", labelrotation=90)
 fig.suptitle("Number of PRs closed per quarter")
 fig.set_size_inches(12.8, 7.2)  # default 100 dpi -> 720p
 fig.savefig("prs-closed.png")
