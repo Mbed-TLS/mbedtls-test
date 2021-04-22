@@ -507,19 +507,28 @@ class MbedWindowsTesting(object):
             logger.error(error.output)
             raise Exception("Building solution using Cmake failed, aborting")
 
-    def generate_psa_constants(self, git_worktree_path, logger):
+    def generate_source_files(self, git_worktree_path, logger):
+        """Generate configuration-independent source files if required."""
+        batch_script = os.path.join("scripts", "make_generated_files.bat")
+        if not os.path.exists(os.path.join(git_worktree_path, batch_script)):
+            return
         try:
+            vcvars_bat = self.visual_studio_vcvars_path['2017']
+            cmd = '"{}" x64 && "{}"'.format(
+                vcvars_bat, batch_script
+            )
+            logger.info('Generating source files: ' + cmd)
             subprocess.run(
-                [sys.executable,
-                 os.path.join("scripts", "generate_psa_constants.py")],
+                [cmd], shell=True,
                 cwd=git_worktree_path,
+                env=dict(os.environ, CC='cl.exe'),
                 encoding=sys.stdout.encoding,
                 check=True
             )
         except subprocess.CalledProcessError as error:
             self.set_return_code(2)
             logger.error(error.output)
-            raise Exception("Generating psa constants failed, aborting")
+            raise Exception("{} failed, aborting".format(batch_script))
 
     def test_visual_studio_built_code(self, test_run, solution_type):
         log_name = "VS{} {} {}{} {}".format(
@@ -544,14 +553,12 @@ class MbedWindowsTesting(object):
                 return
             self.set_config_on_code(git_worktree_path, vs_logger)
             self.generate_seedfiles(git_worktree_path)
+            self.generate_source_files(git_worktree_path, vs_logger)
             if solution_type == "cmake":
                 solution_dir = self.build_visual_studio_solution_using_cmake(
                     git_worktree_path, test_run, vs_logger
                 )
             else:
-                if os.path.exists(os.path.join(git_worktree_path, "scripts",
-                                               "generate_psa_constants.py")):
-                    self.generate_psa_constants(git_worktree_path, vs_logger)
                 solution_dir = os.path.join(
                     git_worktree_path, "visualc", "VS2010"
                 )
