@@ -23,6 +23,7 @@ make test
 """
 
 @Field win32_mingw_test_bat = """\
+if exist scripts\\make_generated_files.bat scripts\\make_generated_files.bat
 cmake . -G "MinGW Makefiles" -DCMAKE_C_COMPILER="gcc"
 mingw32-make
 mingw32-make test
@@ -31,16 +32,14 @@ programs\\test\\selftest.exe
 """
 
 @Field iar8_mingw_test_bat = """\
+if exist scripts\\make_generated_files.bat scripts\\make_generated_files.bat
 perl scripts/config.pl baremetal
 cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
 mingw32-make lib
 """
 
 @Field win32_msvc12_32_test_bat = """\
-if exist scripts\\generate_psa_constants.py \
-    scripts\\generate_psa_constants.py
-if exist crypto\\scripts\\generate_psa_constants.py \
-    crypto\\scripts\\generate_psa_constants.py
+if exist scripts\\make_generated_files.bat scripts\\make_generated_files.bat
 call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
 cmake . -G "Visual Studio 12"
 MSBuild ALL_BUILD.vcxproj
@@ -48,10 +47,7 @@ programs\\test\\Debug\\selftest.exe
 """
 
 @Field win32_msvc12_64_test_bat = """\
-if exist scripts\\generate_psa_constants.py \
-    scripts\\generate_psa_constants.py
-if exist crypto\\scripts\\generate_psa_constants.py \
-    crypto\\scripts\\generate_psa_constants.py
+if exist scripts\\make_generated_files.bat scripts\\make_generated_files.bat
 call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
 cmake . -G "Visual Studio 12 Win64"
 MSBuild ALL_BUILD.vcxproj
