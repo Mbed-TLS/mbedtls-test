@@ -23,35 +23,35 @@ make test
 """
 
 @Field win32_mingw_test_bat = """\
-if exist scripts\\make_generated_files.bat scripts\\make_generated_files.bat
-cmake . -G "MinGW Makefiles" -DCMAKE_C_COMPILER="gcc"
-mingw32-make
-mingw32-make test
-ctest -VV
-programs\\test\\selftest.exe
+if exist scripts\\make_generated_files.bat scripts\\make_generated_files.bat || exit /b
+cmake . -G "MinGW Makefiles" -DCMAKE_C_COMPILER="gcc" || exit /b
+mingw32-make || exit /b
+mingw32-make test || exit /b
+ctest -VV || exit /b
+programs\\test\\selftest.exe || exit /b
 """
 
 @Field iar8_mingw_test_bat = """\
-if exist scripts\\make_generated_files.bat scripts\\make_generated_files.bat
-perl scripts/config.pl baremetal
-cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
-mingw32-make lib
+if exist scripts\\make_generated_files.bat scripts\\make_generated_files.bat || exit /b
+perl scripts/config.pl baremetal || exit /b
+cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" . || exit /b
+mingw32-make lib || exit /b
 """
 
 @Field win32_msvc12_32_test_bat = """\
-if exist scripts\\make_generated_files.bat scripts\\make_generated_files.bat
-call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
-cmake . -G "Visual Studio 12"
-MSBuild ALL_BUILD.vcxproj
-programs\\test\\Debug\\selftest.exe
+if exist scripts\\make_generated_files.bat scripts\\make_generated_files.bat || exit /b
+call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat" || exit /b
+cmake . -G "Visual Studio 12" || exit /b
+MSBuild ALL_BUILD.vcxproj || exit /b
+programs\\test\\Debug\\selftest.exe || exit /b
 """
 
 @Field win32_msvc12_64_test_bat = """\
-if exist scripts\\make_generated_files.bat scripts\\make_generated_files.bat
-call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
-cmake . -G "Visual Studio 12 Win64"
-MSBuild ALL_BUILD.vcxproj
-programs\\test\\Debug\\selftest.exe
+if exist scripts\\make_generated_files.bat scripts\\make_generated_files.bat || exit /b
+call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat" || exit /b
+cmake . -G "Visual Studio 12 Win64" || exit /b
+MSBuild ALL_BUILD.vcxproj || exit /b
+programs\\test\\Debug\\selftest.exe || exit /b
 """
 
 @Field cmake_full_test_sh = """\
