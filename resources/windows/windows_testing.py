@@ -514,14 +514,18 @@ class MbedWindowsTesting(object):
             return
         try:
             vcvars_bat = self.visual_studio_vcvars_path['2017']
-            cmd = '"{}" x64 && "{}"'.format(
+            cmd = '"{}" x64 && cd /D "%VSCMD_START_DIR%" && "{}"'.format(
                 vcvars_bat, batch_script
             )
+            env = self.get_environment_containing_VSCMD_START_DIR(
+                git_worktree_path
+            )
+            env['CC'] = 'cl.exe'
             logger.info('Generating source files: ' + cmd)
             subprocess.run(
                 cmd, shell=True,
                 cwd=git_worktree_path,
-                env=dict(os.environ, CC='cl.exe'),
+                env=env,
                 encoding=sys.stdout.encoding,
                 check=True
             )
