@@ -519,7 +519,7 @@ class MbedWindowsTesting(object):
             )
             logger.info('Generating source files: ' + cmd)
             subprocess.run(
-                [cmd], shell=True,
+                cmd, shell=True,
                 cwd=git_worktree_path,
                 env=dict(os.environ, CC='cl.exe'),
                 encoding=sys.stdout.encoding,
