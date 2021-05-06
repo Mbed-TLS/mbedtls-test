@@ -514,7 +514,7 @@ class MbedWindowsTesting(object):
             return
         try:
             vcvars_bat = self.visual_studio_vcvars_path['2017']
-            cmd = '"{}" x64 && cd /D "%VSCMD_START_DIR%" && "{}"'.format(
+            cmd = 'call "{}" x64 && cd /D "%VSCMD_START_DIR%" && "{}"'.format(
                 vcvars_bat, batch_script
             )
             env = self.get_environment_containing_VSCMD_START_DIR(
