@@ -23,7 +23,7 @@ make test
 """
 
 @Field win32_mingw_test_bat = """\
-if exist scripts\\make_generated_files.bat scripts\\make_generated_files.bat || exit
+if exist scripts\\make_generated_files.bat call scripts\\make_generated_files.bat || exit
 cmake . -G "MinGW Makefiles" -DCMAKE_C_COMPILER="gcc" || exit
 mingw32-make || exit
 mingw32-make test || exit
@@ -32,14 +32,14 @@ programs\\test\\selftest.exe || exit
 """
 
 @Field iar8_mingw_test_bat = """\
-if exist scripts\\make_generated_files.bat scripts\\make_generated_files.bat || exit
+if exist scripts\\make_generated_files.bat call scripts\\make_generated_files.bat || exit
 perl scripts/config.pl baremetal || exit
 cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" . || exit
 mingw32-make lib || exit
 """
 
 @Field win32_msvc12_32_test_bat = """\
-if exist scripts\\make_generated_files.bat scripts\\make_generated_files.bat || exit
+if exist scripts\\make_generated_files.bat call scripts\\make_generated_files.bat || exit
 call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat" || exit
 cmake . -G "Visual Studio 12" || exit
 MSBuild ALL_BUILD.vcxproj || exit
@@ -47,7 +47,7 @@ programs\\test\\Debug\\selftest.exe || exit
 """
 
 @Field win32_msvc12_64_test_bat = """\
-if exist scripts\\make_generated_files.bat scripts\\make_generated_files.bat || exit
+if exist scripts\\make_generated_files.bat call scripts\\make_generated_files.bat || exit
 call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat" || exit
 cmake . -G "Visual Studio 12 Win64" || exit
 MSBuild ALL_BUILD.vcxproj || exit
