@@ -23,39 +23,39 @@ make test
 """
 
 @Field win32_mingw_test_bat = """\
-cmake . -G "MinGW Makefiles" -DCMAKE_C_COMPILER="gcc"
-mingw32-make
-mingw32-make test
-ctest -VV
-programs\\test\\selftest.exe
+set CC=gcc
+if exist scripts\\make_generated_files.bat call scripts\\make_generated_files.bat || exit
+cmake . -G "MinGW Makefiles" || exit
+mingw32-make || exit
+mingw32-make test || exit
+ctest -VV || exit
+programs\\test\\selftest.exe || exit
 """
 
 @Field iar8_mingw_test_bat = """\
-perl scripts/config.pl baremetal
-cmake -D CMAKE_BUILD_TYPE:String=Check -DCMAKE_C_COMPILER="iccarm" -G "MinGW Makefiles" .
-mingw32-make lib
+set CC=iccarm
+if exist scripts\\make_generated_files.bat call scripts\\make_generated_files.bat || exit
+perl scripts/config.pl baremetal || exit
+cmake -D CMAKE_BUILD_TYPE:String=Check -G "MinGW Makefiles" . || exit
+mingw32-make lib || exit
 """
 
 @Field win32_msvc12_32_test_bat = """\
-if exist scripts\\generate_psa_constants.py \
-    scripts\\generate_psa_constants.py
-if exist crypto\\scripts\\generate_psa_constants.py \
-    crypto\\scripts\\generate_psa_constants.py
-call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
-cmake . -G "Visual Studio 12"
-MSBuild ALL_BUILD.vcxproj
-programs\\test\\Debug\\selftest.exe
+call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat" || exit
+set CC=cl
+if exist scripts\\make_generated_files.bat call scripts\\make_generated_files.bat || exit
+cmake . -G "Visual Studio 12" || exit
+MSBuild ALL_BUILD.vcxproj || exit
+programs\\test\\Debug\\selftest.exe || exit
 """
 
 @Field win32_msvc12_64_test_bat = """\
-if exist scripts\\generate_psa_constants.py \
-    scripts\\generate_psa_constants.py
-if exist crypto\\scripts\\generate_psa_constants.py \
-    crypto\\scripts\\generate_psa_constants.py
-call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat"
-cmake . -G "Visual Studio 12 Win64"
-MSBuild ALL_BUILD.vcxproj
-programs\\test\\Debug\\selftest.exe
+call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat" || exit
+set CC=cl
+if exist scripts\\make_generated_files.bat call scripts\\make_generated_files.bat || exit
+cmake . -G "Visual Studio 12 Win64" || exit
+MSBuild ALL_BUILD.vcxproj || exit
+programs\\test\\Debug\\selftest.exe || exit
 """
 
 @Field cmake_full_test_sh = """\
