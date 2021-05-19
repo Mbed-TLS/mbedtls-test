@@ -36,21 +36,29 @@ _team_logins = (
     "bensze01",
 )
 
-
-def is_community(pr):
-    """Return False if the PR is from a team member or from inside Arm."""
-    labels = tuple(l.name for l in pr.labels)
-    # starting from 2021 we consistently label community PRs
-    if pr.created_at.date().year >= 2021:
-        return "Community" in labels
-
-    # before that we used to inconsistently labeled PRs from the team or ARM,
+def old_is_community(pr):
+    # in the past we used to inconsistently labeled PRs from the team or ARM,
     # so complement that with a list of team members
+    labels = tuple(l.name for l in pr.labels)
     if "mbed TLS team" in labels or "Arm Contribution" in labels:
         return False
     if pr.user.login in _team_logins:
         return False
     return True
+
+
+def new_is_community(pr):
+    labels = tuple(l.name for l in pr.labels)
+    return "Community" in labels
+
+
+def is_community(pr):
+    """Return False if the PR is from a team member or from inside Arm."""
+    # starting from 2021 we consistently label community PRs
+    if pr.created_at.date().year >= 2021:
+        return new_is_community(pr)
+
+    return old_is_community(pr)
 
 
 def quarter(date):
