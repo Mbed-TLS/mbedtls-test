@@ -36,6 +36,14 @@ def run_tls_tests(label_prefix='') {
 /* main job */
 def run_pr_job(is_production=true) {
     timestamps {
+        if (is_production) {
+            // Cancel in-flight jobs for the same PR when a new job is launched
+            def buildNumber = env.BUILD_NUMBER as int
+            if (buildNumber > 1)
+                milestone(buildNumber - 1)
+            milestone(buildNumber)
+        }
+
         /* During the nightly branch indexing, if a target branch has been
          * updated, new merge jobs are triggered for each PR to that branch.
          * If a PR hasn't been updated in over a month, don't run the merge
