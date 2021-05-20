@@ -36,6 +36,24 @@ def run_tls_tests(label_prefix='') {
 /* main job */
 def run_pr_job(is_production=true) {
     timestamps {
+        if (is_production) {
+            // Cancel in-flight jobs for the same PR when a new job is launched
+            def buildNumber = env.BUILD_NUMBER as int
+            if (buildNumber > 1)
+                milestone(buildNumber - 1)
+            /* If buildNumber > 1, the following statement aborts all builds
+             * whose most-recently passed milestone was the previous milestone
+             * passed by this job (buildNumber - 1).
+             * After this, it checks to see if a later build has already passed
+             * milestone(buildNumber), and if so aborts the current build as well.
+             *
+             * Because of the order of operations, each build is only responsible
+             * for aborting the one directly before it, and itself if necessary.
+             * Thus we don't have to iterate over all milestones 1 to buildNumber.
+             */
+            milestone(buildNumber)
+        }
+
         /* During the nightly branch indexing, if a target branch has been
          * updated, new merge jobs are triggered for each PR to that branch.
          * If a PR hasn't been updated in over a month, don't run the merge
