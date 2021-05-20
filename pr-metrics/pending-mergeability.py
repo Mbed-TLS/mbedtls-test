@@ -12,8 +12,8 @@ with open("pr-data.p", "rb") as f:
 
 c_open = Counter()
 c_mergeable = Counter()
-c_nowork = Counter()
 c_recent = Counter()
+c_recent2 = Counter()
 
 for p in prs:
     if p.state != "open":
@@ -23,17 +23,14 @@ for p in prs:
     c_open[branch] += 1
     if p.mergeable:
         c_mergeable[branch] += 1
-        if "needs: work" not in [l.name for l in p.labels]:
-            c_nowork[branch] += 1
-            days = (datetime.now() - p.updated_at).days
-            if days < 31:
-                c_recent[branch] += 1
+        days = (datetime.now() - p.updated_at).days
+        if days < 31:
+            c_recent[branch] += 1
+        if days < 8:
+            c_recent2[branch] += 1
 
 
-print("branch: open, no conflicts, minus need work, minus month-old")
+print("              branch:       open,  mergeable,       <31d,        <8d")
 for b in sorted(c_open, key=lambda b: c_open[b], reverse=True):
-    print(
-        "{:>15}: {: 4}, {: 3}, {: 3}, {: 3}".format(
-            b, c_open[b], c_mergeable[b], c_nowork[b], c_recent[b]
-        )
-    )
+    print("{:>20}: {: 10}, {: 10}, {: 10}, {:10}".format(
+            b, c_open[b], c_mergeable[b], c_recent[b], c_recent2[b]))
