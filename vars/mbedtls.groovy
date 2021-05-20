@@ -56,7 +56,7 @@ def run_pr_job(is_production=true) {
 
         /* During the nightly branch indexing, if a target branch has been
          * updated, new merge jobs are triggered for each PR to that branch.
-         * If a PR hasn't been updated in over a month, don't run the merge
+         * If a PR hasn't been updated recently enough, don't run the merge
          * job for that PR.
          */
         if (env.BRANCH_NAME ==~ /PR-\d+-merge/ &&
@@ -64,9 +64,10 @@ def run_pr_job(is_production=true) {
         {
             upd_timestamp_ms = pullRequest.updatedAt.getTime()
             now_timestamp_ms = currentBuild.startTimeInMillis
-            long month_ms = 30L * 24L * 60L * 60L * 1000L
-            if (now_timestamp_ms - upd_timestamp_ms > month_ms) {
-                error('Not running: PR has not been updated in over a month.')
+            /* current threshold is 7 days */
+            long threshold_ms = 7L * 24L * 60L * 60L * 1000L
+            if (now_timestamp_ms - upd_timestamp_ms > threshold_ms) {
+                error('Not running: PR has not been updated recently enough.')
             }
         }
 
