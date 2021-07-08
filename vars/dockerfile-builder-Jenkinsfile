@@ -1,0 +1,23 @@
+#!/usr/bin/env groovy
+
+/*
+ * This script takes the following parameters:
+ *
+ * Repos and branches
+ *  - MBED_TLS_TEST_REPO
+ *  - MBED_TLS_TEST_BRANCH
+ *
+ * Build options
+ *  - BUILD_16_04_DOCKERFILE
+ *  - TAG_FOR_16_04_DOCKERFILE
+ *  - BUILD_18_04_DOCKERFILE
+ *  - TAG_FOR_18_04_DOCKERFILE
+ *
+ * Environment variables:
+ *  - GIT_CREDENTIALS_ID
+ *
+ */
+
+/* main job */
+library identifier: 'mbedtls-test@master', retriever: legacySCM(scm)
+dockerfile_builder.run_job()
