@@ -4,20 +4,7 @@ def run_job() {
             node('dockerfile-builder') {
                 dir('src') {
                     deleteDir()
-                    checkout([
-                        scm: [
-                            $class: 'GitSCM',
-                            userRemoteConfigs: [
-                                [url: MBED_TLS_TEST_REPO, credentialsId: env.GIT_CREDENTIALS_ID]
-                            ],
-                            branches: [[name: MBED_TLS_TEST_BRANCH]],
-                            extensions: [
-                                [$class: 'CloneOption', timeout: 60],
-                                [$class: 'SubmoduleOption', recursiveSubmodules: true],
-                                [$class: 'LocalBranch', localBranch: MBED_TLS_TEST_BRANCH],
-                            ],
-                        ]
-                    ])
+                    checkout_repo.checkout_parametrized_repo(MBED_TLS_TEST_REPO, MBED_TLS_TEST_BRANCH)
                     dir('dev_envs') {
                         dir('docker_files') {
                             if (BUILD_16_04_DOCKERFILE == "true") {
