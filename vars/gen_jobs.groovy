@@ -588,3 +588,20 @@ def gen_release_jobs(label_prefix='', run_examples=true) {
 
     return jobs
 }
+
+def gen_dockerfile_builder_job(repo, branch, platform, tag) {
+    jobs = [:]
+    jobs["build-$platform"] = {
+        node('dockerfile-builder') {
+            dir('src') {
+                deleteDir()
+                checkout_repo.checkout_parametrized_repo(repo, branch)
+                sh """\
+docker build -t $common.docker_repo:$tag - < 'dev_envs/docker_files/$platform/Dockerfile'
+\$(aws ecr get-login) && docker push $common.docker_repo:$tag
+"""
+            }
+        }
+    }
+    return jobs
+}
