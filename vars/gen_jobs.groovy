@@ -607,3 +607,16 @@ docker build -t $common.docker_repo:$tag - < 'dev_envs/docker_files/$platform/Do
     }
     return jobs
 }
+
+def gen_docker_image_publisher_job(platform, tag) {
+    jobs = [:]
+    jobs["publish-$platform"] = {
+        node('dockerfile-builder') {
+            sh """\
+MANIFEST=\$(aws ecr batch-get-image --repository-name jenkins-mbedtls --image-ids imageTag=$tag --query 'images[].imageManifest' --output text)
+aws ecr put-image --repository-name jenkins-mbedtls --image-tag $platform --image-manifest "\$MANIFEST"
+"""
+        }
+    }
+    return jobs
+}
