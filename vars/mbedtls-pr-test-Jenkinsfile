@@ -32,6 +32,10 @@
  *  - RUN_ALL_SH
  *  - RUN_ABI_CHECK
  *
+ * Docker options
+ *  - DOCKER_IMAGE_16_04_TAG
+ *  - DOCKER_IMAGE_18_04_TAG
+ *
  * Other parameters
  *  - TEST_BRANCH
  *
