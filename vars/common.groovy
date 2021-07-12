@@ -60,7 +60,24 @@ import groovy.transform.Field
     'test_cmake_out_of_source',         // cmake
 ]
 
-def get_docker_image(docker_image) {
+def get_docker_tag(platform) {
+    switch(platform) {
+        case 'ubuntu-16.04':
+            if(env.DOCKER_IMAGE_16_04_TAG) {
+                return env.DOCKER_IMAGE_16_04_TAG
+            }
+            break
+        case 'ubuntu-18.04':
+            if(env.DOCKER_IMAGE_18_04_TAG) {
+                return env.DOCKER_IMAGE_18_04_TAG
+            }
+            break
+    }
+    return platform
+}
+
+def get_docker_image(platform) {
+    def docker_image = get_docker_tag(platform)
     for (int attempt = 1; attempt <= 3; attempt++) {
         try {
             sh "\$(aws ecr get-login) && docker pull $docker_repo:$docker_image"
@@ -72,11 +89,12 @@ def get_docker_image(docker_image) {
 }
 
 def docker_script(platform, entrypoint, entrypoint_arguments='') {
+    def docker_image = get_docker_tag(platform)
     return """\
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint $entrypoint \
     -w /var/lib/build -v `pwd`/src:/var/lib/build \
     -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh \
-    --cap-add SYS_PTRACE $docker_repo:$platform $entrypoint_arguments
+    --cap-add SYS_PTRACE $docker_repo:$docker_image $entrypoint_arguments
 """
 }
 
