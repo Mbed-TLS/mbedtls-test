@@ -363,7 +363,6 @@ scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
 def gen_code_coverage_job(platform) {
     def jobs = [:]
     def job_name = 'code-coverage'
-    def coverage_log = ''
 
     jobs[job_name] = {
         node('container-host') {
@@ -375,19 +374,19 @@ def gen_code_coverage_job(platform) {
                     writeFile file: 'steps.sh', text: '''#!/bin/sh
 set -eux
 ulimit -f 20971520
-./tests/scripts/basic-build-test.sh 2>&1
+{ ./tests/scripts/basic-build-test.sh 2>&1; echo $?; } | tee basic-build-test.log
+exit "$(tail -n1 basic-build-test.log)"
 '''
                     sh 'chmod +x steps.sh'
                 }
                 timeout(time: common.perJobTimeout.time,
                         unit: common.perJobTimeout.unit) {
                     try {
-                        coverage_log = sh(
-                            script: common.docker_script(
+                        sh common.docker_script(
                                 platform, "/var/lib/build/steps.sh"
-                            ),
-                            returnStdout: true
                         )
+                        String coverage_log = readFile('basic-build-test.log')
+                        coverage_log = coverage_log.replaceFirst(/\n0\Z/, "")
                         coverage_details['coverage'] = coverage_log.substring(
                             coverage_log.indexOf('Test Report Summary')
                         )
@@ -395,7 +394,6 @@ ulimit -f 20971520
                             coverage_details['coverage'].indexOf('Coverage')
                         )
                     } finally {
-                        echo coverage_log
                         dir('src/tests/') {
                             common.archive_zipped_log_files(job_name)
                         }
