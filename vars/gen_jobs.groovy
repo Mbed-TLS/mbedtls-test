@@ -329,11 +329,7 @@ def gen_abi_api_checking_job(platform) {
                 common.get_docker_image(platform)
                 dir('src') {
                     checkout_repo.checkout_repo()
-                    if (env.TARGET_REPO == 'crypto' && env.REPO_TO_CHECKOUT == 'tls') {
-                        sh "git fetch origin development"
-                    } else {
-                        sh "git fetch origin ${CHANGE_TARGET}"
-                    }
+                    sh "git fetch origin ${CHANGE_TARGET}"
                     writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux

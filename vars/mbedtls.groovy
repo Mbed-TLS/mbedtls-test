@@ -17,17 +17,6 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
-/* This runs the job using the main TLS development branch and a Mbed Crypto PR */
-def run_tls_tests_with_crypto_pr(is_production) {
-    env.REPO_TO_CHECKOUT = 'tls'
-    if (is_production) {
-        env.MBED_TLS_BRANCH = 'development'
-        env.MBED_TLS_REPO = "git@github.com:ARMmbed/mbedtls.git"
-    }
-    common.get_all_sh_components(['ubuntu-16.04', 'ubuntu-18.04'])
-    run_tls_tests('tls-')
-}
-
 def run_tls_tests(label_prefix='') {
     try {
         def jobs = [:]
