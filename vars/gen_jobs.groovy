@@ -374,8 +374,16 @@ def gen_code_coverage_job(platform) {
                     writeFile file: 'steps.sh', text: '''#!/bin/sh
 set -eux
 ulimit -f 20971520
-{ ./tests/scripts/basic-build-test.sh 2>&1; echo $?; } | tee basic-build-test.log
-exit "$(tail -n1 basic-build-test.log)"
+if grep -F coverage-summary.txt tests/scripts/basic-build-test.sh; then
+    # New basic-build-test, generates coverage-summary.txt
+    ./tests/scripts/basic-build-test.sh
+else
+    # Old basic-build-test, only prints the coverage summary to stdout
+    { ./tests/scripts/basic-build-test.sh 2>&1; echo $?; } | tee basic-build-test.log
+    [ "$(tail -n1 basic-build-test.log)" -eq 0 ]
+    sed -n '/^Test Report Summary/,$p' basic-build-test.log >coverage-summary.txt
+    rm basic-build-test.log
+fi
 '''
                     sh 'chmod +x steps.sh'
                 }
@@ -385,13 +393,9 @@ exit "$(tail -n1 basic-build-test.log)"
                         sh common.docker_script(
                                 platform, "/var/lib/build/steps.sh"
                         )
-                        String coverage_log = readFile('basic-build-test.log')
-                        coverage_log = coverage_log.replaceFirst(/\n0\Z/, "")
+                        String coverage_log = readFile('coverage-summary.txt')
                         coverage_details['coverage'] = coverage_log.substring(
-                            coverage_log.indexOf('Test Report Summary')
-                        )
-                        coverage_details['coverage'] = coverage_details['coverage'].substring(
-                            coverage_details['coverage'].indexOf('Coverage')
+                            coverage_log.indexOf('\nCoverage\n') + 1
                         )
                     } finally {
                         dir('src/tests/') {
