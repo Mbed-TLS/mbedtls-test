@@ -613,8 +613,8 @@ def gen_docker_image_publisher_job(platform, tag) {
     jobs["publish-$platform"] = {
         node('dockerfile-builder') {
             sh """\
-MANIFEST=\$(aws ecr batch-get-image --repository-name jenkins-mbedtls --image-ids imageTag=$tag --query 'images[].imageManifest' --output text)
-aws ecr put-image --repository-name jenkins-mbedtls --image-tag $platform --image-manifest "\$MANIFEST"
+MANIFEST=\$(aws ecr batch-get-image --repository-name $common.docker_repo_name --image-ids imageTag=$tag --query 'images[].imageManifest' --output text)
+aws ecr put-image --repository-name $common.docker_repo_name --image-tag $platform --image-manifest "\$MANIFEST"
 """
         }
     }
