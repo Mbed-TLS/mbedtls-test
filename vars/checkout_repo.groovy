@@ -17,38 +17,11 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
-/* This function checks out the repo that branch that the job is testing.
- * If testing the TLS tests with an Mbed Crypto PR, checkout the Mbed TLS
- * development branch and update the crypto submodule to the Mbed Crypto PR branch
- * Otherwise, check out the repo that the job is targeting*/
 def checkout_repo() {
-    if (env.TARGET_REPO == 'crypto' && env.REPO_TO_CHECKOUT == 'tls') {
-        checkout_mbedtls_repo()
-        dir('crypto') {
-            checkout_mbed_crypto_repo()
-        }
-    } else if (env.TARGET_REPO == 'tls') {
-        checkout_mbedtls_repo()
-    } else if (env.TARGET_REPO == 'crypto') {
-        checkout_mbed_crypto_repo()
-    } else {
-        throw new Exception("Cannot determine repo to checkout")
-    }
-}
-
-def checkout_mbedtls_repo() {
     if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
         checkout scm
     } else {
         checkout_parametrized_repo(MBED_TLS_REPO, MBED_TLS_BRANCH)
-    }
-}
-
-def checkout_mbed_crypto_repo() {
-    if (env.TARGET_REPO == 'crypto' && env.CHECKOUT_METHOD == 'scm') {
-        checkout scm
-    } else {
-        checkout_parametrized_repo(MBED_CRYPTO_REPO, MBED_CRYPTO_BRANCH)
     }
 }
 
@@ -96,19 +69,6 @@ def checkout_mbed_os() {
             {
                 deleteDir()
                 checkout_mbedtls_repo()
-            }
-            sh """\
-ulimit -f 20971520
-make all
-"""
-        }
-    }
-    if (env.MBED_CRYPTO_BRANCH) {
-        dir('features/mbedtls/mbed-crypto/importer') {
-            dir('TARGET_IGNORE/mbed-crypto')
-            {
-                deleteDir()
-                checkout_mbed_crypto_repo()
             }
             sh """\
 ulimit -f 20971520
