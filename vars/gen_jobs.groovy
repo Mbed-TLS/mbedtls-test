@@ -394,10 +394,12 @@ fi
                         sh common.docker_script(
                                 platform, "/var/lib/build/steps.sh"
                         )
-                        String coverage_log = readFile('coverage-summary.txt')
-                        coverage_details['coverage'] = coverage_log.substring(
-                            coverage_log.indexOf('\nCoverage\n') + 1
-                        )
+                        dir('src') {
+                            String coverage_log = readFile('coverage-summary.txt')
+                            coverage_details['coverage'] = coverage_log.substring(
+                                coverage_log.indexOf('\nCoverage\n') + 1
+                            )
+                        }
                     } finally {
                         dir('src/tests/') {
                             common.archive_zipped_log_files(job_name)
