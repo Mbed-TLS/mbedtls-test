@@ -611,3 +611,16 @@ aws ecr put-image --repository-name $common.docker_repo_name --image-tag $platfo
     }
     return jobs
 }
+
+def gen_docker_batch_delete_tags_job(tags) {
+    jobs = [:]
+    if (tags) {
+        image_ids = tags.collect({ tag -> "imageTag=$tag" }).join(' ')
+        jobs["batch-delete-tags"] = {
+            node('dockerfile-builder') {
+                sh "aws ecr batch-delete-image --repository-name $common.docker_repo_name --image-ids $image_ids"
+            }
+        }
+    }
+    return jobs
+}
