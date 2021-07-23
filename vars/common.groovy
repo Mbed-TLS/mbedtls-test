@@ -133,45 +133,6 @@ def check_every_all_sh_component_will_be_run() {
     }
 }
 
-/* Check for any bad words found from pull request code and commit messages.
- * Bad words list is in file resources/bad_words.txt
- * Bad words may be a customer which can't be shown to public.
- * If words are found, this method will throw an error and PR will fail.
- */
-def check_for_bad_words() {
-    node('container-host') {
-        // can't access file bad_words.txt from the sh so we must write it there as a new file
-        def BAD_WORDS = libraryResource 'bad_words.txt'
-        writeFile file: 'bad_words.txt', text: BAD_WORDS
-        def BAD_EXCLUDE = libraryResource 'bad_words_exclude.txt'
-        writeFile file: 'bad_words_exclude.txt', text: BAD_EXCLUDE
-
-        dir('src') {
-            deleteDir()
-            checkout_repo.checkout_repo()
-            std_output = sh(
-                        script: '''
-                        set +e
-                        git fetch origin $CHANGE_TARGET
-                        git log FETCH_HEAD..HEAD > pr_git_log_messages.txt
-                        grep -f ../bad_words.txt -Rnwi --exclude-dir=".git" --exclude-dir="crypto" . > ../bw.txt
-                        grep -vi -f ../bad_words_exclude.txt ../bw.txt || [ "$?" = 1 ]
-                        ''',
-                        returnStdout: true
-                    )
-            echo std_output
-            deleteDir()
-            if (std_output) {
-                /* We give generic error message to github because we don't
-                 * want to give information to external pull requests that
-                 * failure cause was for example bad word like name of our customer.
-                 */
-                error("Pre Test Checks failed.")
-            }
-        }
-    }
-}
-
 def get_supported_windows_builds() {
     def is_c89 = null
     def vs_builds = []
