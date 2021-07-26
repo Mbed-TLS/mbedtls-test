@@ -379,8 +379,8 @@ if grep -q -F coverage-summary.txt tests/scripts/basic-build-test.sh; then
     ./tests/scripts/basic-build-test.sh
 else
     # Old basic-build-test, only prints the coverage summary to stdout
-    { ./tests/scripts/basic-build-test.sh 2>&1; echo $?; } |
-      stdbuf -oL tee basic-build-test.log
+    { stdbuf -oL ./tests/scripts/basic-build-test.sh 2>&1; echo $?; } |
+      tee basic-build-test.log
     [ "$(tail -n1 basic-build-test.log)" -eq 0 ]
     sed -n '/^Test Report Summary/,$p' basic-build-test.log >coverage-summary.txt
     rm basic-build-test.log
