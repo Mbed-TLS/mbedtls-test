@@ -72,6 +72,11 @@ RUN apt-get update > /dev/null && \
     apt-get install -y cmake make ninja-build valgrind doxygen graphviz lcov abi-dumper gcc-mingw-w64-i686 clang wget lsof > /dev/null && \
     apt-get clean && rm -rf /var/lib/apt/lists/
 
+# Install arm-linux-gnueabi-gcc
+RUN apt-get update > /dev/null && \
+    apt-get install -y gcc-arm-linux-gnueabi libc6-dev-armel-cross > /dev/null && \
+    apt-get clean && rm -rf /var/lib/apt/lists/
+
 # Install ARM Compiler 5.06
 RUN dpkg --add-architecture i386 && \
     apt-get update > /dev/null && \
