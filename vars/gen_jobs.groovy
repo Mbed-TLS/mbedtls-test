@@ -359,7 +359,6 @@ scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
 def gen_code_coverage_job(platform) {
     def jobs = [:]
     def job_name = 'code-coverage'
-    def coverage_log = ''
 
     jobs[job_name] = {
         node('container-host') {
@@ -371,27 +370,33 @@ def gen_code_coverage_job(platform) {
                     writeFile file: 'steps.sh', text: '''#!/bin/sh
 set -eux
 ulimit -f 20971520
-./tests/scripts/basic-build-test.sh 2>&1
+if grep -q -F coverage-summary.txt tests/scripts/basic-build-test.sh; then
+    # New basic-build-test, generates coverage-summary.txt
+    ./tests/scripts/basic-build-test.sh
+else
+    # Old basic-build-test, only prints the coverage summary to stdout
+    { stdbuf -oL ./tests/scripts/basic-build-test.sh 2>&1; echo $?; } |
+      tee basic-build-test.log
+    [ "$(tail -n1 basic-build-test.log)" -eq 0 ]
+    sed -n '/^Test Report Summary/,$p' basic-build-test.log >coverage-summary.txt
+    rm basic-build-test.log
+fi
 '''
                     sh 'chmod +x steps.sh'
                 }
                 timeout(time: common.perJobTimeout.time,
                         unit: common.perJobTimeout.unit) {
                     try {
-                        coverage_log = sh(
-                            script: common.docker_script(
+                        sh common.docker_script(
                                 platform, "/var/lib/build/steps.sh"
-                            ),
-                            returnStdout: true
                         )
-                        coverage_details['coverage'] = coverage_log.substring(
-                            coverage_log.indexOf('Test Report Summary')
-                        )
-                        coverage_details['coverage'] = coverage_details['coverage'].substring(
-                            coverage_details['coverage'].indexOf('Coverage')
-                        )
+                        dir('src') {
+                            String coverage_log = readFile('coverage-summary.txt')
+                            coverage_details['coverage'] = coverage_log.substring(
+                                coverage_log.indexOf('\nCoverage\n') + 1
+                            )
+                        }
                     } finally {
-                        echo coverage_log
                         dir('src/tests/') {
                             common.archive_zipped_log_files(job_name)
                         }
