@@ -72,6 +72,17 @@ RUN apt-get update > /dev/null && \
     apt-get install -y cmake make ninja-build valgrind doxygen graphviz lcov abi-dumper gcc-mingw-w64-i686 clang wget lsof > /dev/null && \
     apt-get clean && rm -rf /var/lib/apt/lists/
 
+# Install multilib gcc (needed for 32-bit builds)
+#
+# The gcc-multilib package conflicts with cross-compilers packages that we
+# want to install. Fortunately, the only things it does are depend on a couple
+# of packages (that don't conflict with the cross-compiler packages) and
+# install a symlink, which we can do ourselves.
+RUN apt-get update > /dev/null && \
+    apt-get install -y gcc-5-multilib linux-libc-dev > /dev/null && \
+    apt-get clean && rm -rf /var/lib/apt/lists/ && \
+    ln -s x86_64-linux-gnu/asm /usr/include/asm
+
 # Install arm-linux-gnueabi-gcc
 RUN apt-get update > /dev/null && \
     apt-get install -y gcc-arm-linux-gnueabi libc6-dev-armel-cross > /dev/null && \
@@ -108,7 +119,7 @@ ENV PATH=/opt/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH
 
 # Install openssl 1.0.2g
 RUN apt-get update > /dev/null && \
-    apt-get install -y gcc-multilib p11-kit libgmp10 libgmp-dev pkg-config m4 libp11-kit-dev > /dev/null && apt-get clean && rm -rf /var/lib/apt/lists/
+    apt-get install -y p11-kit libgmp10 libgmp-dev pkg-config m4 libp11-kit-dev > /dev/null && apt-get clean && rm -rf /var/lib/apt/lists/
 
 RUN wget -q https://www.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz && \
     tar -zxf openssl-1.0.2g.tar.gz && cd openssl-1.0.2g && \
