@@ -72,6 +72,20 @@ RUN apt-get update > /dev/null && \
     apt-get install -y cmake make ninja-build valgrind doxygen graphviz lcov abi-dumper gcc-mingw-w64-i686 clang wget lsof > /dev/null && \
     apt-get clean && rm -rf /var/lib/apt/lists/
 
+# Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
+# gcc-multilib conflicts with cross-compiler packages that we'll install later,
+# so don't keep it around. Just let it install its dependencies
+# (gcc-<VERSION>-multilib and libc support), then remove it. Manually create
+# one crucial symlink that's otherwise provided by the gcc-multilib package
+# (without that symlink, 32-bit builds won't find system headers). Note that
+# just installing the dependencies of gcc-multilib also brings in gcc-multilib
+# as a Recommends dependency.
+RUN apt-get update > /dev/null && \
+    apt-get install -y gcc-multilib > /dev/null && \
+    apt-get clean && rm -rf /var/lib/apt/lists/ && \
+    dpkg -r gcc-multilib && \
+    ln -s x86_64-linux-gnu/asm /usr/include/asm
+
 # Install arm-linux-gnueabi-gcc
 RUN apt-get update > /dev/null && \
     apt-get install -y gcc-arm-linux-gnueabi libc6-dev-armel-cross > /dev/null && \
@@ -108,7 +122,7 @@ ENV PATH=/opt/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH
 
 # Install openssl 1.0.2g
 RUN apt-get update > /dev/null && \
-    apt-get install -y gcc-multilib p11-kit libgmp10 libgmp-dev pkg-config m4 libp11-kit-dev > /dev/null && apt-get clean && rm -rf /var/lib/apt/lists/
+    apt-get install -y p11-kit libgmp10 libgmp-dev pkg-config m4 libp11-kit-dev > /dev/null && apt-get clean && rm -rf /var/lib/apt/lists/
 
 RUN wget -q https://www.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz && \
     tar -zxf openssl-1.0.2g.tar.gz && cd openssl-1.0.2g && \
