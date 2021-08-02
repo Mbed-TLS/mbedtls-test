@@ -28,13 +28,16 @@ FROM ubuntu:16.04
 ARG DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt/slave
 
+# Remove Ubuntu unattended-upgrades to prevent unwanted changes to system while it is running
+RUN apt-get purge -y unattended-upgrades
+
 # Install necessary apt tools
 RUN apt-get update > /dev/null && \
     apt-get install -y apt-transport-https \
                        apt-utils \
                        software-properties-common \
                        python-software-properties > /dev/null && \
-    apt-get clean && rm -rf /var/lib/apt/lists/
+    rm -rf /var/lib/apt/lists/
 
 # Pre-approve Oracle Java license
 RUN echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && \
@@ -43,22 +46,22 @@ RUN echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-s
 # Install source control tools
 RUN apt-get update > /dev/null && \
     apt-get install -y git mercurial subversion > /dev/null && \
-    apt-get clean && rm -rf /var/lib/apt/lists/
+    rm -rf /var/lib/apt/lists/
 
 # Install Python 2.7
 RUN apt-get update > /dev/null && \
     apt-get install -y python2.7 python-dev libffi-dev python-pip python-setuptools python-distutils-extra > /dev/null && \
-    apt-get clean && rm -rf /var/lib/apt/lists/
+    rm -rf /var/lib/apt/lists/
 
 # Install Python 3 pip
 RUN apt-get update > /dev/null && \
     apt-get install -y python3-pip > /dev/null && \
-    apt-get clean && rm -rf /var/lib/apt/lists/
+    rm -rf /var/lib/apt/lists/
 
 # Install build tools
 RUN apt-get update > /dev/null && \
     apt-get install -y cmake make ninja-build valgrind doxygen graphviz lcov abi-dumper gcc-mingw-w64-i686 clang wget lsof > /dev/null && \
-    apt-get clean && rm -rf /var/lib/apt/lists/
+    rm -rf /var/lib/apt/lists/
 
 # Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
 # gcc-multilib conflicts with cross-compiler packages that we'll install later,
@@ -70,20 +73,20 @@ RUN apt-get update > /dev/null && \
 # as a Recommends dependency.
 RUN apt-get update > /dev/null && \
     apt-get install -y gcc-multilib > /dev/null && \
-    apt-get clean && rm -rf /var/lib/apt/lists/ && \
+    rm -rf /var/lib/apt/lists/ && \
     dpkg -r gcc-multilib && \
     ln -s x86_64-linux-gnu/asm /usr/include/asm
 
 # Install arm-linux-gnueabi-gcc
 RUN apt-get update > /dev/null && \
     apt-get install -y gcc-arm-linux-gnueabi libc6-dev-armel-cross > /dev/null && \
-    apt-get clean && rm -rf /var/lib/apt/lists/
+    rm -rf /var/lib/apt/lists/
 
 # Install ARM Compiler 5.06
 RUN dpkg --add-architecture i386 && \
     apt-get update > /dev/null && \
     apt-get install -y libc6-i386 libc6:i386 libstdc++6:i386 > /dev/null && \
-    apt-get clean && rm -rf /var/lib/apt/lists/ && \
+    rm -rf /var/lib/apt/lists/ && \
     wget -q https://developer.arm.com/-/media/Files/downloads/compiler/DS500-PA-00003-r5p0-22rel0.tgz && \
     tar -zxf DS500-PA-00003-r5p0-22rel0.tgz && \
     ./Installer/setup.sh --i-agree-to-the-contained-eula --no-interactive -d /usr/local/ARM_Compiler_5.06u3 --quiet && \
@@ -110,7 +113,7 @@ ENV PATH=/opt/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH
 
 # Install openssl 1.0.2g
 RUN apt-get update > /dev/null && \
-    apt-get install -y p11-kit libgmp10 libgmp-dev pkg-config m4 libp11-kit-dev > /dev/null && apt-get clean && rm -rf /var/lib/apt/lists/
+    apt-get install -y p11-kit libgmp10 libgmp-dev pkg-config m4 libp11-kit-dev > /dev/null && rm -rf /var/lib/apt/lists/
 
 RUN wget -q https://www.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz && \
     tar -zxf openssl-1.0.2g.tar.gz && cd openssl-1.0.2g && \
@@ -201,7 +204,7 @@ ENV PKG_CONFIG_PATH=/usr/local/libnettle-3.4.1/lib/pkgconfig:/usr/local/libnettl
 
 RUN apt-get update > /dev/null && \
     apt-get install -y libunistring-dev > /dev/null && \
-    apt-get clean && rm -rf /var/lib/apt/lists/
+    rm -rf /var/lib/apt/lists/
 
 RUN wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.6/gnutls-3.6.5.tar.xz && \
     tar -xJf gnutls-3.6.5.tar.xz && cd gnutls-3.6.5 && \
@@ -215,7 +218,7 @@ ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.6.5/bin/gnutls-serv
 # Install version control systems
 RUN apt-get update > /dev/null && \
     apt-get install -y git mercurial subversion zip python-tk wget  > /dev/null && \
-    apt-get clean && rm -rf /var/lib/apt/lists/
+    rm -rf /var/lib/apt/lists/
 
 # Install abi-compliance-checker
 RUN wget -q https://github.com/lvc/abi-compliance-checker/archive/2.3.tar.gz && \
@@ -230,11 +233,7 @@ RUN git clone --branch 1.1 https://github.com/lvc/abi-dumper.git && \
 # Install zlib and its headers (used by MBEDTLS_ZLIB_SUPPORT)
 RUN apt-get update > /dev/null && \
     apt-get install -y zlib1g zlib1g-dev > /dev/null && \
-    apt-get clean && rm -rf /var/lib/apt/lists/
-
-# Remove Ubuntu unattended-upgrades to prevent unwanted changes to system while it is running
-RUN apt-get purge -y unattended-upgrades
-
+    rm -rf /var/lib/apt/lists/
 
 # Install Python 2 pip packages
 # The pip wrapper scripts can get out of sync with pip due to upgrading it outside the package manager, so invoke the module directly
@@ -254,7 +253,7 @@ RUN python3 -m pip install setuptools --upgrade > /dev/null
 RUN python3 -m pip install pylint==2.4.4 > /dev/null
 
 # Set the locale
-RUN apt-get clean && apt-get update && apt-get install -y locales zip python-tk
+RUN apt-get update && apt-get install -y locales zip python-tk
 RUN locale-gen en_US.UTF-8
 
 # Set locale for ARMCC to work
