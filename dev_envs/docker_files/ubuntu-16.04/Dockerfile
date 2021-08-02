@@ -33,53 +33,105 @@ RUN apt-get purge -y unattended-upgrades
 
 # Install necessary apt tools
 RUN apt-get update -q &&  apt-get install -yq \
+        # TODO: isn't this installed by default?
         apt-transport-https \
+        # TODO: do we need this?
         apt-utils \
+        # TODO: do we need this?
         software-properties-common \
+        # TODO: do we need this?
         python-software-properties \
     && rm -rf /var/lib/apt/lists/
 
+# TODO: do we need this? we don't seem to be using Java...
 # Pre-approve Oracle Java license
 RUN echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && \
     echo debconf shared/accepted-oracle-license-v1-1 seen true | debconf-set-selections
 
-# Install source control tools
-RUN apt-get update -q && apt-get install -yq \
-        git \
-        mercurial \
-        subversion \
-    && rm -rf /var/lib/apt/lists/
+# Support for i386:
+# - for 32-bit builds+tests of Mbed TLS
+# - required to install Arm Compiler 5.06 (armcc)
+RUN dpkg --add-architecture i386
 
-# Install Python 2.7
+# Main apt-get call with all packages except those that have conflicts,
+# handled below. One big alphabetised list, in order to avoid duplicates, with
+# comments explaining why each package is needed.
 RUN apt-get update -q && apt-get install -yq \
-        python2.7 \
-        python-dev \
-        libffi-dev \
-        python-pip \
-        python-setuptools \
-        python-distutils-extra \
-    && rm -rf /var/lib/apt/lists/
-
-# Install Python 3 pip
-RUN apt-get update -q &&  apt-get install -yq \
-        python3-pip \
-    && rm -rf /var/lib/apt/lists/
-
-# Install build tools
-RUN apt-get update -q && apt-get install -yq \
-        cmake \
-        make \
-        ninja-build \
-        valgrind \
-        doxygen \
-        graphviz \
-        lcov \
+        # TODO: also installed from source, redundant?
         abi-dumper \
-        gcc-mingw-w64-i686 \
+        # to build Mbed TLS
         clang \
-        wget \
+        # to build Mbed TLS
+        cmake \
+        # to build Mbed TLS's documentation
+        doxygen \
+        # to cross-build Mbed TLS
+        gcc-mingw-w64-i686 \
+        # to check out Mbed TLS and others
+        git \
+        # to build Mbed TLS's documentation
+        graphviz \
+        # to measure code coverage of Mbed TLS
+        lcov \
+        # for 32-bit Mbed TLS testing and armcc
+        libc6-i386 \
+        # for 32-bit Mbed TLS testing and armcc
+        libc6:i386 \
+        # required by OpenSSL
+        libgmp10 \
+        # required by OpenSSL
+        libgmp-dev \
+        # to build GnuTLS
+        libunistring-dev \
+        # required by OpenSSL
+        libp11-kit-dev \
+        # for armcc
+        libstdc++6:i386 \
+        # TODO: do we need this? (python)
+        libffi-dev \
+        # needed for armcc (see locale-gen below)
+        locales \
+        # used by compat.sh and ssl-opt.sh
         lsof \
-     && rm -rf /var/lib/apt/lists/
+        # required by OpenSSL
+        m4 \
+        # to build Mbed TLS and others
+        make \
+        # TODO: do we need this?
+        mercurial \
+        # for yotta
+        ninja-build \
+        # required by OpenSSL
+        p11-kit \
+        # required by OpenSSL
+        pkg-config \
+        # TODO: why? (yotta I guess? something else too?)
+        python2.7 \
+        # TODO: do we need this?
+        python-dev \
+        # TODO: do we need this?
+        python-distutils-extra \
+        # TODO: see python2.7
+        python-pip \
+        # to install the preferred version of pylint
+        python3-pip \
+        # TODO: do we need this?
+        python-setuptools \
+        # TODO: do we need this?
+        python-tk \
+        # TODO: do we need this?
+        subversion \
+        # for Mbed TLS tests
+        valgrind \
+        # to download things installed from other places
+        wget \
+        # TODO: do we need this?
+        zip \
+        # to build Mbed TLS with MBEDTLS_ZILIB_SUPPORT (removed in 3.0)
+        zlib1g \
+        # to build Mbed TLS with MBEDTLS_ZILIB_SUPPORT (removed in 3.0)
+        zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/
 
 # Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
 # gcc-multilib conflicts with cross-compiler packages that we'll install later,
@@ -95,20 +147,14 @@ RUN apt-get update -q && apt-get install -yq \
     dpkg -r gcc-multilib && \
     ln -s x86_64-linux-gnu/asm /usr/include/asm
 
-# Install arm-linux-gnueabi-gcc
+# Install arm-linux-gnueabi-gcc - to cross-build Mbed TLS
 RUN apt-get update -q && apt-get install -yq \
         gcc-arm-linux-gnueabi \
         libc6-dev-armel-cross \
     && rm -rf /var/lib/apt/lists/
 
 # Install ARM Compiler 5.06
-RUN dpkg --add-architecture i386 && \
-    apt-get update -q && apt-get install -yq \
-        libc6-i386 \
-        libc6:i386 \
-        libstdc++6:i386 \
-    && rm -rf /var/lib/apt/lists/ && \
-    wget -q https://developer.arm.com/-/media/Files/downloads/compiler/DS500-PA-00003-r5p0-22rel0.tgz && \
+RUN wget -q https://developer.arm.com/-/media/Files/downloads/compiler/DS500-PA-00003-r5p0-22rel0.tgz && \
     tar -zxf DS500-PA-00003-r5p0-22rel0.tgz && \
     ./Installer/setup.sh --i-agree-to-the-contained-eula --no-interactive -d /usr/local/ARM_Compiler_5.06u3 --quiet && \
     rm -rf DS500-PA-00003-r5p0-22rel0.tgz releasenotes.html Installer/
@@ -133,15 +179,6 @@ RUN wget -q https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/
 ENV PATH=/opt/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH
 
 # Install openssl 1.0.2g
-RUN apt-get update -q && apt-get install -yq \
-        p11-kit \
-        libgmp10 \
-        libgmp-dev \
-        pkg-config \
-        m4 \
-        libp11-kit-dev \
-    && rm -rf /var/lib/apt/lists/
-
 RUN wget -q https://www.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz && \
     tar -zxf openssl-1.0.2g.tar.gz && cd openssl-1.0.2g && \
     ./config --openssldir=/usr/local/openssl-1.0.2g && \
@@ -229,10 +266,6 @@ RUN wget -q https://ftp.gnu.org/gnu/libtasn1/libtasn1-4.9.tar.gz && \
 
 ENV PKG_CONFIG_PATH=/usr/local/libnettle-3.4.1/lib/pkgconfig:/usr/local/libnettle-3.4.1/lib64/pkgconfig:/usr/local/lib/pkgconfig
 
-RUN apt-get update -q && apt-get install -yq \
-        libunistring-dev \
-    && rm -rf /var/lib/apt/lists/
-
 RUN wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.6/gnutls-3.6.5.tar.xz && \
     tar -xJf gnutls-3.6.5.tar.xz && cd gnutls-3.6.5 && \
     ./configure --prefix=/usr/local/gnutls-3.6.5 --exec_prefix=/usr/local/gnutls-3.6.5 --disable-shared && \
@@ -241,16 +274,6 @@ RUN wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.6/gnutls-3.6.5.tar.xz && 
 
 ENV GNUTLS_NEXT_CLI=/usr/local/gnutls-3.6.5/bin/gnutls-cli
 ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.6.5/bin/gnutls-serv
-
-# Install version control systems
-RUN apt-get update -q && apt-get install -yq \
-        git \
-        mercurial \
-        subversion \
-        zip \
-        python-tk \
-        wget \
-    && rm -rf /var/lib/apt/lists/
 
 # Install abi-compliance-checker
 RUN wget -q https://github.com/lvc/abi-compliance-checker/archive/2.3.tar.gz && \
@@ -261,12 +284,6 @@ RUN wget -q https://github.com/lvc/abi-compliance-checker/archive/2.3.tar.gz && 
 # Install abi-dumper
 RUN git clone --branch 1.1 https://github.com/lvc/abi-dumper.git && \
     cd abi-dumper && make install prefix=/usr && cd .. && rm -rf abi-dumper
-
-# Install zlib and its headers (used by MBEDTLS_ZLIB_SUPPORT)
-RUN apt-get update -q && apt-get install -yq \
-        zlib1g \
-        zlib1g-dev \
-    && rm -rf /var/lib/apt/lists/
 
 # Install Python 2 pip packages
 # The pip wrapper scripts can get out of sync with pip due to upgrading it outside the package manager, so invoke the module directly
@@ -285,12 +302,10 @@ RUN python3 -m pip install setuptools --upgrade > /dev/null
 
 RUN python3 -m pip install pylint==2.4.4 > /dev/null
 
-# Set the locale
-RUN apt-get update && apt-get install -yq locales zip python-tk
-RUN locale-gen en_US.UTF-8
-
 # Set locale for ARMCC to work
-RUN locale && locale-gen "en_US.UTF-8" && dpkg-reconfigure locales
+RUN locale && \
+    locale-gen "en_US.UTF-8" && \
+    dpkg-reconfigure locales
 
 # Add user
 RUN useradd -m user
