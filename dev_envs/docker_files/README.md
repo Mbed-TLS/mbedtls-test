@@ -22,16 +22,16 @@ Remember to build the docker image before running ```run.sh```.
 A docker image can be built with following command:
 ```sh
 cd mbedtls-test/dev_envs/docker_files
-sudo docker build -t ubuntu-17.10 -f ubuntu-17.10/Dockerfile .
+sudo docker build --network=host -t ubuntu-17.10 -f ubuntu-17.10/Dockerfile .
 ```
 This creates an image from the specified file. Built image is maintained by docker in it's own workspace on the host. Don't worry where the built image is gone! From this point the built image is referred by it's tag name. For example ```ubuntu-17.10```.
 
 * **run** -
 Following basic command starts docker in an interactive mode:
 ```sh
-sudo docker run --rm -i ubuntu-17.10
+sudo docker run --network=host --rm -i -t ubuntu-17.10
 ```
-Above, ```-i``` is for interactive mode. ```--rm``` tells docker to cleanup the container after exit. All images launch ```bash``` on startup. Hence, user is on a ```bash``` shell when image is started in the interactive mode. **Note** docker does not have a shell prompt that user will notice. Try running ```ls```.
+Above, ```-i``` is for interactive mode and ```-t``` is for emulating a tty. ```--rm``` tells docker to cleanup the container after exit. All images launch ```bash``` on startup. Hence, user is on a ```bash``` shell when image is started in the interactive mode.
 
 Use ```run.sh``` for enabling ```git``` and mounting a host workspace inside docker. Example:
 ```sh
