@@ -17,25 +17,16 @@
 #
 #  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
 
-
-
-################################################################
-#### Documentation
-################################################################
-
 # Purpose
 # -------
 #
-# This docker file is for creating a ubuntu-16.04 platform container. It
-# contains setup and installation of tools for executing same set of Mbed TLS
-# tests as there are in the CI. This conatiner can be used for reproducing and
-# testing failures found in the CI.
+# This docker file is for creating the ubuntu-16.04 image that is used in the
+# CI. It can also be used for reproducing and testing CI failures.
 
-
-#Start with basic Ubuntu 16.04 image
 FROM ubuntu:16.04
 
-ENV DEBIAN_FRONTEND=noninteractive
+ARG DEBIAN_FRONTEND=noninteractive
+WORKDIR /opt/slave
 
 # Install necessary apt tools
 RUN apt-get update > /dev/null && \
@@ -44,9 +35,6 @@ RUN apt-get update > /dev/null && \
                        software-properties-common \
                        python-software-properties > /dev/null && \
     apt-get clean && rm -rf /var/lib/apt/lists/
-
-# set the working directory to /opt/slave
-WORKDIR /opt/slave
 
 # Pre-approve Oracle Java license
 RUN echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && \
