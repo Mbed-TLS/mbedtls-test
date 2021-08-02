@@ -32,11 +32,11 @@ WORKDIR /opt/slave
 RUN apt-get purge -y unattended-upgrades
 
 # Install necessary apt tools
-RUN apt-get update > /dev/null && \
-    apt-get install -y apt-transport-https \
+RUN apt-get update -q && \
+    apt-get install -yq apt-transport-https \
                        apt-utils \
                        software-properties-common \
-                       python-software-properties > /dev/null && \
+                       python-software-properties && \
     rm -rf /var/lib/apt/lists/
 
 # Pre-approve Oracle Java license
@@ -44,23 +44,23 @@ RUN echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-s
     echo debconf shared/accepted-oracle-license-v1-1 seen true | debconf-set-selections
 
 # Install source control tools
-RUN apt-get update > /dev/null && \
-    apt-get install -y git mercurial subversion > /dev/null && \
+RUN apt-get update -q && \
+    apt-get install -yq git mercurial subversion && \
     rm -rf /var/lib/apt/lists/
 
 # Install Python 2.7
-RUN apt-get update > /dev/null && \
-    apt-get install -y python2.7 python-dev libffi-dev python-pip python-setuptools python-distutils-extra > /dev/null && \
+RUN apt-get update -q && \
+    apt-get install -yq python2.7 python-dev libffi-dev python-pip python-setuptools python-distutils-extra && \
     rm -rf /var/lib/apt/lists/
 
 # Install Python 3 pip
-RUN apt-get update > /dev/null && \
-    apt-get install -y python3-pip > /dev/null && \
+RUN apt-get update -q && \
+    apt-get install -yq python3-pip && \
     rm -rf /var/lib/apt/lists/
 
 # Install build tools
-RUN apt-get update > /dev/null && \
-    apt-get install -y cmake make ninja-build valgrind doxygen graphviz lcov abi-dumper gcc-mingw-w64-i686 clang wget lsof > /dev/null && \
+RUN apt-get update -q && \
+    apt-get install -yq cmake make ninja-build valgrind doxygen graphviz lcov abi-dumper gcc-mingw-w64-i686 clang wget lsof && \
     rm -rf /var/lib/apt/lists/
 
 # Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
@@ -71,21 +71,21 @@ RUN apt-get update > /dev/null && \
 # (without that symlink, 32-bit builds won't find system headers). Note that
 # just installing the dependencies of gcc-multilib also brings in gcc-multilib
 # as a Recommends dependency.
-RUN apt-get update > /dev/null && \
-    apt-get install -y gcc-multilib > /dev/null && \
+RUN apt-get update -q && \
+    apt-get install -yq gcc-multilib && \
     rm -rf /var/lib/apt/lists/ && \
     dpkg -r gcc-multilib && \
     ln -s x86_64-linux-gnu/asm /usr/include/asm
 
 # Install arm-linux-gnueabi-gcc
-RUN apt-get update > /dev/null && \
-    apt-get install -y gcc-arm-linux-gnueabi libc6-dev-armel-cross > /dev/null && \
+RUN apt-get update -q && \
+    apt-get install -yq gcc-arm-linux-gnueabi libc6-dev-armel-cross && \
     rm -rf /var/lib/apt/lists/
 
 # Install ARM Compiler 5.06
 RUN dpkg --add-architecture i386 && \
-    apt-get update > /dev/null && \
-    apt-get install -y libc6-i386 libc6:i386 libstdc++6:i386 > /dev/null && \
+    apt-get update -q && \
+    apt-get install -yq libc6-i386 libc6:i386 libstdc++6:i386 && \
     rm -rf /var/lib/apt/lists/ && \
     wget -q https://developer.arm.com/-/media/Files/downloads/compiler/DS500-PA-00003-r5p0-22rel0.tgz && \
     tar -zxf DS500-PA-00003-r5p0-22rel0.tgz && \
@@ -112,8 +112,8 @@ RUN wget -q https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/
 ENV PATH=/opt/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH
 
 # Install openssl 1.0.2g
-RUN apt-get update > /dev/null && \
-    apt-get install -y p11-kit libgmp10 libgmp-dev pkg-config m4 libp11-kit-dev > /dev/null && rm -rf /var/lib/apt/lists/
+RUN apt-get update -q && \
+    apt-get install -yq p11-kit libgmp10 libgmp-dev pkg-config m4 libp11-kit-dev && rm -rf /var/lib/apt/lists/
 
 RUN wget -q https://www.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz && \
     tar -zxf openssl-1.0.2g.tar.gz && cd openssl-1.0.2g && \
@@ -202,8 +202,8 @@ RUN wget -q https://ftp.gnu.org/gnu/libtasn1/libtasn1-4.9.tar.gz && \
 
 ENV PKG_CONFIG_PATH=/usr/local/libnettle-3.4.1/lib/pkgconfig:/usr/local/libnettle-3.4.1/lib64/pkgconfig:/usr/local/lib/pkgconfig
 
-RUN apt-get update > /dev/null && \
-    apt-get install -y libunistring-dev > /dev/null && \
+RUN apt-get update -q && \
+    apt-get install -yq libunistring-dev && \
     rm -rf /var/lib/apt/lists/
 
 RUN wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.6/gnutls-3.6.5.tar.xz && \
@@ -216,8 +216,8 @@ ENV GNUTLS_NEXT_CLI=/usr/local/gnutls-3.6.5/bin/gnutls-cli
 ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.6.5/bin/gnutls-serv
 
 # Install version control systems
-RUN apt-get update > /dev/null && \
-    apt-get install -y git mercurial subversion zip python-tk wget  > /dev/null && \
+RUN apt-get update -q && \
+    apt-get install -yq git mercurial subversion zip python-tk wget  && \
     rm -rf /var/lib/apt/lists/
 
 # Install abi-compliance-checker
@@ -231,8 +231,8 @@ RUN git clone --branch 1.1 https://github.com/lvc/abi-dumper.git && \
     cd abi-dumper && make install prefix=/usr && cd .. && rm -rf abi-dumper
 
 # Install zlib and its headers (used by MBEDTLS_ZLIB_SUPPORT)
-RUN apt-get update > /dev/null && \
-    apt-get install -y zlib1g zlib1g-dev > /dev/null && \
+RUN apt-get update -q && \
+    apt-get install -yq zlib1g zlib1g-dev && \
     rm -rf /var/lib/apt/lists/
 
 # Install Python 2 pip packages
@@ -253,7 +253,7 @@ RUN python3 -m pip install setuptools --upgrade > /dev/null
 RUN python3 -m pip install pylint==2.4.4 > /dev/null
 
 # Set the locale
-RUN apt-get update && apt-get install -y locales zip python-tk
+RUN apt-get update && apt-get install -yq locales zip python-tk
 RUN locale-gen en_US.UTF-8
 
 # Set locale for ARMCC to work
