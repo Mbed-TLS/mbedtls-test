@@ -28,11 +28,6 @@ FROM ubuntu:16.04
 ARG DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt/slave
 
-# TODO: do we need this? we don't seem to be using Java...
-# Pre-approve Oracle Java license
-RUN echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && \
-    echo debconf shared/accepted-oracle-license-v1-1 seen true | debconf-set-selections
-
 # Support for i386:
 # - for 32-bit builds+tests of Mbed TLS
 # - required to install Arm Compiler 5.06 (armcc)
