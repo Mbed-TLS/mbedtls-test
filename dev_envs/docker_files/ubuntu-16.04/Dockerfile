@@ -39,6 +39,8 @@ RUN dpkg --add-architecture i386
 RUN apt-get update -q && apt-get install -yq \
         # installed from source, but this installs the dependencies
         abi-dumper \
+        # to build Mbed TLS: gcc, binutils, make, etc.
+        build-essential \
         # to build Mbed TLS
         clang \
         # to build Mbed TLS
