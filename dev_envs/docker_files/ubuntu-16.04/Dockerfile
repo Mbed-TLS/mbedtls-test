@@ -67,8 +67,6 @@ RUN apt-get update -q && apt-get install -yq \
         libp11-kit-dev \
         # for armcc
         libstdc++6:i386 \
-        # TODO: do we need this? (python)
-        libffi-dev \
         # needed for armcc (see locale-gen below)
         locales \
         # used by compat.sh and ssl-opt.sh
@@ -83,12 +81,8 @@ RUN apt-get update -q && apt-get install -yq \
         p11-kit \
         # required by OpenSSL
         pkg-config \
-        # TODO: do we need this?
-        python3-distutils-extra \
         # to install the preferred version of pylint
         python3-pip \
-        # TODO: do we need this?
-        python-tk \
         # TODO: do we need this?
         subversion \
         # for Mbed TLS tests
@@ -263,7 +257,7 @@ RUN python3 -m pip install 'pip<21' --upgrade > /dev/null
 
 RUN python3 -m pip install setuptools --upgrade > /dev/null
 
-RUN python3 -m pip install pylint==2.4.4 matplotlib > /dev/null
+RUN python3 -m pip install pylint==2.4.4 > /dev/null
 
 # Set locale for ARMCC to work
 RUN locale && \
