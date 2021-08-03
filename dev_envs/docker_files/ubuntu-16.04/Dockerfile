@@ -83,18 +83,10 @@ RUN apt-get update -q && apt-get install -yq \
         p11-kit \
         # required by OpenSSL
         pkg-config \
-        # TODO: why? (yotta I guess? something else too?)
-        python2.7 \
         # TODO: do we need this?
-        python-dev \
-        # TODO: do we need this?
-        python-distutils-extra \
-        # TODO: see python2.7
-        python-pip \
+        python3-distutils-extra \
         # to install the preferred version of pylint
         python3-pip \
-        # TODO: do we need this?
-        python-setuptools \
         # TODO: do we need this?
         python-tk \
         # TODO: do we need this?
@@ -263,22 +255,15 @@ RUN wget -q https://github.com/lvc/abi-compliance-checker/archive/2.3.tar.gz && 
 RUN git clone --branch 1.1 https://github.com/lvc/abi-dumper.git && \
     cd abi-dumper && make install prefix=/usr && cd .. && rm -rf abi-dumper
 
-# Install Python 2 pip packages
+# Install Python pip packages
 # The pip wrapper scripts can get out of sync with pip due to upgrading it outside the package manager, so invoke the module directly
 # pip < 9.0 Doesn't understand the Requires-Python directive, and tries to install the wrong versions pip and setuptools
-# pip 21 drops support for Python 2.7 and 3.5
-RUN python2 -m pip install 'pip<21' --upgrade > /dev/null
-
-RUN python2 -m pip install setuptools --upgrade > /dev/null
-
-RUN python2 -m pip install matplotlib > /dev/null
-
-# Install Python 3 pip packages
+# pip 21 drops support for Python 3.5
 RUN python3 -m pip install 'pip<21' --upgrade > /dev/null
 
 RUN python3 -m pip install setuptools --upgrade > /dev/null
 
-RUN python3 -m pip install pylint==2.4.4 > /dev/null
+RUN python3 -m pip install pylint==2.4.4 matplotlib > /dev/null
 
 # Set locale for ARMCC to work
 RUN locale && \
