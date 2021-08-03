@@ -138,6 +138,12 @@ RUN wget -q https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/
 
 ENV PATH=/opt/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH
 
+# Install exact upstream versions of OpenSSL and GnuTLS
+#
+# Distro packages tend to include patches that disrupt our testing scripts,
+# and such patches may be added at any time. Avoid surprises by using fixed
+# versions.
+
 # Install openssl 1.0.2g
 RUN wget -q https://www.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz && \
     tar -zxf openssl-1.0.2g.tar.gz && cd openssl-1.0.2g && \
@@ -236,12 +242,14 @@ ENV GNUTLS_NEXT_CLI=/usr/local/gnutls-3.6.5/bin/gnutls-cli
 ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.6.5/bin/gnutls-serv
 
 # Install abi-compliance-checker
+# The version in Ubuntu 16.04 is too old, we want at least the version below
 RUN wget -q https://github.com/lvc/abi-compliance-checker/archive/2.3.tar.gz && \
     tar -zxf 2.3.tar.gz && cd abi-compliance-checker-2.3 && \
     make clean && make && make install prefix=/usr && cd .. && \
     rm -rf openssl-1.0.2g* && rm 2.3.tar.gz
 
 # Install abi-dumper
+# The version in Ubuntu 16.04 is too old, we want at least the version below
 RUN git clone --branch 1.1 https://github.com/lvc/abi-dumper.git && \
     cd abi-dumper && make install prefix=/usr && cd .. && rm -rf abi-dumper
 
@@ -259,6 +267,8 @@ RUN git clone --branch 1.1 https://github.com/lvc/abi-dumper.git && \
 # pip (>= 10) we can use its command-line option for that.
 RUN python3 -m pip install 'pip<21' --upgrade | cat && \
     python3 -m pip install --progress-bar=off setuptools --upgrade && \
+    # For pylint we want a known version, as later versions may add checks at
+    # any time, making CI results unpredictable.
     python3 -m pip install --progress-bar=off pylint==2.4.4
 
 # Set locale for ARMCC to work
