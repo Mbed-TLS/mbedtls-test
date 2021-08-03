@@ -37,7 +37,7 @@ RUN dpkg --add-architecture i386
 # handled below. One big alphabetised list, in order to avoid duplicates, with
 # comments explaining why each package is needed.
 RUN apt-get update -q && apt-get install -yq \
-        # TODO: also installed from source, redundant?
+        # installed from source, but this installs the dependencies
         abi-dumper \
         # to build Mbed TLS
         clang \
@@ -75,22 +75,16 @@ RUN apt-get update -q && apt-get install -yq \
         m4 \
         # to build Mbed TLS and others
         make \
-        # TODO: do we need this?
-        mercurial \
         # required by OpenSSL
         p11-kit \
         # required by OpenSSL
         pkg-config \
         # to install the preferred version of pylint
         python3-pip \
-        # TODO: do we need this?
-        subversion \
         # for Mbed TLS tests
         valgrind \
         # to download things installed from other places
         wget \
-        # TODO: do we need this?
-        zip \
         # to build Mbed TLS with MBEDTLS_ZILIB_SUPPORT (removed in 3.0)
         zlib1g \
         # to build Mbed TLS with MBEDTLS_ZILIB_SUPPORT (removed in 3.0)
