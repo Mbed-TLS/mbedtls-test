@@ -28,21 +28,6 @@ FROM ubuntu:16.04
 ARG DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt/slave
 
-# Remove Ubuntu unattended-upgrades to prevent unwanted changes to system while it is running
-RUN apt-get purge -y unattended-upgrades
-
-# Install necessary apt tools
-RUN apt-get update -q &&  apt-get install -yq \
-        # TODO: isn't this installed by default?
-        apt-transport-https \
-        # TODO: do we need this?
-        apt-utils \
-        # TODO: do we need this?
-        software-properties-common \
-        # TODO: do we need this?
-        python-software-properties \
-    && rm -rf /var/lib/apt/lists/
-
 # TODO: do we need this? we don't seem to be using Java...
 # Pre-approve Oracle Java license
 RUN echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && \
