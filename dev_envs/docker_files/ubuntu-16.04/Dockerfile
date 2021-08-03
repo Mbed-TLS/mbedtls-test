@@ -138,7 +138,7 @@ ENV ARMC6_BIN_DIR=/usr/local/ARM_Compiler_6.6/bin/
 
 # Install arm-none-eabi-gcc
 RUN wget -q https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -O gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 && \
-    tar -xjf gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -C /opt 
+    tar -xjf gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -C /opt
 
 ENV PATH=/opt/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH
 
@@ -275,7 +275,7 @@ RUN useradd -m user
 
 # Create workspace
 ARG AGENT_WORKDIR=/var/lib/builds
-RUN mkdir -p ${AGENT_WORKDIR} && chown user:user ${AGENT_WORKDIR}                                                                                                   
+RUN mkdir -p ${AGENT_WORKDIR} && chown user:user ${AGENT_WORKDIR}
 USER user
 ENV AGENT_WORKDIR=${AGENT_WORKDIR}
 
