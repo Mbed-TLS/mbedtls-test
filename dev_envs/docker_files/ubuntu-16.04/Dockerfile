@@ -79,8 +79,6 @@ RUN apt-get update -q && apt-get install -yq \
         make \
         # TODO: do we need this?
         mercurial \
-        # for yotta
-        ninja-build \
         # required by OpenSSL
         p11-kit \
         # required by OpenSSL
@@ -273,7 +271,7 @@ RUN python2 -m pip install 'pip<21' --upgrade > /dev/null
 
 RUN python2 -m pip install setuptools --upgrade > /dev/null
 
-RUN python2 -m pip install yotta matplotlib > /dev/null
+RUN python2 -m pip install matplotlib > /dev/null
 
 # Install Python 3 pip packages
 RUN python3 -m pip install 'pip<21' --upgrade > /dev/null
