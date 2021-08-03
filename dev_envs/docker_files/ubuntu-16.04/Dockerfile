@@ -250,14 +250,20 @@ RUN git clone --branch 1.1 https://github.com/lvc/abi-dumper.git && \
     cd abi-dumper && make install prefix=/usr && cd .. && rm -rf abi-dumper
 
 # Install Python pip packages
-# The pip wrapper scripts can get out of sync with pip due to upgrading it outside the package manager, so invoke the module directly
-# pip < 9.0 Doesn't understand the Requires-Python directive, and tries to install the wrong versions pip and setuptools
-# pip 21 drops support for Python 3.5
-RUN python3 -m pip install 'pip<21' --upgrade > /dev/null
-
-RUN python3 -m pip install setuptools --upgrade > /dev/null
-
-RUN python3 -m pip install pylint==2.4.4 > /dev/null
+#
+# The pip wrapper scripts can get out of sync with pip due to upgrading it
+# outside the package manager, so invoke the module directly.
+#
+# Ubuntu 16.04's pip (8.1) doesn't understand the Requires-Python
+# directive (introduced in pip 9.0), and tries to install the wrong versions
+# of pip and setuptools. Version 21 of pip drops support for Python 3.5 (the
+# latest in 16.04), so pick an earlier version.
+#
+# Piping to cat suppresses the progress bar. Then when we have a more recent
+# pip (>= 10) we can use its command-line option for that.
+RUN python3 -m pip install 'pip<21' --upgrade | cat && \
+    python3 -m pip install --progress-bar=off setuptools --upgrade && \
+    python3 -m pip install --progress-bar=off pylint==2.4.4
 
 # Set locale for ARMCC to work
 RUN locale && \
