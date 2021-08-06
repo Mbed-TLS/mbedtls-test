@@ -67,8 +67,7 @@ def run_pr_job(is_production=true) {
             properties([
                 buildDiscarder(
                     logRotator(
-                        daysToKeepStr: '60',
-                        numToKeepStr: '30'
+                        numToKeepStr: '5'
                     )
                 )
             ])
