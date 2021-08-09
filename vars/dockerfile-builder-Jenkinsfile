@@ -4,14 +4,11 @@
  * This script takes the following parameters:
  *
  * Repos and branches
- *  - TEST_REPO
  *  - TEST_BRANCH
  *
  * Build options
- *  - DOCKER_IMAGE_16_04_ENABLE
  *  - DOCKER_IMAGE_16_04_ACTION
  *  - DOCKER_IMAGE_16_04_TAG
- *  - DOCKER_IMAGE_18_04_ENABLE
  *  - DOCKER_IMAGE_18_04_ACTION
  *  - DOCKER_IMAGE_18_04_TAG
  *

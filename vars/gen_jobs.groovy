@@ -591,15 +591,16 @@ def gen_release_jobs(label_prefix='', run_examples=true) {
     return jobs
 }
 
-def gen_dockerfile_builder_job(repo, branch, platform, tag) {
+def gen_dockerfile_builder_job(platform, tag) {
     def jobs = [:]
+    def dockerfile = libraryResource "docker_files/$platform/Dockerfile"
     jobs["build-$platform"] = {
         node('dockerfile-builder') {
-            dir('src') {
+            dir('docker') {
                 deleteDir()
-                checkout_repo.checkout_parametrized_repo(repo, branch)
+                writeFile file: 'Dockerfile', text: dockerfile
                 sh """\
-docker build -t $common.docker_repo:$tag - < 'resources/docker_files/$platform/Dockerfile'
+docker build -t $common.docker_repo:$tag .
 \$(aws ecr get-login) && docker push $common.docker_repo:$tag
 """
             }
