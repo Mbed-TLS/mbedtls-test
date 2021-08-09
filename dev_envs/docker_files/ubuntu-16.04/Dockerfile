@@ -59,13 +59,11 @@ RUN apt-get update -q && apt-get install -yq \
         libc6-i386 \
         # for 32-bit Mbed TLS testing and armcc
         libc6:i386 \
-        # required by OpenSSL
-        libgmp10 \
-        # required by OpenSSL
+        # to build OpenSSL
         libgmp-dev \
         # to build GnuTLS
         libunistring-dev \
-        # required by OpenSSL
+        # to build OpenSSL
         libp11-kit-dev \
         # for armcc
         libstdc++6:i386 \
@@ -73,13 +71,13 @@ RUN apt-get update -q && apt-get install -yq \
         locales \
         # used by compat.sh and ssl-opt.sh
         lsof \
-        # required by OpenSSL
+        # to build OpenSSL
         m4 \
         # to build Mbed TLS and others
         make \
-        # required by OpenSSL
+        # to build OpenSSL
         p11-kit \
-        # required by OpenSSL
+        # to build OpenSSL
         pkg-config \
         # to install the preferred version of pylint
         python3-pip \
