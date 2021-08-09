@@ -597,7 +597,7 @@ def gen_dockerfile_builder_job(repo, branch, platform, tag) {
                 deleteDir()
                 checkout_repo.checkout_parametrized_repo(repo, branch)
                 sh """\
-docker build -t $common.docker_repo:$tag - < 'dev_envs/docker_files/$platform/Dockerfile'
+docker build -t $common.docker_repo:$tag - < 'resources/docker_files/$platform/Dockerfile'
 \$(aws ecr get-login) && docker push $common.docker_repo:$tag
 """
             }
