@@ -22,22 +22,25 @@ Remember to build the docker image before running ```run.sh```.
 A docker image can be built with following command:
 ```sh
 cd mbedtls-test/dev_envs/docker_files
-sudo docker build --network=host -t ubuntu-17.10 -f ubuntu-17.10/Dockerfile .
+sudo docker build --network=host -t ubuntu-18.04 -f ubuntu-17.10/Dockerfile .
 ```
-This creates an image from the specified file. Built image is maintained by docker in it's own workspace on the host. Don't worry where the built image is gone! From this point the built image is referred by it's tag name. For example ```ubuntu-17.10```.
+This creates an image from the specified file. Built image is maintained by docker in it's own workspace on the host. Don't worry where the built image is gone! From this point the built image is referred by it's tag name. For example ```ubuntu-18.04```.
+
+Note: `--network=host` may or may not necessary depending on your machine's
+configuration, including whether you're using a VPN or not.
 
 * **run** -
 Following basic command starts docker in an interactive mode:
 ```sh
-sudo docker run --network=host --rm -i -t ubuntu-17.10
+sudo docker run --network=host --rm -i -t ubuntu-18.04
 ```
-Above, ```-i``` is for interactive mode and ```-t``` is for emulating a tty. ```--rm``` tells docker to cleanup the container after exit. All images launch ```bash``` on startup. Hence, user is on a ```bash``` shell when image is started in the interactive mode.
+Above, ```-i``` is for interactive mode and ```-t``` is for emulating a tty. ```--rm``` tells docker to cleanup the container after exit. (See note above regarding `--network=host`.) All images launch ```bash``` on startup. Hence, user is on a ```bash``` shell when image is started in the interactive mode.
 
 Use ```run.sh``` for enabling ```git``` and mounting a host workspace inside docker. Example:
 ```sh
-$ ./run.sh /home/mazimkhan/github/mazimkhan ubuntu-17.10
+$ ./run.sh /home/mazimkhan/github/mazimkhan ubuntu-18.04
 ****************************************************
-  Running docker image ubuntu-17.10
+  Running docker image ubuntu-18.04
   User ID:Group ID --> 1000:1000
   Mounting /home/mazimkhan/.ssh --> /home/user/.ssh
   Mounting /home/mazimkhan/github/mazimkhan --> /var/lib/ws
@@ -63,7 +66,7 @@ Built images on host machine can be viewed using command:
 $ sudo docker images
 [sudo] password for mazimkhan: 
 REPOSITORY             TAG                 IMAGE ID            CREATED             SIZE
-ubuntu-17.10           latest              d62631abe664        2 hours ago         2.39GB
+ubuntu-18.04           latest              d62631abe664        2 hours ago         2.39GB
 ubuntu-16.04           latest              f25e332cb5d8        5 weeks ago         4.04GB
 ubuntu                 16.04               747cb2d60bbe        7 weeks ago         122MB
 ```
