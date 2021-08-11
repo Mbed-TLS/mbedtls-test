@@ -26,7 +26,7 @@
 FROM ubuntu:16.04
 
 ARG DEBIAN_FRONTEND=noninteractive
-WORKDIR /opt/slave
+WORKDIR /opt/src
 
 # Support for i386:
 # - for 32-bit builds+tests of Mbed TLS
@@ -130,7 +130,8 @@ ENV ARMC6_BIN_DIR=/usr/local/ARM_Compiler_6.6/bin/
 
 # Install arm-none-eabi-gcc
 RUN wget -q https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -O gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 && \
-    tar -xjf gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -C /opt
+    tar -xjf gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -C /opt && \
+    rm gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2
 
 ENV PATH=/opt/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH
 
@@ -229,7 +230,7 @@ ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.6.5/bin/gnutls-serv
 RUN wget -q https://github.com/lvc/abi-compliance-checker/archive/2.3.tar.gz && \
     tar -zxf 2.3.tar.gz && cd abi-compliance-checker-2.3 && \
     make clean && make && make install prefix=/usr && cd .. && \
-    rm -rf openssl-1.0.2g* && rm 2.3.tar.gz
+    rm -rf abi-compliance-checker* && rm 2.3.tar.gz
 
 # Install abi-dumper
 # The version in Ubuntu 16.04 is too old, we want at least the version below
