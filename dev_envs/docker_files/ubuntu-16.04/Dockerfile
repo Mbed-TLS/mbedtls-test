@@ -182,11 +182,9 @@ ENV OPENSSL_NEXT=/usr/local/openssl-1.1.1a/bin/openssl
 RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.1.tar.gz && \
     tar -zxf nettle-3.1.tar.gz && cd nettle-3.1 && \
     ./configure --prefix=/usr/local/libnettle-3.1 --exec_prefix=/usr/local/libnettle-3.1  --disable-shared --disable-openssl && \
-    make && make install && cd .. && rm -rf nettle-3.1*
-
-ENV PKG_CONFIG_PATH=/usr/local/libnettle-3.1/lib/pkgconfig:/usr/local/libnettle-3.1/lib64/pkgconfig:/usr/local/lib/pkgconfig
-
-RUN wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.4/gnutls-3.4.10.tar.xz && \
+    make && make install && cd .. && rm -rf nettle-3.1* && \
+    export PKG_CONFIG_PATH=/usr/local/libnettle-3.1/lib/pkgconfig:/usr/local/libnettle-3.1/lib64/pkgconfig:/usr/local/lib/pkgconfig && \
+    wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.4/gnutls-3.4.10.tar.xz && \
     tar -xJf gnutls-3.4.10.tar.xz && cd gnutls-3.4.10 && \
     ./configure --prefix=/usr/local/gnutls-3.4.10 --exec_prefix=/usr/local/gnutls-3.4.10 --disable-shared --without-p11-kit && \
     make && make install && cat config.log && cd .. && \
@@ -200,11 +198,9 @@ ENV PATH=/usr/local/gnutls-3.4.10/bin:$PATH
 RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-2.7.1.tar.gz && \
     tar -zxf nettle-2.7.1.tar.gz && cd nettle-2.7.1 && \
     ./configure --prefix=/usr/local/libnettle-2.7.1 --exec_prefix=/usr/local/libnettle-2.7.1  --disable-shared --disable-openssl && \
-    make && make install && cd .. && rm -rf nettle-2.7.1*
-
-ENV PKG_CONFIG_PATH=/usr/local/libnettle-2.7.1/lib/pkgconfig:/usr/local/libnettle-2.7.1/lib64/pkgconfig:/usr/local/lib/pkgconfig
-
-RUN wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.3/gnutls-3.3.8.tar.xz && \
+    make && make install && cd .. && rm -rf nettle-2.7.1* && \
+    export PKG_CONFIG_PATH=/usr/local/libnettle-2.7.1/lib/pkgconfig:/usr/local/libnettle-2.7.1/lib64/pkgconfig:/usr/local/lib/pkgconfig && \
+    wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.3/gnutls-3.3.8.tar.xz && \
     tar -xJf gnutls-3.3.8.tar.xz && cd gnutls-3.3.8 && \
     ./configure --prefix=/usr/local/gnutls-3.3.8 --exec_prefix=/usr/local/gnutls-3.3.8 --disable-shared --without-p11-kit && \
     make && make install && cat config.log && cd .. && \
@@ -217,11 +213,9 @@ ENV GNUTLS_LEGACY_SERV=/usr/local/gnutls-3.3.8/bin/gnutls-serv
 RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.4.1.tar.gz && \
     tar -zxf nettle-3.4.1.tar.gz && cd nettle-3.4.1 && \
     ./configure --prefix=/usr/local/libnettle-3.4.1 --exec_prefix=/usr/local/libnettle-3.4.1  --disable-shared --disable-openssl && \
-    make && make install && cd .. && rm -rf nettle-3.4.1*
-
-ENV PKG_CONFIG_PATH=/usr/local/libnettle-3.4.1/lib/pkgconfig:/usr/local/libnettle-3.4.1/lib64/pkgconfig:/usr/local/lib/pkgconfig
-
-RUN wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.6/gnutls-3.6.5.tar.xz && \
+    make && make install && cd .. && rm -rf nettle-3.4.1* && \
+    export PKG_CONFIG_PATH=/usr/local/libnettle-3.4.1/lib/pkgconfig:/usr/local/libnettle-3.4.1/lib64/pkgconfig:/usr/local/lib/pkgconfig && \
+    wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.6/gnutls-3.6.5.tar.xz && \
     tar -xJf gnutls-3.6.5.tar.xz && cd gnutls-3.6.5 && \
     ./configure --prefix=/usr/local/gnutls-3.6.5 --exec_prefix=/usr/local/gnutls-3.6.5 --disable-shared --with-included-libtasn1 --without-p11-kit && \
     make && make install && cat config.log && cd .. && \
