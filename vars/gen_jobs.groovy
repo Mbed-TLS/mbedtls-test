@@ -151,7 +151,15 @@ def platform_lacks_tls_tools(platform) {
 
 def gen_all_sh_jobs(platform, component, label_prefix='') {
     def jobs = [:]
-    def job_name = "${label_prefix}all_sh-${platform}-${component}"
+    def shorthands = [
+        "ubuntu-16.04": "u16",
+        "ubuntu-18.04": "u18",
+        "ubuntu-20.04": "u20",
+        "freebsd": "fbsd",
+    ]
+    /* Default to the full platform hame is a shorthand is not found */
+    def shortplat = shorthands.getOrDefault(platform, platform)
+    def job_name = "${label_prefix}all_${shortplat}-${component}"
     def use_docker = platform_has_docker(platform)
     def extra_setup_code = ''
     def node_label = node_label_for_platform(platform)
