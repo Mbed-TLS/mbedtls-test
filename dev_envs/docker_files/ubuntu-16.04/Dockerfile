@@ -210,20 +210,20 @@ RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-2.7.1.tar.gz && \
 ENV GNUTLS_LEGACY_CLI=/usr/local/gnutls-3.3.8/bin/gnutls-cli
 ENV GNUTLS_LEGACY_SERV=/usr/local/gnutls-3.3.8/bin/gnutls-serv
 
-# Instal GNU TLS 3.6.5 (nettle 3.4) - "next" version
-RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.4.1.tar.gz && \
-    tar -zxf nettle-3.4.1.tar.gz && cd nettle-3.4.1 && \
-    ./configure --prefix=/usr/local/libnettle-3.4.1 --exec_prefix=/usr/local/libnettle-3.4.1  --disable-shared --disable-openssl && \
-    make && make install && cd .. && rm -rf nettle-3.4.1* && \
-    export PKG_CONFIG_PATH=/usr/local/libnettle-3.4.1/lib/pkgconfig:/usr/local/libnettle-3.4.1/lib64/pkgconfig:/usr/local/lib/pkgconfig && \
-    wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.6/gnutls-3.6.5.tar.xz && \
-    tar -xJf gnutls-3.6.5.tar.xz && cd gnutls-3.6.5 && \
-    ./configure --prefix=/usr/local/gnutls-3.6.5 --exec_prefix=/usr/local/gnutls-3.6.5 --disable-shared --with-included-libtasn1 --without-p11-kit && \
+# Instal GNU TLS 3.7.2 (nettle 3.7) - "next" version
+RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.7.3.tar.gz && \
+    tar -zxf nettle-3.7.3.tar.gz && cd nettle-3.7.3 && \
+    ./configure --prefix=/usr/local/libnettle-3.7.3 --exec_prefix=/usr/local/libnettle-3.7.3  --disable-shared --disable-openssl && \
+    make && make install && cd .. && rm -rf nettle-3.7.3* && \
+    export PKG_CONFIG_PATH=/usr/local/libnettle-3.7.3/lib/pkgconfig:/usr/local/libnettle-3.7.3/lib64/pkgconfig:/usr/local/lib/pkgconfig && \
+    wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.7/gnutls-3.7.2.tar.xz && \
+    tar -xJf gnutls-3.7.2.tar.xz && cd gnutls-3.7.2 && \
+    ./configure --prefix=/usr/local/gnutls-3.7.2 --exec_prefix=/usr/local/gnutls-3.7.2 --disable-shared --with-included-libtasn1 --without-p11-kit && \
     make && make install && cat config.log && cd .. && \
-    rm -rf gnutls-3.6.5*
+    rm -rf gnutls-3.7.2*
 
-ENV GNUTLS_NEXT_CLI=/usr/local/gnutls-3.6.5/bin/gnutls-cli
-ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.6.5/bin/gnutls-serv
+ENV GNUTLS_NEXT_CLI=/usr/local/gnutls-3.7.2/bin/gnutls-cli
+ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.7.2/bin/gnutls-serv
 
 # Install abi-compliance-checker
 # The version in Ubuntu 16.04 is too old, we want at least the version below
