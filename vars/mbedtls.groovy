@@ -60,6 +60,17 @@ def run_pr_job(is_production=true) {
              * Thus we don't have to iterate over all milestones 1 to buildNumber.
              */
             milestone(buildNumber)
+
+            /* Discarding old builds has to be individually configured for each
+             * branch in a multibranch pipeline, so do it from groovy.
+             */
+            properties([
+                buildDiscarder(
+                    logRotator(
+                        numToKeepStr: '5'
+                    )
+                )
+            ])
         }
 
         /* During the nightly branch indexing, if a target branch has been
