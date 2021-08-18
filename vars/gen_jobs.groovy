@@ -590,7 +590,7 @@ def gen_release_jobs(label_prefix='', run_examples=true) {
 }
 
 def gen_dockerfile_builder_job(repo, branch, platform, tag) {
-    jobs = [:]
+    def jobs = [:]
     jobs["build-$platform"] = {
         node('dockerfile-builder') {
             dir('src') {
@@ -607,7 +607,7 @@ docker build -t $common.docker_repo:$tag - < 'dev_envs/docker_files/$platform/Do
 }
 
 def gen_docker_image_publisher_job(platform, tag) {
-    jobs = [:]
+    def jobs = [:]
     jobs["publish-$platform"] = {
         node('dockerfile-builder') {
             sh """\
