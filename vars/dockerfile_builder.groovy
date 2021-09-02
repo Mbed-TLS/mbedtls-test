@@ -2,8 +2,6 @@ def gen_job_for_action(action, platform, tag) {
     switch (action) {
         case 'build':
             return gen_jobs.gen_dockerfile_builder_job(platform, tag)
-        case 'publish':
-            return gen_jobs.gen_docker_image_publisher_job(platform, tag)
         case 'skip':
             return [:]
         default:

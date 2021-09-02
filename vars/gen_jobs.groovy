@@ -594,7 +594,7 @@ def gen_release_jobs(label_prefix='', run_examples=true) {
 def gen_dockerfile_builder_job(platform, tag) {
     def jobs = [:]
     def dockerfile = libraryResource "docker_files/$platform/Dockerfile"
-    jobs["build-$platform"] = {
+    jobs[platform] = {
         node('dockerfile-builder') {
             dir('docker') {
                 deleteDir()
@@ -604,19 +604,6 @@ docker build -t $common.docker_repo:$tag .
 \$(aws ecr get-login) && docker push $common.docker_repo:$tag
 """
             }
-        }
-    }
-    return jobs
-}
-
-def gen_docker_image_publisher_job(platform, tag) {
-    def jobs = [:]
-    jobs["publish-$platform"] = {
-        node('dockerfile-builder') {
-            sh """\
-MANIFEST=\$(aws ecr batch-get-image --repository-name $common.docker_repo_name --image-ids imageTag=$tag --query 'images[].imageManifest' --output text)
-aws ecr put-image --repository-name $common.docker_repo_name --image-tag $platform --image-manifest "\$MANIFEST"
-"""
         }
     }
     return jobs
