@@ -17,6 +17,8 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+import java.security.MessageDigest
+
 import groovy.transform.Field
 
 // Keep track of builds that fail
@@ -589,9 +591,13 @@ def gen_release_jobs(label_prefix='', run_examples=true) {
     return jobs
 }
 
-def gen_dockerfile_builder_job(platform, tag) {
+def gen_dockerfile_builder_job(platform) {
     def jobs = [:]
     def dockerfile = libraryResource "docker_files/$platform/Dockerfile"
+    def sha1 = MessageDigest.getInstance('SHA1')
+    sha1.update("blob ${dockerfile.length()}\0".bytes)
+    def digest = sha1.digest(dockerfile.bytes)
+    def tag = String.format('%s-%040x', platform, new BigInteger(1, digest))
     jobs[platform] = {
         node('dockerfile-builder') {
             dir('docker') {
