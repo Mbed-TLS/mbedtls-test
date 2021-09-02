@@ -593,22 +593,30 @@ def gen_release_jobs(label_prefix='', run_examples=true) {
     return jobs
 }
 
-def gen_dockerfile_builder_job(platform) {
+def gen_dockerfile_builder_job(platform, overwrite=false) {
     def jobs = [:]
     def dockerfile = libraryResource "docker_files/$platform/Dockerfile"
     def sha1 = MessageDigest.getInstance('SHA1')
     sha1.update("blob ${dockerfile.length()}\0".bytes)
     def digest = sha1.digest(dockerfile.bytes)
     def tag = String.format('%s-%040x', platform, new BigInteger(1, digest))
+    common.docker_tags[platform] = tag
     jobs[platform] = {
-        node('dockerfile-builder') {
-            dir('docker') {
-                deleteDir()
-                writeFile file: 'Dockerfile', text: dockerfile
-                sh """\
+        lock(tag) {
+            node('dockerfile-builder') {
+                if (overwrite || sh(
+                    script: "aws ecr describe-images --repository-name $common.docker_repo_name --image-ids imageTag=$tag",
+                    returnStatus: true
+                )) {
+                    dir('docker') {
+                        deleteDir()
+                        writeFile file: 'Dockerfile', text: dockerfile
+                        sh """\
 docker build -t $common.docker_repo:$tag .
 \$(aws ecr get-login) && docker push $common.docker_repo:$tag
 """
+                    }
+                }
             }
         }
     }

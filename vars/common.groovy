@@ -38,8 +38,7 @@ import groovy.transform.Field
 @Field docker_repo_name = 'jenkins-mbedtls'
 @Field docker_repo = "666618195821.dkr.ecr.eu-west-1.amazonaws.com/$docker_repo_name"
 
-@Field one_platform = ["debian-9-x64"]
-@Field linux_platforms = ["debian-9-i386", "debian-9-x64"]
+@Field linux_platforms = ["ubuntu-16.04", "ubuntu-18.04"]
 @Field bsd_platforms = ["freebsd"]
 @Field bsd_compilers = ["clang"]
 @Field all_compilers = ['gcc', 'clang']
@@ -61,20 +60,24 @@ import groovy.transform.Field
     'test_cmake_out_of_source',         // cmake
 ]
 
+@Field static docker_tags = [:]
+
 def get_docker_tag(platform) {
-    switch(platform) {
-        case 'ubuntu-16.04':
-            if(env.DOCKER_IMAGE_16_04_TAG) {
-                return env.DOCKER_IMAGE_16_04_TAG
-            }
-            break
-        case 'ubuntu-18.04':
-            if(env.DOCKER_IMAGE_18_04_TAG) {
-                return env.DOCKER_IMAGE_18_04_TAG
-            }
-            break
+    def tag = docker_tags[platform]
+    if (tag == null)
+        throw new NoSuchElementException(platform)
+    else
+        return tag
+}
+
+def init_docker_images() {
+    stage('init-docker-images') {
+        def jobs = linux_platforms.collectEntries {
+            platform -> gen_jobs.gen_dockerfile_builder_job(platform)
+        }
+        jobs.failFast = false
+        parallel jobs
     }
-    return platform
 }
 
 def get_docker_image(platform) {
