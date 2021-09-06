@@ -144,9 +144,9 @@ ENV PATH=/opt/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH
 # GnuTLS has a number of (optional) dependencies:
 # - nettle (crypto library): quite tighly coupled, so build one for each
 # version of GnuTLS that we want.
-# - libtasn1: can use the Ubuntu version, except for GnuTLS 3.6 which needs
-# libtasn1 4.9 (ubuntu has 4.6); an config option --with-included-libtasn1 is
-# available, so use it for GnuTLS 3.6.
+# - libtasn1: can use the Ubuntu version, except for GnuTLS 3.7 which needs
+# libtasn1 4.9 (Ubuntu 16.04 has 4.6); an config option
+# --with-included-libtasn1 is available, so use it for GnuTLS 3.7.
 # - p11-kit: optional, for smart-card support - configure it out
 # - libunistring: since 3.6 - the Ubuntu package works; if it didn't a config
 # option --with-included-libunistring is available.
