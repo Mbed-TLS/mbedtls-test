@@ -607,12 +607,15 @@ def gen_dockerfile_builder_job(platform, overwrite=false) {
     common.docker_tags[platform] = tag
 
     jobs[platform] = {
+        /* Take the lock on the master node, so we don't tie up an executor while waiting */
         lock(tag) {
             node('dockerfile-builder') {
-                if (overwrite || sh(
-                    script: "aws ecr describe-images --repository-name $common.docker_repo_name --image-ids imageTag=$tag",
-                    returnStatus: true
-                )) {
+                def image_exists = false
+                if (!overwrite) {
+                    def test_image_exists_sh = "aws ecr describe-images --repository-name $common.docker_repo_name --image-ids imageTag=$tag"
+                    image_exists = sh(script: test_image_exists_sh, returnStatus: true) == 0
+                }
+                if (overwrite || !image_exists) {
                     dir('docker') {
                         deleteDir()
                         writeFile file: 'Dockerfile', text: dockerfile
