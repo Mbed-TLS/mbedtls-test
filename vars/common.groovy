@@ -60,6 +60,8 @@ import groovy.transform.Field
     'test_cmake_out_of_source',         // cmake
 ]
 
+/* Maps platform names to the tag of the docker image used to test that platform.
+ * Populated by init_docker_images() / gen_jobs.gen_dockerfile_builder_job(platform). */
 @Field static docker_tags = [:]
 
 def get_docker_tag(platform) {

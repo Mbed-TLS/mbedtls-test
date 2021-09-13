@@ -594,11 +594,16 @@ def gen_release_jobs(label_prefix='', run_examples=true) {
 def gen_dockerfile_builder_job(platform, overwrite=false) {
     def jobs = [:]
     def dockerfile = libraryResource "docker_files/$platform/Dockerfile"
+
+    /* Compute the git object ID of the Dockerfile.
+     * Equivalent to the `git hash-object <file>` command. */
     def sha1 = MessageDigest.getInstance('SHA1')
     sha1.update("blob ${dockerfile.length()}\0".bytes)
     def digest = sha1.digest(dockerfile.bytes)
+
     def tag = String.format('%s-%040x', platform, new BigInteger(1, digest))
     common.docker_tags[platform] = tag
+
     jobs[platform] = {
         lock(tag) {
             node('dockerfile-builder') {
