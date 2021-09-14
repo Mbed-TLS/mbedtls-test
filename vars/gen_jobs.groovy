@@ -17,8 +17,6 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
-import java.security.MessageDigest
-
 import groovy.transform.Field
 
 // Keep track of builds that fail
@@ -597,13 +595,7 @@ def gen_dockerfile_builder_job(platform, overwrite=false) {
     def jobs = [:]
     def dockerfile = libraryResource "docker_files/$platform/Dockerfile"
 
-    /* Compute the git object ID of the Dockerfile.
-     * Equivalent to the `git hash-object <file>` command. */
-    def sha1 = MessageDigest.getInstance('SHA1')
-    sha1.update("blob ${dockerfile.length()}\0".bytes)
-    def digest = sha1.digest(dockerfile.bytes)
-
-    def tag = String.format('%s-%040x', platform, new BigInteger(1, digest))
+    def tag = "$platform-${common.git_hash_object(dockerfile)}"
     common.docker_tags[platform] = tag
 
     jobs[platform] = {
