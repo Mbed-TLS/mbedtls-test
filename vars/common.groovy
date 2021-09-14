@@ -35,10 +35,10 @@ import groovy.transform.Field
     'cc' : 'cc'
 ]
 
-@Field docker_repo = '666618195821.dkr.ecr.eu-west-1.amazonaws.com/jenkins-mbedtls'
+@Field docker_repo_name = 'jenkins-mbedtls'
+@Field docker_repo = "666618195821.dkr.ecr.eu-west-1.amazonaws.com/$docker_repo_name"
 
-@Field one_platform = ["debian-9-x64"]
-@Field linux_platforms = ["debian-9-i386", "debian-9-x64"]
+@Field linux_platforms = ["ubuntu-16.04", "ubuntu-18.04"]
 @Field bsd_platforms = ["freebsd"]
 @Field bsd_compilers = ["clang"]
 @Field all_compilers = ['gcc', 'clang']
@@ -60,7 +60,30 @@ import groovy.transform.Field
     'test_cmake_out_of_source',         // cmake
 ]
 
-def get_docker_image(docker_image) {
+/* Maps platform names to the tag of the docker image used to test that platform.
+ * Populated by init_docker_images() / gen_jobs.gen_dockerfile_builder_job(platform). */
+@Field static docker_tags = [:]
+
+def get_docker_tag(platform) {
+    def tag = docker_tags[platform]
+    if (tag == null)
+        throw new NoSuchElementException(platform)
+    else
+        return tag
+}
+
+def init_docker_images() {
+    stage('init-docker-images') {
+        def jobs = linux_platforms.collectEntries {
+            platform -> gen_jobs.gen_dockerfile_builder_job(platform)
+        }
+        jobs.failFast = false
+        parallel jobs
+    }
+}
+
+def get_docker_image(platform) {
+    def docker_image = get_docker_tag(platform)
     for (int attempt = 1; attempt <= 3; attempt++) {
         try {
             sh "\$(aws ecr get-login) && docker pull $docker_repo:$docker_image"
@@ -72,11 +95,12 @@ def get_docker_image(docker_image) {
 }
 
 def docker_script(platform, entrypoint, entrypoint_arguments='') {
+    def docker_image = get_docker_tag(platform)
     return """\
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint $entrypoint \
     -w /var/lib/build -v `pwd`/src:/var/lib/build \
     -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh \
-    --cap-add SYS_PTRACE $docker_repo:$platform $entrypoint_arguments
+    --cap-add SYS_PTRACE $docker_repo:$docker_image $entrypoint_arguments
 """
 }
 

@@ -45,6 +45,7 @@ environ.set_tls_release_environment()
 
 timestamps {
     try {
+        common.init_docker_images()
         stage('tls-testing') {
             def jobs = gen_jobs.gen_release_jobs()
             common.run_release_jobs(

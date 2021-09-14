@@ -17,6 +17,8 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+import java.security.MessageDigest
+
 import groovy.transform.Field
 
 // Keep track of builds that fail
@@ -586,5 +588,43 @@ def gen_release_jobs(label_prefix='', run_examples=true) {
         jobs = jobs + gen_all_example_jobs()
     }
 
+    return jobs
+}
+
+def gen_dockerfile_builder_job(platform, overwrite=false) {
+    def jobs = [:]
+    def dockerfile = libraryResource "docker_files/$platform/Dockerfile"
+
+    /* Compute the git object ID of the Dockerfile.
+     * Equivalent to the `git hash-object <file>` command. */
+    def sha1 = MessageDigest.getInstance('SHA1')
+    sha1.update("blob ${dockerfile.length()}\0".bytes)
+    def digest = sha1.digest(dockerfile.bytes)
+
+    def tag = String.format('%s-%040x', platform, new BigInteger(1, digest))
+    common.docker_tags[platform] = tag
+
+    jobs[platform] = {
+        /* Take the lock on the master node, so we don't tie up an executor while waiting */
+        lock(tag) {
+            node('dockerfile-builder') {
+                def image_exists = false
+                if (!overwrite) {
+                    def test_image_exists_sh = "aws ecr describe-images --repository-name $common.docker_repo_name --image-ids imageTag=$tag"
+                    image_exists = sh(script: test_image_exists_sh, returnStatus: true) == 0
+                }
+                if (overwrite || !image_exists) {
+                    dir('docker') {
+                        deleteDir()
+                        writeFile file: 'Dockerfile', text: dockerfile
+                        sh """\
+docker build -t $common.docker_repo:$tag .
+\$(aws ecr get-login) && docker push $common.docker_repo:$tag
+"""
+                    }
+                }
+            }
+        }
+    }
     return jobs
 }
