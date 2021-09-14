@@ -17,6 +17,8 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+import java.security.MessageDigest
+
 import groovy.transform.Field
 
 /*
@@ -63,6 +65,17 @@ import groovy.transform.Field
 /* Maps platform names to the tag of the docker image used to test that platform.
  * Populated by init_docker_images() / gen_jobs.gen_dockerfile_builder_job(platform). */
 @Field static docker_tags = [:]
+
+/* Compute the git object ID of the Dockerfile.
+* Equivalent to the `git hash-object <file>` command. */
+@NonCPS
+def git_hash_object(str) {
+    def sha1 = MessageDigest.getInstance('SHA1')
+    sha1.update("blob ${str.length()}\0".bytes)
+    def digest = sha1.digest(str.bytes)
+    return String.format('%040x', new BigInteger(1, digest))
+}
+
 
 def get_docker_tag(platform) {
     def tag = docker_tags[platform]
