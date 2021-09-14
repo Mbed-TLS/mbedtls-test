@@ -37,9 +37,11 @@ def checkout_parametrized_repo(repo, branch) {
     checkout([
         scm: [
             $class: 'GitSCM',
-            userRemoteConfigs: [
-                [url: repo, credentialsId: env.GIT_CREDENTIALS_ID]
-            ],
+            userRemoteConfigs: [[
+                url: repo,
+                refspec: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*:refs/pull/*',
+                credentialsId: env.GIT_CREDENTIALS_ID
+            ]],
             branches: [[name: branch]],
             extensions: [
                 [$class: 'CloneOption', timeout: 60],
