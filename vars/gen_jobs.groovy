@@ -613,7 +613,8 @@ def gen_dockerfile_builder_job(platform, overwrite=false) {
                         writeFile file: 'Dockerfile', text: dockerfile
                         sh """\
 docker build -t $common.docker_repo:$tag .
-\$(aws ecr get-login) && docker push $common.docker_repo:$tag
+aws ecr get-login-password | docker login --username AWS --password-stdin $common.docker_ecr
+docker push $common.docker_repo:$tag
 """
                     }
                 }
