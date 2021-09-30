@@ -116,7 +116,6 @@ def docker_script(platform, entrypoint, entrypoint_arguments='') {
     return """\
 docker run -u \$(id -u):\$(id -g) --rm --entrypoint $entrypoint \
     -w /var/lib/build -v `pwd`/src:/var/lib/build \
-    -v /home/ubuntu/.ssh:/home/mbedjenkins/.ssh \
     --cap-add SYS_PTRACE $docker_repo:$docker_image $entrypoint_arguments
 """
 }
