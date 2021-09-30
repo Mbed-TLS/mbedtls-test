@@ -17,7 +17,17 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+def set_common_environment() {
+    /* Do moderately parallel builds. This overrides the default in all.sh
+     * which is to do maximally parallel builds (-j). Massively parallel builds
+     * can cause load spikes which cause other builds to lag and time out, so
+     * avoid that. Do somewhat parallel builds, not just sequential builds,
+     * so that the CI has a chance to detect related makefile bugs. */
+    env.MAKEFLAGS = '-j2'
+}
+
 def set_tls_pr_environment(is_production) {
+    set_common_environment()
     env.JOB_TYPE = 'PR'
     env.TARGET_REPO = 'tls'
     env.REPO_TO_CHECKOUT = 'tls'
@@ -44,6 +54,7 @@ def set_tls_pr_production_environment() {
 }
 
 def set_tls_release_environment() {
+    set_common_environment()
     env.JOB_TYPE = 'release'
     env.TARGET_REPO = 'tls'
     env.REPO_TO_CHECKOUT = 'tls'
@@ -51,6 +62,7 @@ def set_tls_release_environment() {
 }
 
 def set_mbed_os_example_pr_environment(example, is_production) {
+    set_common_environment()
     env.JOB_TYPE = 'PR'
     env.TARGET_REPO = 'example'
     switch (example) {
