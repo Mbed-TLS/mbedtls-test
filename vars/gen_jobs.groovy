@@ -29,7 +29,7 @@ def gen_simple_windows_jobs(label, script) {
     def jobs = [:]
 
     jobs[label] = {
-        node("windows") {
+        node("windows-test") {
             try {
                 dir("src") {
                     deleteDir()
@@ -133,7 +133,7 @@ export PYTHON=/usr/local/bin/python2.7
 def node_label_for_platform(platform) {
     switch (platform) {
     case ~/^(debian|ubuntu)(-.*)?/: return 'container-host';
-    case ~/^freebsd(-.*)?/: return 'freebsd';
+    case ~/^freebsd(-.*)?/: return 'freebsd-test';
     case ~/^windows(-.*)?/: return 'windows';
     default: return platform;
     }
@@ -273,7 +273,7 @@ def gen_windows_testing_job(build, label_prefix='') {
     def job_name = "${label_prefix}Windows-${build}"
 
     jobs[job_name] = {
-        node("windows") {
+        node("windows-test") {
             try {
                 dir("src") {
                     deleteDir()
