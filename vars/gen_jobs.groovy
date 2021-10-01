@@ -337,7 +337,11 @@ def gen_abi_api_checking_job(platform) {
                 common.get_docker_image(platform)
                 dir('src') {
                     checkout_repo.checkout_repo()
-                    sh "git fetch origin ${CHANGE_TARGET}"
+                    /* The credentials here are the SSH credentials for accessing the repositories.
+                       They are defined at {JENKINS_URL}/credentials */
+                    withCredentials([sshUserPrivateKey(credentialsId: "742b7080-e1cc-41c6-bf55-efb72013bc28", keyFileVariable: 'keyfile')]) {
+                        sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile}\" git fetch origin ${CHANGE_TARGET}"
+                    }
                     writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
