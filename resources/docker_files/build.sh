@@ -20,7 +20,7 @@ build () {
         set -- "$1/Dockerfile"
     fi
     tag="$("$list_sh" "$1")"
-    sudo sudo docker build --network=host -t "$tag" -f "$1" "${1%/*}"
+    sudo docker build --network=host -t "$tag" -f "$1" "${1%/*}"
 }
 
 for d in "$@"; do
