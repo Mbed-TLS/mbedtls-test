@@ -1,7 +1,8 @@
 #!/bin/sh
 
 # Build the specified Dockerfile(s).
-# Follow the image naming convention used on Jenkins.
+# Follow the image naming convention used on Jenkins, which uses a hash
+# of the Dockerfile contents.
 
 set -e
 
