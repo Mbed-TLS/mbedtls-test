@@ -154,7 +154,7 @@ ENV PATH=/opt/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH
 # Install openssl 1.0.2g - main version, in the PATH
 RUN wget -q https://www.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz && \
     tar -zxf openssl-1.0.2g.tar.gz && cd openssl-1.0.2g && \
-    ./config --openssldir=/usr/local/openssl-1.0.2g && \
+    ./config --openssldir=/usr/local/openssl-1.0.2g enable-ssl-trace && \
     make clean && make && make install && cd .. && \
     rm -rf openssl-1.0.2g*
 
@@ -173,7 +173,7 @@ ENV OPENSSL_LEGACY=/usr/local/openssl-1.0.1j/bin/openssl
 # Install openssl 1.1.1a - "next" version
 RUN wget -q https://www.openssl.org/source/openssl-1.1.1a.tar.gz && \
     tar -zxf openssl-1.1.1a.tar.gz && cd openssl-1.1.1a && \
-    ./config --prefix=/usr/local/openssl-1.1.1a -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' && \
+    ./config --prefix=/usr/local/openssl-1.1.1a -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' enable-ssl-trace && \
     make clean && make && make install && cd .. && \
     rm -rf openssl-1.1.1a*
 
