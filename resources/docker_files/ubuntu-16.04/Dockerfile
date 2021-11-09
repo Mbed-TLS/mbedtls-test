@@ -247,13 +247,17 @@ RUN git clone --branch 1.1 https://github.com/lvc/abi-dumper.git && \
 # of pip and setuptools. Version 21 of pip drops support for Python 3.5 (the
 # latest in 16.04), so pick an earlier version.
 #
-# Piping to cat suppresses the progress bar. Then when we have a more recent
-# pip (>= 10) we can use its command-line option for that.
+# Piping to cat suppresses the progress bar, but means that a failure
+# won't be caught (`stuff | cat` succeeds if cat succeeds, even if `stuff`
+# fails). The subsequent use of "pip config" (which requires pip >=10)
+# will however fail if the installation of a more recent pip failed.
 RUN python3 -m pip install 'pip<21' --upgrade | cat && \
-    python3 -m pip install --progress-bar=off setuptools --upgrade && \
+    python3 -m pip config set global.progress_bar off && \
+    python3 -m pip install setuptools --upgrade && \
     # For pylint we want a known version, as later versions may add checks at
     # any time, making CI results unpredictable.
-    python3 -m pip install --progress-bar=off pylint==2.4.4
+    python3 -m pip install pylint==2.4.4 && \
+    true
 
 # Set locale for ARMCC to work
 RUN locale && \
