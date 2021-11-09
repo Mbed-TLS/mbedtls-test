@@ -234,10 +234,33 @@ RUN python2 -m pip install pip setuptools --upgrade > /dev/null
 
 RUN python2 -m pip install yotta matplotlib > /dev/null
 
-# Install Python 3 pip packages
-RUN python3 -m pip install pip setuptools --upgrade > /dev/null
-
-RUN python3 -m pip install pylint==2.4.4 > /dev/null
+# Install Python pip packages
+#
+# The pip wrapper scripts can get out of sync with pip due to upgrading it
+# outside the package manager, so invoke the module directly.
+#
+# Ubuntu 18.04's pip (9.0.1) doesn't support suppressing the progress bar,
+# which is annoying in CI logs. Install pip<21, same as on Ubuntu 16.04
+# (although we could use a later version if we wanted).
+#
+# Piping to cat suppresses the progress bar, but means that a failure
+# won't be caught (`stuff | cat` succeeds if cat succeeds, even if `stuff`
+# fails). The subsequent use of "pip config" (which requires pip >=10)
+# will however fail if the installation of a more recent pip failed.
+RUN python3 -m pip install 'pip<21' --upgrade | cat && \
+    python3 -m pip config set global.progress_bar off && \
+    python3 -m pip install setuptools --upgrade && \
+    # For pylint we want a known version, as later versions may add checks at
+    # any time, making CI results unpredictable.
+    python3 -m pip install pylint==2.4.4 && \
+    # For mypy, use the earliest version that works with our code base.
+    # See https://github.com/ARMmbed/mbedtls/pull/3953 .
+    python3 -m pip install mypy==0.780 && \
+    # For jinja2, use the version that's in Ubuntu 20.04.
+    # See https://github.com/ARMmbed/mbedtls/pull/5067#discussion_r738794607 .
+    # Note that Jinja2 3.0 drops support for Python 3.5, so we need 2.x.
+    python3 -m pip install Jinja2==2.10.1 types-Jinja2 && \
+    true
 
 # Set the locale
 RUN apt-get clean && apt-get update && apt-get install -y locales zip python-tk
