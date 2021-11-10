@@ -247,13 +247,24 @@ RUN git clone --branch 1.1 https://github.com/lvc/abi-dumper.git && \
 # of pip and setuptools. Version 21 of pip drops support for Python 3.5 (the
 # latest in 16.04), so pick an earlier version.
 #
-# Piping to cat suppresses the progress bar. Then when we have a more recent
-# pip (>= 10) we can use its command-line option for that.
+# Piping to cat suppresses the progress bar, but means that a failure
+# won't be caught (`stuff | cat` succeeds if cat succeeds, even if `stuff`
+# fails). The subsequent use of "pip config" (which requires pip >=10)
+# will however fail if the installation of a more recent pip failed.
 RUN python3 -m pip install 'pip<21' --upgrade | cat && \
-    python3 -m pip install --progress-bar=off setuptools --upgrade && \
+    python3 -m pip config set global.progress_bar off && \
+    python3 -m pip install setuptools --upgrade && \
     # For pylint we want a known version, as later versions may add checks at
     # any time, making CI results unpredictable.
-    python3 -m pip install --progress-bar=off pylint==2.4.4
+    python3 -m pip install pylint==2.4.4 && \
+    # For mypy, use the earliest version that works with our code base.
+    # See https://github.com/ARMmbed/mbedtls/pull/3953 .
+    python3 -m pip install mypy==0.780 && \
+    # For jinja2, use the version that's in Ubuntu 20.04.
+    # See https://github.com/ARMmbed/mbedtls/pull/5067#discussion_r738794607 .
+    # Note that Jinja2 3.0 drops support for Python 3.5, so we need 2.x.
+    python3 -m pip install Jinja2==2.10.1 types-Jinja2 && \
+    true
 
 # Set locale for ARMCC to work
 RUN locale && \
