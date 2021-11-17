@@ -173,6 +173,7 @@ def gen_all_sh_jobs(platform, component, label_prefix='') {
 export OPENSSL=false GNUTLS_CLI=false GNUTLS_SERV=false
 '''
     }
+
     if (platform.contains('bsd')) {
         /* At the time of writing, all.sh assumes that make is GNU make.
          * But on FreeBSD, make is BSD make and gmake is GNU make.
@@ -201,6 +202,12 @@ exec /usr/bin/clang -Wno-error=c11-extensions "$@"
 EOF
 chmod +x bin/clang
 echo >&2 'Note: "clang" will run /usr/bin/clang -Wno-error=c11-extensions'
+'''
+    }
+
+    if (common.has_min_requirements) {
+        extra_setup_code += '''
+scripts/min_requirements.py
 '''
     }
 
@@ -283,6 +290,14 @@ def gen_windows_testing_job(build, label_prefix='') {
                     deleteDir()
                     writeFile file:'_do_not_delete_this_directory.txt', text:''
                 }
+
+                if (common.has_min_requirements) {
+                    timeout(time: common.perJobTimeout.time,
+                            unit: common.perJobTimeout.unit) {
+                        bat "python scripts\\min_requirements.py"
+                    }
+                }
+
                 /* libraryResource loads the file as a string. This is then
                  * written to a file so that it can be run on a node. */
                 def windows_testing = libraryResource 'windows/windows_testing.py'

@@ -260,10 +260,6 @@ RUN python3 -m pip install 'pip<21' --upgrade | cat && \
     # For mypy, use the earliest version that works with our code base.
     # See https://github.com/ARMmbed/mbedtls/pull/3953 .
     python3 -m pip install mypy==0.780 && \
-    # For jinja2, use the version that's in Ubuntu 20.04.
-    # See https://github.com/ARMmbed/mbedtls/pull/5067#discussion_r738794607 .
-    # Note that Jinja2 3.0 drops support for Python 3.5, so we need 2.x.
-    python3 -m pip install Jinja2==2.10.1 types-Jinja2 && \
     true
 
 # Set locale for ARMCC to work
