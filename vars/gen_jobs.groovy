@@ -292,9 +292,11 @@ def gen_windows_testing_job(build, label_prefix='') {
                 }
 
                 if (common.has_min_requirements) {
-                    timeout(time: common.perJobTimeout.time,
-                            unit: common.perJobTimeout.unit) {
-                        bat "python scripts\\min_requirements.py"
+                    dir("src") {
+                        timeout(time: common.perJobTimeout.time,
+                                unit: common.perJobTimeout.unit) {
+                            bat "python scripts\\min_requirements.py"
+                        }
                     }
                 }
 
