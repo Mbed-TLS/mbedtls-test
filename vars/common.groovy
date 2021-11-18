@@ -51,6 +51,10 @@ import groovy.transform.Field
 @Field available_all_sh_components = [:]
 @Field all_all_sh_components = []
 
+/* We need to know whether the code is C99 in order to decide which versions
+ * of Visual Studio to test with: older versions lack C99 support. */
+@Field code_is_c99 = null
+
 @Field freebsd_all_sh_components = [
     /* Do not include any components that do TLS system testing, because
      * we don't maintain suitable versions of OpenSSL and GnuTLS on
@@ -126,9 +130,17 @@ def get_branch_information() {
         dir('src') {
             deleteDir()
             checkout_repo.checkout_repo()
+
+            // Branches written in C89 (plus very minor extensions) have
+            // "-Wdeclaration-after-statement" in CMakeLists.txt, so look
+            // for that to determine whether the code is supposed to be C89.
+            String cmakelists_contents = readFile('CMakeLists.txt')
+            code_is_c89 = cmakelists_contents.contains('-Wdeclaration-after-statement')
         }
+
         // Log the environment for debugging purposes
         sh script: 'export'
+
         for (platform in linux_platforms) {
             get_docker_image(platform)
             def all_sh_help = sh(
@@ -174,25 +186,13 @@ def check_every_all_sh_component_will_be_run() {
 }
 
 def get_supported_windows_builds() {
-    def is_c89 = null
     def vs_builds = []
-    node('container-host') {
-        dir('src') {
-            deleteDir()
-            checkout_repo.checkout_repo()
-            // Branches written in C89 (plus very minor extensions) have
-            // "-Wdeclaration-after-statement" in CMakeLists.txt, so look
-            // for that to determine whether the code is supposed to be C89.
-            String cmakelists_contents = readFile('CMakeLists.txt')
-            is_c89 = cmakelists_contents.contains('-Wdeclaration-after-statement')
-        }
-    }
     if (env.JOB_TYPE == 'PR') {
         vs_builds = ['2013']
     } else {
         vs_builds = ['2013', '2015', '2017']
     }
-    if (is_c89) {
+    if (code_is_c89) {
         vs_builds = ['2010'] + vs_builds
     }
     echo "vs_builds = ${vs_builds}"
