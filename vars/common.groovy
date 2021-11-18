@@ -121,7 +121,7 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint $entrypoint \
 }
 
 /* Get components of all.sh for a list of platforms*/
-def get_all_sh_components(platform_list) {
+def get_branch_information() {
     node('container-host') {
         dir('src') {
             deleteDir()
@@ -129,7 +129,7 @@ def get_all_sh_components(platform_list) {
         }
         // Log the environment for debugging purposes
         sh script: 'export'
-        for (platform in platform_list) {
+        for (platform in linux_platforms) {
             get_docker_image(platform)
             def all_sh_help = sh(
                 script: docker_script(
