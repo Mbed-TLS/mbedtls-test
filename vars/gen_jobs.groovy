@@ -133,7 +133,7 @@ export PYTHON=/usr/local/bin/python2.7
 def node_label_for_platform(platform) {
     switch (platform) {
     case ~/^(debian|ubuntu)(-.*)?/: return 'container-host';
-    case ~/^freebsd(-.*)?/: return 'freebsd';
+    case ~/^freebsd(-.*)?/: return 'freebsd-test';
     case ~/^windows(-.*)?/: return 'windows';
     default: return platform;
     }
