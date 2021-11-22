@@ -207,7 +207,7 @@ echo >&2 'Note: "clang" will run /usr/bin/clang -Wno-error=c11-extensions'
 
     if (common.has_min_requirements) {
         extra_setup_code += '''
-scripts/min_requirements.py
+scripts/min_requirements.py --user
 '''
     }
 
