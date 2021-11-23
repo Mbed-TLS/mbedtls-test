@@ -392,6 +392,11 @@ def gen_code_coverage_job(platform) {
                     writeFile file: 'steps.sh', text: '''#!/bin/sh
 set -eux
 ulimit -f 20971520
+
+if [ -e scripts/min_requirements.py ]; then
+    scripts/min_requirements.py --user
+fi
+
 if grep -q -F coverage-summary.txt tests/scripts/basic-build-test.sh; then
     # New basic-build-test, generates coverage-summary.txt
     ./tests/scripts/basic-build-test.sh
