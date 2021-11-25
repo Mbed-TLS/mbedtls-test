@@ -1,1 +1,0 @@
-Please check LICENSE.pdf for the mbed TLS partner license details
