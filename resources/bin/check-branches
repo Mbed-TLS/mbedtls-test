@@ -1,0 +1,222 @@
+#!/bin/sh
+
+help () {
+    cat <<EOF
+Usage: $0 [OPTION]...
+Sanity checks on Mbed TLS release-track branches.
+
+Options:
+  -b BRANCHES   Branches to check (space-separated list)
+                (default: \$BRANCHES)
+  -l DIR        Get objects from this repository (saves download bandwidth)
+  -m BRANCH     Master branch (default: $master_branch)
+  -q            Quiet mode
+  -Q            Default quiet_or_verbose (overrides -q/-v/-x)
+  -v            Verbose mode
+  -w DIR        Use existing worktree (must have the expected names for remotes
+                and be up to date)
+
+EOF
+}
+
+#### Default settings ####
+
+public_remote_url=git@github.com:ARMmbed/mbedtls.git
+restricted_remote_url=git@github.com:ARMmbed/mbedtls-restricted.git
+branches='development development_2.x mbedtls-2.16'
+master_branch='master'
+local_repository=
+use_existing_worktree=
+quiet_or_verbose=
+trace_commands=
+
+#### Command line parsing ####
+
+set -eu
+
+if [ "${1:-}" = "--help" ]; then
+    help
+fi
+
+while getopts 'b:l:m:qQvw:' OPTLET; do
+    case $OPTLET in
+        b) branches=$OPTARG;;
+        l)
+            if [ -n "$OPTARG" ]; then
+                # Convert to absolute directory in case we cd later
+                local_repository=$(cd -- "$OPTARG" && pwd)
+            fi;;
+        m) master_branch=$OPTARG;;
+        q) quiet_or_verbose=--quiet; trace_commands=;;
+        Q) quiet_or_verbose=; trace_commands=;;
+        v) quiet_or_verbose=--verbose; trace_commands=1;;
+        w) use_existing_worktree=$OPTARG;;
+        *) help >&2; exit 120;;
+    esac
+done
+shift $((OPTIND - 1))
+
+#### Preliminary setup ####
+
+tmp_dir=
+status=0
+
+cleanup () {
+    rm -rf "$tmp_dir"
+}
+
+prepare_tmp_dir () {
+    tmp_dir=$(mktemp -d)
+#    trap cleanup EXIT
+    trap 'trap "" HUP; cleanup; trap - HUP; kill -HUP $$' HUP
+    trap 'trap "" INT; cleanup; trap - INT; kill -INT $$' INT
+}
+
+#### Worktree preparation ####
+
+prepare_worktree () {
+    cd "$tmp_dir"
+    public_remote_name=public
+    git clone $quiet_or_verbose --no-checkout \
+              --reference-if-able="$local_repository" \
+              --no-tags --depth=2 \
+              --single-branch --branch="$master_branch" \
+              --origin=public "$public_remote_url" mbedtls
+    cd mbedtls
+    git remote add restricted "$restricted_remote_url"
+    for repo in public restricted; do
+        if [ "$repo" = "public" ]; then
+            suffix=
+        else
+            suffix="-$repo"
+        fi
+        git fetch $quiet_or_verbose --depth=1 "$repo" "refs/pull/*/head:refs/remotes/$repo-head/*"
+        git fetch $quiet_or_verbose --depth=2 "$repo" \
+            $(for b in $branches; do echo "refs/heads/$b$suffix:refs/remotes/$repo/$b$suffix"; done)
+    done
+}
+
+#### Branch checks ####
+
+fail () {
+    status=1
+    printf '%s\n' "$@"
+}
+
+success () {
+    printf '%s\n' "$@"
+}
+
+## Analyze a branch.
+##
+## Inputs:
+## * $1 = branch to analyze
+##
+## Outputs:
+## * $merge_of = reference to the pull request branch that this is a merge of.
+##   Empty if this is not a merge.
+analyze_branch () {
+    merge_of=
+    committer=$(git show -s --format='%ce' "$1")
+    if [ "$committer" = "noreply@github.com" ]; then
+        ( case $quiet_or_verbose in
+              *-q*) exec 2>/dev/null;;
+          esac;
+          git verify-commit "$1" )
+        parents=$(git show -s --format='%P' "$1")
+        case $parents in
+            *\ *\ *)
+                fail "$1 is a three-way merge. I don't get it."
+                return;;
+            *\ *)
+                parent1=${parents% *} parent2=${parents#* };;
+            *)
+                fail "$1 is from GitHub, but not a merge."
+                return;;
+        esac
+    fi
+    merge_of=$(git for-each-ref --format='%(refname)' --points-at=$parent2)
+}
+
+## Test if a branch is the merge of a pull request.
+##
+## Inputs:
+## * $1 = branch to test
+## * $2 = remote name
+## * $merge_of = as set by analyze_branch
+##
+## Outputs:
+## * status = 0 if the branch is a merge of a pull request, nonzero otherwise.
+is_pr_merge () {
+    case $merge_of in
+        "refs/remotes/$2-head/"*)
+            success "$1 is valid because it is GitHub's merge of #${merge_of##*/}";;
+        *)
+            false;;
+esac
+}
+
+## Test if a branch is a copy of another branch, possibly at an older commit.
+##
+## Inputs:
+## * $1 = branch to test
+## * $2 = potential container branch
+##
+## Outputs:
+## * status = 0 if the branch is an ancestor
+is_copy () {
+    git merge-base --is-ancestor "$1" "$2" &&
+    success "$1 is valid from $2"
+}
+
+# A public branch must be a PR merge from the same repository.
+check_public_branch () {
+    public_branch=public/$1
+    analyze_branch "$public_branch"
+    is_pr_merge "$public_branch" public ||
+    fail "Unable to verify $public_branch as valid"
+}
+
+# The master branch must be a PR merge. It can be from the private or public
+# repository.
+check_master_branch () {
+    public_branch=public/$1
+    analyze_branch "$public_branch"
+    is_pr_merge "$public_branch" restricted ||
+    is_pr_merge "$public_branch" public ||
+    fail "Unable to verify $public_branch as valid"
+}
+
+# A restricted branch must be either a PR merge from the same repository,
+# or a (possibly outdated) copy of the corresponding public branch.
+check_restricted_branch () {
+    public_branch=public/$1
+    restricted_branch=restricted/$1-restricted
+    analyze_branch "$restricted_branch"
+    is_copy "$restricted_branch" "$public_branch" ||
+    is_pr_merge "$restricted_branch" restricted ||
+    fail "Unable to verify $restricted_branch as valid"
+}
+
+check_branches () {
+    for branch in $branches; do
+        check_public_branch "$branch"
+        check_restricted_branch "$branch"
+    done
+    check_master_branch "$master_branch"
+}
+
+#### Main task ####
+
+if [ -n "$trace_commands" ]; then
+    set -x
+fi
+
+if [ -n "$use_existing_worktree" ]; then
+    cd -- "$use_existing_worktree"
+else
+    prepare_tmp_dir
+    prepare_worktree
+fi
+check_branches
+exit $status
