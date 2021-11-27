@@ -22,7 +22,7 @@ Remember to build the docker image before running ```run.sh```.
 A docker image can be built with following command:
 ```sh
 cd mbedtls-test/dev_envs/docker_files
-sudo docker build --network=host -t ubuntu-18.04 -f ubuntu-17.10/Dockerfile .
+sudo docker build --network=host -t ubuntu-18.04 -f ubuntu-18.04/Dockerfile .
 ```
 This creates an image from the specified file. Built image is maintained by docker in it's own workspace on the host. Don't worry where the built image is gone! From this point the built image is referred by it's tag name. For example ```ubuntu-18.04```.
 
