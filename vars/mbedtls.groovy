@@ -102,7 +102,7 @@ def run_pr_job(is_production=true) {
         stage('pre-test-checks') {
             try {
                 environ.set_tls_pr_environment(is_production)
-                common.get_all_sh_components(['ubuntu-16.04', 'ubuntu-18.04'])
+                common.get_branch_information()
                 common.check_every_all_sh_component_will_be_run()
                 common.maybe_notify_github "Pre Test Checks", 'SUCCESS', 'OK'
             } catch (err) {

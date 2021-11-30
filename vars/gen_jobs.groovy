@@ -173,6 +173,7 @@ def gen_all_sh_jobs(platform, component, label_prefix='') {
 export OPENSSL=false GNUTLS_CLI=false GNUTLS_SERV=false
 '''
     }
+
     if (platform.contains('bsd')) {
         /* At the time of writing, all.sh assumes that make is GNU make.
          * But on FreeBSD, make is BSD make and gmake is GNU make.
@@ -201,6 +202,12 @@ exec /usr/bin/clang -Wno-error=c11-extensions "$@"
 EOF
 chmod +x bin/clang
 echo >&2 'Note: "clang" will run /usr/bin/clang -Wno-error=c11-extensions'
+'''
+    }
+
+    if (common.has_min_requirements) {
+        extra_setup_code += '''
+scripts/min_requirements.py --user
 '''
     }
 
@@ -283,6 +290,16 @@ def gen_windows_testing_job(build, label_prefix='') {
                     deleteDir()
                     writeFile file:'_do_not_delete_this_directory.txt', text:''
                 }
+
+                if (common.has_min_requirements) {
+                    dir("src") {
+                        timeout(time: common.perJobTimeout.time,
+                                unit: common.perJobTimeout.unit) {
+                            bat "python scripts\\min_requirements.py"
+                        }
+                    }
+                }
+
                 /* libraryResource loads the file as a string. This is then
                  * written to a file so that it can be run on a node. */
                 def windows_testing = libraryResource 'windows/windows_testing.py'
@@ -375,6 +392,11 @@ def gen_code_coverage_job(platform) {
                     writeFile file: 'steps.sh', text: '''#!/bin/sh
 set -eux
 ulimit -f 20971520
+
+if [ -e scripts/min_requirements.py ]; then
+    scripts/min_requirements.py --user
+fi
+
 if grep -q -F coverage-summary.txt tests/scripts/basic-build-test.sh; then
     # New basic-build-test, generates coverage-summary.txt
     ./tests/scripts/basic-build-test.sh
@@ -551,12 +573,13 @@ mbedhtrun -m ${platform} ${tag_filter} \
 def gen_release_jobs(label_prefix='', run_examples=true) {
     def jobs = [:]
 
+    common.get_branch_information()
+
     if (env.RUN_BASIC_BUILD_TEST == "true") {
         jobs = jobs + gen_code_coverage_job('ubuntu-16.04');
     }
 
     if (env.RUN_ALL_SH == "true") {
-        common.get_all_sh_components(['ubuntu-16.04', 'ubuntu-18.04'])
         for (component in common.available_all_sh_components['ubuntu-16.04']) {
             jobs = jobs + gen_all_sh_jobs('ubuntu-16.04', component, label_prefix)
         }
