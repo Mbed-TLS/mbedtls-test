@@ -356,6 +356,11 @@ def gen_abi_api_checking_job(platform) {
 #!/bin/sh
 set -eux
 ulimit -f 20971520
+
+if [ -e scripts/min_requirements.py ]; then
+    scripts/min_requirements.py --user
+fi
+
 tests/scripts/list-identifiers.sh --internal
 scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
 """
