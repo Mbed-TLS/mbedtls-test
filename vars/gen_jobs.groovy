@@ -25,6 +25,8 @@ import groovy.transform.Field
 //Record coverage details for reporting
 @Field coverage_details = ['coverage': 'Code coverage job did not run']
 
+@Field armlmd_license_file = common.is_open_ci_env ? "27000@flexnet.trustedfirmware.org" : "7010@10.6.26.52:7010@10.6.26.53:7010@10.6.26.54:7010@10.6.26.56"
+
 def gen_simple_windows_jobs(label, script) {
     def jobs = [:]
 
@@ -333,6 +335,7 @@ def gen_windows_jobs(label_prefix='') {
 def gen_abi_api_checking_job(platform) {
     def jobs = [:]
     def job_name = "ABI-API-checking"
+    def credentials_id = common.is_open_ci_env ? "mbedtls-github-ssh" : "742b7080-e1cc-41c6-bf55-efb72013bc28"
 
     jobs[job_name] = {
         node('container-host') {
@@ -343,7 +346,7 @@ def gen_abi_api_checking_job(platform) {
                     checkout_repo.checkout_repo()
                     /* The credentials here are the SSH credentials for accessing the repositories.
                        They are defined at {JENKINS_URL}/credentials */
-                    withCredentials([sshUserPrivateKey(credentialsId: "742b7080-e1cc-41c6-bf55-efb72013bc28", keyFileVariable: 'keyfile')]) {
+                    withCredentials([sshUserPrivateKey(credentialsId: credentials_id, keyFileVariable: 'keyfile')]) {
                         sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile}\" git fetch origin ${CHANGE_TARGET}"
                     }
                     writeFile file: 'steps.sh', text: """\
@@ -642,6 +645,8 @@ def gen_dockerfile_builder_job(platform, overwrite=false) {
     def dockerfile = libraryResource "docker_files/$platform/Dockerfile"
 
     def tag = "$platform-${common.git_hash_object(dockerfile)}"
+    def check_docker_image = common.is_open_ci_env ? "docker manifest inspect $common.docker_repo:$tag > /dev/null 2>&1" : "aws ecr describe-images --repository-name $common.docker_repo_name --image-ids imageTag=$tag"
+
     common.docker_tags[platform] = tag
 
     jobs[platform] = {
@@ -650,18 +655,37 @@ def gen_dockerfile_builder_job(platform, overwrite=false) {
             node('dockerfile-builder') {
                 def image_exists = false
                 if (!overwrite) {
-                    def test_image_exists_sh = "aws ecr describe-images --repository-name $common.docker_repo_name --image-ids imageTag=$tag"
-                    image_exists = sh(script: test_image_exists_sh, returnStatus: true) == 0
+                    image_exists = sh(script: check_docker_image, returnStatus: true) == 0
                 }
                 if (overwrite || !image_exists) {
                     dir('docker') {
                         deleteDir()
                         writeFile file: 'Dockerfile', text: dockerfile
-                        sh """\
+                        if (common.is_open_ci_env) {
+                            withCredentials([string(credentialsId: 'DOCKER_AUTH', variable: 'TOKEN')]) {
+                                sh """\
+mkdir -p ${env.HOME}/.docker
+cat > ${env.HOME}/.docker/config.json << EOF
+{
+        "auths": {
+                "https://index.docker.io/v1/": {
+                        "auth": "\${TOKEN}"
+                }
+        }
+}
+EOF
+chmod 0600 ${env.HOME}/.docker/config.json
+docker build --build-arg ARMLMD_LICENSE_FILE=$armlmd_license_file -t $common.docker_repo:$tag .
+docker push $common.docker_repo:$tag
+"""
+                            }
+                        } else {
+                            sh """\
 docker build -t $common.docker_repo:$tag .
 aws ecr get-login-password | docker login --username AWS --password-stdin $common.docker_ecr
 docker push $common.docker_repo:$tag
 """
+                        }
                     }
                 }
             }
