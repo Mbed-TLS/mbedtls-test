@@ -101,7 +101,8 @@ RUN wget -q https://developer.arm.com/-/media/Files/downloads/compiler/DS500-PA-
 
 ENV ARMC5_BIN_DIR=/usr/local/ARM_Compiler_5.06u3/bin/
 ENV PATH=$PATH:/usr/local/ARM_Compiler_5.06u3/bin
-ENV ARMLMD_LICENSE_FILE=8225@armcc.licenses.mbedcloudtesting.com
+ARG ARMLMD_LICENSE_FILE=8225@armcc.licenses.mbedcloudtesting.com
+ENV ARMLMD_LICENSE_FILE=${ARMLMD_LICENSE_FILE}
 
 # Install ARM Compiler 6.6
 RUN mkdir temp && cd temp && \
