@@ -41,8 +41,8 @@ def set_tls_pr_environment(is_production) {
 
 def set_common_pr_production_environment() {
     env.CHECKOUT_METHOD = 'scm'
-    env.RUN_FREEBSD = 'true'
-    env.RUN_WINDOWS_TEST = 'true'
+    env.RUN_FREEBSD = common.is_open_ci_env ? 'false' : 'true'
+    env.RUN_WINDOWS_TEST = common.is_open_ci_env ? 'false' : 'true'
     env.RUN_ALL_SH = 'true'
     if (!env.BRANCH_NAME.contains('-head')) {
         env.RUN_ABI_CHECK = 'true'
