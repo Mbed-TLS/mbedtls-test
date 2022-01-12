@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-#  Copyright (c) 2017-2021, ARM Limited, All Rights Reserved
+#  Copyright (c) 2017-2022, ARM Limited, All Rights Reserved
 #  SPDX-License-Identifier: Apache-2.0
 #
 #  Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -56,5 +56,5 @@ echo "  Mounting $SSH_CFG_PATH --> /home/user/.ssh"
 echo "  Mounting $MOUNT_DIR --> /var/lib/ws"
 echo "****************************************************"
 
-sudo docker run --network=host --rm -i -t -u $USR_ID:$USR_GRP -w /var/lib/ws -v $MOUNT_DIR:/var/lib/ws -v $SSH_CFG_PATH:/home/user/.ssh --cap-add SYS_PTRACE ${IMAGE}
+sudo docker run --network=host --rm -i -t -u $USR_ID:$USR_GRP -w /var/lib/ws -v $MOUNT_DIR:/var/lib/ws -v $SSH_CFG_PATH:/home/user/.ssh --cap-add SYS_PTRACE --security-opt seccomp=unconfined ${IMAGE}
 

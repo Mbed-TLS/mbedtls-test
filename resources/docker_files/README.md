@@ -36,6 +36,8 @@ sudo docker run --network=host --rm -i -t ubuntu-18.04
 ```
 Above, ```-i``` is for interactive mode and ```-t``` is for emulating a tty. ```--rm``` tells docker to cleanup the container after exit. (See note above regarding `--network=host`.) All images launch ```bash``` on startup. Hence, user is on a ```bash``` shell when image is started in the interactive mode.
 
+Note that the additional parameter `--security-opt seccomp=unconfined` which is disabling the ASLR for the zeroize test, is now set by default.
+
 Use ```run.sh``` for enabling ```git``` and mounting a host workspace inside docker. Example:
 ```sh
 $ ./run.sh /home/mazimkhan/github/mazimkhan ubuntu-18.04
