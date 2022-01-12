@@ -109,6 +109,9 @@ RUN apt-get update -q && apt-get install -yq \
         libc6-dev-armel-cross \
     && rm -rf /var/lib/apt/lists/
 
+# Install abi-compliance-checker & abi-dumper
+RUN apt-get update -q && apt-get install -yq abi-compliance-checker abi-dumper
+
 # Install ARM Compiler 5.06
 RUN wget -q https://developer.arm.com/-/media/Files/downloads/compiler/DS500-PA-00003-r5p0-22rel0.tgz && \
     tar -zxf DS500-PA-00003-r5p0-22rel0.tgz && \
@@ -224,18 +227,6 @@ RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.7.3.tar.gz && \
 
 ENV GNUTLS_NEXT_CLI=/usr/local/gnutls-3.7.2/bin/gnutls-cli
 ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.7.2/bin/gnutls-serv
-
-# Install abi-compliance-checker
-# The version in Ubuntu 16.04 is too old, we want at least the version below
-RUN wget -q https://github.com/lvc/abi-compliance-checker/archive/2.3.tar.gz && \
-    tar -zxf 2.3.tar.gz && cd abi-compliance-checker-2.3 && \
-    make clean && make && make install prefix=/usr && cd .. && \
-    rm -rf abi-compliance-checker* && rm 2.3.tar.gz
-
-# Install abi-dumper
-# The version in Ubuntu 16.04 is too old, we want at least the version below
-RUN git clone --branch 1.1 https://github.com/lvc/abi-dumper.git && \
-    cd abi-dumper && make install prefix=/usr && cd .. && rm -rf abi-dumper
 
 # Install Python pip packages
 #
