@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2019-2021, Arm Limited, All Rights Reserved
+ *  Copyright (c) 2019-2022, Arm Limited, All Rights Reserved
  *  SPDX-License-Identifier: Apache-2.0
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -220,16 +220,10 @@ scripts/min_requirements.py --user
                 }
                 dir('src') {
                     checkout_repo.checkout_repo()
-                    /* ARMLMD_LICENSE_FILE is supposed to be set in the
-                     * Dockerfile, but the value there is out-of-date and we
-                     * have trouble re-building the images (due to the death
-                     * of Python 2), so we override it here as a temporary
-                     * work-around. */
                     writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
 ulimit -f 20971520
-export ARMLMD_LICENSE_FILE="7010@10.6.26.52:7010@10.6.26.53:7010@10.6.26.54:7010@10.6.26.56"
 export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv'
 ${extra_setup_code}
 ./tests/scripts/all.sh --seed 4 --keep-going $component
@@ -528,12 +522,9 @@ pip install -r requirements.txt
                             if (example == 'atecc608a') {
                                 tag_filter = "--tag-filters HAS_CRYPTOKIT"
                             }
-                            /* See gen_all_sh_jobs() regarding setting of
-                             * ARMLMD_LICENSE_FILE here. */
                             sh """\
 ulimit -f 20971520
 . $WORKSPACE/mbed-venv/bin/activate
-export ARMLMD_LICENSE_FILE="7010@10.6.26.52:7010@10.6.26.53:7010@10.6.26.54:7010@10.6.26.56"
 mbed compile -m ${platform} -t ${compiler}
 """
                             for (int attempt = 1; attempt <= 3; attempt++) {
