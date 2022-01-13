@@ -231,16 +231,11 @@ ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.7.2/bin/gnutls-serv
 # The pip wrapper scripts can get out of sync with pip due to upgrading it
 # outside the package manager, so invoke the module directly.
 #
-# Ubuntu 16.04's pip (8.1) doesn't understand the Requires-Python
-# directive (introduced in pip 9.0), and tries to install the wrong versions
-# of pip and setuptools. Version 21 of pip drops support for Python 3.5 (the
-# latest in 16.04), so pick an earlier version.
-#
 # Piping to cat suppresses the progress bar, but means that a failure
 # won't be caught (`stuff | cat` succeeds if cat succeeds, even if `stuff`
 # fails). The subsequent use of "pip config" (which requires pip >=10)
 # will however fail if the installation of a more recent pip failed.
-RUN python3 -m pip install 'pip<21' --upgrade | cat && \
+RUN python3 -m pip install pip --upgrade | cat && \
     python3 -m pip config set global.progress_bar off && \
     python3 -m pip install setuptools --upgrade && \
     # For pylint we want a known version, as later versions may add checks at
