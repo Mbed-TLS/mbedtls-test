@@ -1,6 +1,6 @@
 # ubuntu-18.04/Dockerfile
 #
-#  Copyright (c) 2018-2021, ARM Limited, All Rights Reserved
+#  Copyright (c) 2018-2022, ARM Limited, All Rights Reserved
 #  SPDX-License-Identifier: Apache-2.0
 #
 #  Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -117,7 +117,7 @@ RUN wget -q https://developer.arm.com/-/media/Files/downloads/compiler/DS500-PA-
 
 ENV ARMC5_BIN_DIR=/usr/local/ARM_Compiler_5.06u3/bin/
 ENV PATH=$PATH:/usr/local/ARM_Compiler_5.06u3/bin
-ENV ARMLMD_LICENSE_FILE=8225@armcc.licenses.mbedcloudtesting.com
+ENV ARMLMD_LICENSE_FILE=7010@10.6.26.52:7010@10.6.26.53:7010@10.6.26.54:7010@10.6.26.56
 
 # Install ARM Compiler 6.6
 RUN mkdir temp && cd temp && \
