@@ -65,7 +65,7 @@ RUN apt-get update -q && apt-get install -yq \
         libunistring-dev \
         # for armcc
         libstdc++6:i386 \
-        # to build GnuTLS (except 3.6 which uses --with-included-libtasn1)
+        # to build GnuTLS
         libtasn1-6-dev \
         # needed for armcc (see locale-gen below)
         locales \
@@ -147,9 +147,7 @@ ENV PATH=/opt/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH
 # GnuTLS has a number of (optional) dependencies:
 # - nettle (crypto library): quite tighly coupled, so build one for each
 # version of GnuTLS that we want.
-# - libtasn1: can use the Ubuntu version, except for GnuTLS 3.7 which needs
-# libtasn1 4.9 (Ubuntu 16.04 has 4.6); an config option
-# --with-included-libtasn1 is available, so use it for GnuTLS 3.7.
+# - libtasn1: can use the Ubuntu version
 # - p11-kit: optional, for smart-card support - configure it out
 # - libunistring: since 3.6 - the Ubuntu package works; if it didn't a config
 # option --with-included-libunistring is available.
@@ -221,7 +219,7 @@ RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.7.3.tar.gz && \
     export PKG_CONFIG_PATH=/usr/local/libnettle-3.7.3/lib/pkgconfig:/usr/local/libnettle-3.7.3/lib64/pkgconfig:/usr/local/lib/pkgconfig && \
     wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.7/gnutls-3.7.2.tar.xz && \
     tar -xJf gnutls-3.7.2.tar.xz && cd gnutls-3.7.2 && \
-    ./configure --prefix=/usr/local/gnutls-3.7.2 --exec_prefix=/usr/local/gnutls-3.7.2 --disable-shared --with-included-libtasn1 --without-p11-kit && \
+    ./configure --prefix=/usr/local/gnutls-3.7.2 --exec_prefix=/usr/local/gnutls-3.7.2 --disable-shared --without-p11-kit && \
     make && make install && cat config.log && cd .. && \
     rm -rf gnutls-3.7.2*
 
