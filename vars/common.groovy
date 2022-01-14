@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2019-2021, Arm Limited, All Rights Reserved
+ *  Copyright (c) 2019-2022, Arm Limited, All Rights Reserved
  *  SPDX-License-Identifier: Apache-2.0
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -41,7 +41,7 @@ import groovy.transform.Field
 @Field docker_ecr = "666618195821.dkr.ecr.eu-west-1.amazonaws.com"
 @Field docker_repo = "$docker_ecr/$docker_repo_name"
 
-@Field linux_platforms = ["ubuntu-16.04", "ubuntu-18.04"]
+@Field linux_platforms = ["ubuntu-16.04", "ubuntu-18.04", "ubuntu-20.04"]
 @Field bsd_platforms = ["freebsd"]
 @Field bsd_compilers = ["clang"]
 @Field all_compilers = ['gcc', 'clang']
