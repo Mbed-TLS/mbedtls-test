@@ -109,8 +109,12 @@ RUN apt-get update -q && apt-get install -yq \
         libc6-dev-armel-cross \
     && rm -rf /var/lib/apt/lists/
 
-# Install abi-compliance-checker & abi-dumper
-RUN apt-get update -q && apt-get install -yq abi-compliance-checker abi-dumper
+# Install abi-compliance-checker
+# The version in Ubuntu 18.04 is too old, we want at least the version below
+RUN wget -q https://github.com/lvc/abi-compliance-checker/archive/2.3.tar.gz && \
+    tar -zxf 2.3.tar.gz && cd abi-compliance-checker-2.3 && \
+    make clean && make && make install prefix=/usr && cd .. && \
+    rm -rf abi-compliance-checker* && rm 2.3.tar.gz
 
 # Install ARM Compiler 5.06
 RUN wget -q https://developer.arm.com/-/media/Files/downloads/compiler/DS500-PA-00003-r5p0-22rel0.tgz && \
@@ -147,7 +151,8 @@ ENV PATH=/opt/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH
 # GnuTLS has a number of (optional) dependencies:
 # - nettle (crypto library): quite tighly coupled, so build one for each
 # version of GnuTLS that we want.
-# - libtasn1: can use the Ubuntu version
+# - libtasn1: the Ubuntu package works; if it didn't a config
+# option --with-included-libtasn1 is available.
 # - p11-kit: optional, for smart-card support - configure it out
 # - libunistring: since 3.6 - the Ubuntu package works; if it didn't a config
 # option --with-included-libunistring is available.

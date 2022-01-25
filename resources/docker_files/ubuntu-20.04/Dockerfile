@@ -37,8 +37,10 @@ RUN dpkg --add-architecture i386
 # handled below. One big alphabetised list, in order to avoid duplicates, with
 # comments explaining why each package is needed.
 RUN apt-get update -q && apt-get install -yq \
-        # installed from source, but this installs the dependencies
+        # to use with abi-compliance-tester
         abi-dumper \
+        # for Mbed TLS tests
+        abi-compliance-checker \
         # to build Mbed TLS: gcc, binutils, make, etc.
         build-essential \
         # to build Mbed TLS
@@ -135,9 +137,6 @@ RUN wget -q https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/
 
 ENV PATH=/opt/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH
 
-# Install abi-compliance-checker
-RUN apt-get update -q && apt-get install -yq abi-compliance-checker
-
 # Install abi-dumper
 RUN apt-get install -yq abi-dumper
 
@@ -150,7 +149,8 @@ RUN apt-get install -yq abi-dumper
 # GnuTLS has a number of (optional) dependencies:
 # - nettle (crypto library): quite tighly coupled, so build one for each
 # version of GnuTLS that we want.
-# - libtasn1: can use the Ubuntu version
+# - libtasn1: the Ubuntu package works; if it didn't a config
+# option --with-included-libtasn1 is available.
 # - p11-kit: optional, for smart-card support - configure it out
 # - libunistring: since 3.6 - the Ubuntu package works; if it didn't a config
 # option --with-included-libunistring is available.
