@@ -575,6 +575,34 @@ mbedhtrun -m ${platform} ${tag_filter} \
     return jobs
 }
 
+def gen_coverity_push_jobs() {
+    def jobs = [:]
+    def job_name = "coverity-push"
+
+    if (env.MBED_TLS_BRANCH == "development") {
+        jobs[] = {
+            node('container-host') {
+                try {
+                    dir("src") {
+                        deleteDir()
+                        checkout_repo.checkout_repo()
+                        sshagent([env.GIT_CREDENTIALS_ID]) {
+                            sh 'git push -u origin HEAD:coverity_scan'
+                        }
+                    }
+                } catch (err) {
+                    failed_builds[job_name]= true
+                    throw (err)
+                } finally {
+                    deleteDir()
+                }
+            }
+        }
+    }
+
+    return jobs
+}
+
 def gen_release_jobs(label_prefix='', run_examples=true) {
     def jobs = [:]
 
@@ -609,6 +637,10 @@ def gen_release_jobs(label_prefix='', run_examples=true) {
 
     if (run_examples) {
         jobs = jobs + gen_all_example_jobs()
+    }
+
+    if (env.PUSH_COVERITY == "true") {
+        jobs = jobs + gen_coverity_push_jobs()
     }
 
     return jobs
