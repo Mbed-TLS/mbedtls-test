@@ -587,7 +587,7 @@ def gen_coverity_push_jobs() {
                         deleteDir()
                         checkout_repo.checkout_repo()
                         sshagent([env.GIT_CREDENTIALS_ID]) {
-                            sh 'git push -u origin HEAD:coverity_scan'
+                            sh 'git push origin HEAD:coverity_scan'
                         }
                     }
                 } catch (err) {
