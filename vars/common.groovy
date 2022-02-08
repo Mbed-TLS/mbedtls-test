@@ -295,8 +295,8 @@ def run_release_jobs(name, jobs, failed_builds, coverage_details) {
 
         parallel jobs
     } finally {
-        if (currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause')) {
+//        if (currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause')) {
             send_email(name, env.MBED_TLS_BRANCH, failed_builds, coverage_details)
-        }
+//        }
     }
 }
