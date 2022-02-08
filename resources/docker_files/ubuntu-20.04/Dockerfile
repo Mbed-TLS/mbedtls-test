@@ -37,10 +37,14 @@ RUN dpkg --add-architecture i386
 # handled below. One big alphabetised list, in order to avoid duplicates, with
 # comments explaining why each package is needed.
 RUN apt-get update -q && apt-get install -yq \
-        # to use with abi-compliance-tester
-        abi-dumper \
         # for Mbed TLS tests
         abi-compliance-checker \
+        # Note that there is a known issue #5332 that stock abi tools
+        # in ubuntu20.04 do not fail as expected. 
+        # https://github.com/ARMmbed/mbedtls/issues/5332
+        # Do not activae 20.04 until that is resolved
+        # to use with abi-compliance-tester
+        abi-dumper \
         # to build Mbed TLS: gcc, binutils, make, etc.
         build-essential \
         # to build Mbed TLS
@@ -79,7 +83,7 @@ RUN apt-get update -q && apt-get install -yq \
         make \
         # to build GnuTLS with locally-compiled nettle
         pkg-config \
-        # to install the preferred version of pylint
+        # to install several Python packages (done by individual jobs)
         python3-pip \
         # for Mbed TLS tests
         valgrind \
@@ -136,9 +140,6 @@ RUN wget -q https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/
     rm gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2
 
 ENV PATH=/opt/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH
-
-# Install abi-dumper
-RUN apt-get install -yq abi-dumper
 
 # Install exact upstream versions of OpenSSL and GnuTLS
 #
@@ -233,13 +234,7 @@ ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.7.2/bin/gnutls-serv
 #
 # The pip wrapper scripts can get out of sync with pip due to upgrading it
 # outside the package manager, so invoke the module directly.
-#
-# Piping to cat suppresses the progress bar, but means that a failure
-# won't be caught (`stuff | cat` succeeds if cat succeeds, even if `stuff`
-# fails). The subsequent use of "pip config" (which requires pip >=10)
-# will however fail if the installation of a more recent pip failed.
-RUN python3 -m pip install pip --upgrade | cat && \
-    python3 -m pip config set global.progress_bar off && \
+RUN python3 -m pip config set global.progress_bar off && \
     python3 -m pip install setuptools --upgrade && \
     # For pylint we want a known version, as later versions may add checks at
     # any time, making CI results unpredictable.
