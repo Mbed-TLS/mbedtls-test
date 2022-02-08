@@ -28,6 +28,10 @@ FROM ubuntu:16.04
 ARG DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt/src
 
+# Note: scripts/min_requirements.py need a writable
+# destination for installing python dependencies
+ENV HOME=/var/lib/ws
+
 # Support for i386:
 # - for 32-bit builds+tests of Mbed TLS
 # - required to install Arm Compiler 5.06 (armcc)
