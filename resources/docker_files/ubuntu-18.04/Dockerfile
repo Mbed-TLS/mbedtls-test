@@ -247,12 +247,6 @@ ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.7.2/bin/gnutls-serv
 RUN python3 -m pip install pip --upgrade | cat && \
     python3 -m pip config set global.progress_bar off && \
     python3 -m pip install setuptools --upgrade && \
-    # For pylint we want a known version, as later versions may add checks at
-    # any time, making CI results unpredictable.
-    python3 -m pip install pylint==2.4.4 && \
-    # For mypy, use the earliest version that works with our code base.
-    # See https://github.com/ARMmbed/mbedtls/pull/3953 .
-    python3 -m pip install mypy==0.780 && \
     true
 
 # Set locale for ARMCC to work
