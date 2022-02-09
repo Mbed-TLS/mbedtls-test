@@ -33,7 +33,7 @@ WORKDIR /opt/src
 ENV HOME=/var/lib/builds
 
 # Support for i386, for 32-bit builds+tests of Mbed TLS
-RUN dpkg --add-architecture i386
+RUN [ `uname -m` != x86_64 ] || dpkg --add-architecture i386
 
 # Main apt-get call with all packages except those that have conflicts,
 # handled below. One big alphabetised list, in order to avoid duplicates, with
@@ -59,16 +59,10 @@ RUN apt-get update -q && apt-get install -yq \
         graphviz \
         # to measure code coverage of Mbed TLS
         lcov \
-        # for 32-bit Mbed TLS testing
-        libc6-i386 \
-        # for 32-bit Mbed TLS testing
-        libc6:i386 \
         # to build GnuTLS (nettle with public key support aka hogweed)
         libgmp-dev \
         # to build GnuTLS >= 3.6 (could also use --with-included-unistring)
         libunistring-dev \
-        # to test 32-bit C++ linkage (not done at the time of writing)
-        libstdc++6:i386 \
         # to build GnuTLS
         libtasn1-6-dev \
         # to have a UTF-8 locale (see locale-gen below)
@@ -91,6 +85,17 @@ RUN apt-get update -q && apt-get install -yq \
         zlib1g \
         # to build Mbed TLS with MBEDTLS_ZILIB_SUPPORT (removed in 3.0)
         zlib1g-dev \
+        # Install tools for apply debian patch
+        debhelper  autotools-dev \
+    # x86_64 only packages
+    && ( [ `uname -m` != x86_64 ] || apt-get install -yq \
+        # for 32-bit Mbed TLS testing
+        libc6-i386 \
+        # for 32-bit Mbed TLS testing
+        libc6:i386 \
+        # to test 32-bit C++ linkage (not done at the time of writing)
+        libstdc++6:i386 \
+       ) \
     && rm -rf /var/lib/apt/lists/
 
 # Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
@@ -101,11 +106,13 @@ RUN apt-get update -q && apt-get install -yq \
 # (without that symlink, 32-bit builds won't find system headers). Note that
 # just installing the dependencies of gcc-multilib also brings in gcc-multilib
 # as a Recommends dependency.
-RUN apt-get update -q && apt-get install -yq \
+RUN [ `uname -m` != x86_64 ] || \
+    ( apt-get update -q && apt-get install -yq \
         gcc-multilib \
-    && rm -rf /var/lib/apt/lists/ && \
-    dpkg -r gcc-multilib && \
-    ln -s x86_64-linux-gnu/asm /usr/include/asm
+      && rm -rf /var/lib/apt/lists/ && \
+      dpkg -r gcc-multilib && \
+      ln -s x86_64-linux-gnu/asm /usr/include/asm \
+    )
 
 # Install arm-linux-gnueabi-gcc - to cross-build Mbed TLS
 RUN apt-get update -q && apt-get install -yq \
@@ -121,9 +128,11 @@ RUN wget -q https://github.com/lvc/abi-compliance-checker/archive/2.3.tar.gz && 
     rm -rf abi-compliance-checker* && rm 2.3.tar.gz
 
 # Install arm-none-eabi-gcc
-RUN wget -q https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -O gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 && \
-    tar -xjf gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -C /opt && \
-    rm gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2
+RUN [ `uname -m` != x86_64 ] || \
+    ( wget -q https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -O gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 && \
+      tar -xjf gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -C /opt && \
+      rm gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 \
+    )
 
 ENV PATH=/opt/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH
 
@@ -189,6 +198,13 @@ ENV PATH=/usr/local/gnutls-3.4.10/bin:$PATH
 # Install Gnu TLS 3.3.8 (nettle 2.7) - "legacy" version
 RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-2.7.1.tar.gz && \
     tar -zxf nettle-2.7.1.tar.gz && cd nettle-2.7.1 && \
+    # Patch the source code on aarch64
+    ( [ `uname -m` != aarch64 ] || \
+         ( set -e ; \
+              wget https://launchpad.net/~ubuntu-security-proposed/+archive/ubuntu/ppa/+sourcefiles/nettle/2.7.1-1ubuntu0.2/nettle_2.7.1-1ubuntu0.2.debian.tar.gz -qO- | tar xz; \
+              dpkg-buildpackage -us -uc -b -Tconfig.status; \
+         ) \
+       ) && \
     ./configure --prefix=/usr/local/libnettle-2.7.1 --exec_prefix=/usr/local/libnettle-2.7.1  --disable-shared --disable-openssl && \
     make && make install && cd .. && rm -rf nettle-2.7.1* && \
     export PKG_CONFIG_PATH=/usr/local/libnettle-2.7.1/lib/pkgconfig:/usr/local/libnettle-2.7.1/lib64/pkgconfig:/usr/local/lib/pkgconfig && \
