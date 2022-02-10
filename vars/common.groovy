@@ -270,7 +270,7 @@ Logs: ${env.BUILD_URL}
 
 Failures: ${failures}
 """
-        subject = "${name} failed!"
+        subject = is_open_ci_env ? "TF Open CI ${name} failed!" : "Internal CI ${name} failed!"
         recipients = env.TEST_FAIL_EMAIL_ADDRESS
     } else {
         emailbody = """
@@ -278,7 +278,7 @@ ${coverage_details['coverage']}
 
 Logs: ${env.BUILD_URL}
 """
-        subject = "${name} passed!"
+        subject = is_open_ci_env ? "TF Open CI ${name} passed!" : "Internal CI ${name} passed!"
         recipients = env.TEST_PASS_EMAIL_ADDRESS
     }
     echo subject
