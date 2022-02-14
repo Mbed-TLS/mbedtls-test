@@ -30,7 +30,7 @@ WORKDIR /opt/src
 
 # Note: scripts/min_requirements.py need a writable
 # destination for installing python dependencies
-ENV HOME=/var/lib/ws
+ENV HOME=/var/lib/builds
 
 # Support for i386:
 # - for 32-bit builds+tests of Mbed TLS
