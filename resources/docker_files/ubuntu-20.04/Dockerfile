@@ -1,4 +1,4 @@
-# ubuntu-16.04/Dockerfile
+# ubuntu-20.04/Dockerfile
 #
 #  Copyright (c) 2018-2022, ARM Limited, All Rights Reserved
 #  SPDX-License-Identifier: Apache-2.0
@@ -20,10 +20,10 @@
 # Purpose
 # -------
 #
-# This docker file is for creating the ubuntu-16.04 image that is used in the
+# This docker file is for creating the ubuntu-20.04 image that is used in the
 # CI. It can also be used for reproducing and testing CI failures.
 
-FROM ubuntu:16.04
+FROM ubuntu:20.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt/src
@@ -41,7 +41,13 @@ RUN dpkg --add-architecture i386
 # handled below. One big alphabetised list, in order to avoid duplicates, with
 # comments explaining why each package is needed.
 RUN apt-get update -q && apt-get install -yq \
-        # installed from source, but this installs the dependencies
+        # for Mbed TLS tests
+        abi-compliance-checker \
+        # Note that there is a known issue #5332 that stock abi tools
+        # in ubuntu20.04 do not fail as expected. 
+        # https://github.com/ARMmbed/mbedtls/issues/5332
+        # Do not activae 20.04 until that is resolved
+        # to use with abi-compliance-tester
         abi-dumper \
         # to build Mbed TLS: gcc, binutils, make, etc.
         build-essential \
@@ -69,7 +75,7 @@ RUN apt-get update -q && apt-get install -yq \
         libunistring-dev \
         # for armcc
         libstdc++6:i386 \
-        # to build GnuTLS (except 3.6 which uses --with-included-libtasn1)
+        # to build GnuTLS
         libtasn1-6-dev \
         # needed for armcc (see locale-gen below)
         locales \
@@ -81,7 +87,7 @@ RUN apt-get update -q && apt-get install -yq \
         make \
         # to build GnuTLS with locally-compiled nettle
         pkg-config \
-        # to install the preferred version of pylint
+        # to install several Python packages (done by individual jobs)
         python3-pip \
         # for Mbed TLS tests
         valgrind \
@@ -148,9 +154,8 @@ ENV PATH=/opt/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH
 # GnuTLS has a number of (optional) dependencies:
 # - nettle (crypto library): quite tighly coupled, so build one for each
 # version of GnuTLS that we want.
-# - libtasn1: can use the Ubuntu version, except for GnuTLS 3.7 which needs
-# libtasn1 4.9 (Ubuntu 16.04 has 4.6); an config option
-# --with-included-libtasn1 is available, so use it for GnuTLS 3.7.
+# - libtasn1: the Ubuntu package works; if it didn't a config
+# option --with-included-libtasn1 is available.
 # - p11-kit: optional, for smart-card support - configure it out
 # - libunistring: since 3.6 - the Ubuntu package works; if it didn't a config
 # option --with-included-libunistring is available.
@@ -222,41 +227,18 @@ RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.7.3.tar.gz && \
     export PKG_CONFIG_PATH=/usr/local/libnettle-3.7.3/lib/pkgconfig:/usr/local/libnettle-3.7.3/lib64/pkgconfig:/usr/local/lib/pkgconfig && \
     wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.7/gnutls-3.7.2.tar.xz && \
     tar -xJf gnutls-3.7.2.tar.xz && cd gnutls-3.7.2 && \
-    ./configure --prefix=/usr/local/gnutls-3.7.2 --exec_prefix=/usr/local/gnutls-3.7.2 --disable-shared --with-included-libtasn1 --without-p11-kit && \
+    ./configure --prefix=/usr/local/gnutls-3.7.2 --exec_prefix=/usr/local/gnutls-3.7.2 --disable-shared --without-p11-kit && \
     make && make install && cat config.log && cd .. && \
     rm -rf gnutls-3.7.2*
 
 ENV GNUTLS_NEXT_CLI=/usr/local/gnutls-3.7.2/bin/gnutls-cli
 ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.7.2/bin/gnutls-serv
 
-# Install abi-compliance-checker
-# The version in Ubuntu 16.04 is too old, we want at least the version below
-RUN wget -q https://github.com/lvc/abi-compliance-checker/archive/2.3.tar.gz && \
-    tar -zxf 2.3.tar.gz && cd abi-compliance-checker-2.3 && \
-    make clean && make && make install prefix=/usr && cd .. && \
-    rm -rf abi-compliance-checker* && rm 2.3.tar.gz
-
-# Install abi-dumper
-# The version in Ubuntu 16.04 is too old, we want at least the version below
-RUN git clone --branch 1.1 https://github.com/lvc/abi-dumper.git && \
-    cd abi-dumper && make install prefix=/usr && cd .. && rm -rf abi-dumper
-
 # Install Python pip packages
 #
 # The pip wrapper scripts can get out of sync with pip due to upgrading it
 # outside the package manager, so invoke the module directly.
-#
-# Ubuntu 16.04's pip (8.1) doesn't understand the Requires-Python
-# directive (introduced in pip 9.0), and tries to install the wrong versions
-# of pip and setuptools. Version 21 of pip drops support for Python 3.5 (the
-# latest in 16.04), so pick an earlier version.
-#
-# Piping to cat suppresses the progress bar, but means that a failure
-# won't be caught (`stuff | cat` succeeds if cat succeeds, even if `stuff`
-# fails). The subsequent use of "pip config" (which requires pip >=10)
-# will however fail if the installation of a more recent pip failed.
-RUN python3 -m pip install 'pip<21' --upgrade | cat && \
-    python3 -m pip config set global.progress_bar off && \
+RUN python3 -m pip config set global.progress_bar off && \
     python3 -m pip install setuptools --upgrade && \
     true
 

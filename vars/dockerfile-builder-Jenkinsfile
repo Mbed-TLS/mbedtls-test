@@ -9,6 +9,7 @@
  * Build options
  *  - DOCKER_IMAGE_16_04_ACTION
  *  - DOCKER_IMAGE_18_04_ACTION
+ *  - DOCKER_IMAGE_20_04_ACTION
  *
  * Environment variables:
  *  - GIT_CREDENTIALS_ID
