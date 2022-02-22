@@ -241,10 +241,6 @@ ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.7.2/bin/gnutls-serv
 # The pip wrapper scripts can get out of sync with pip due to upgrading it
 # outside the package manager, so invoke the module directly.
 #
-# Ubuntu 18.04's pip (9.0.1) doesn't support suppressing the progress bar,
-# which is annoying in CI logs. Install pip<21, same as on Ubuntu 16.04
-# (although we could use a later version if we wanted).
-#
 # Piping to cat suppresses the progress bar, but means that a failure
 # won't be caught (`stuff | cat` succeeds if cat succeeds, even if `stuff`
 # fails). The subsequent use of "pip config" (which requires pip >=10)
