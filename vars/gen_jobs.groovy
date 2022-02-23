@@ -681,9 +681,10 @@ docker push $common.docker_repo:$tag
                             }
                         } else {
                             sh """\
-docker build -t $common.docker_repo:$tag .
+DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 --cache-from $common.docker_repo:$platform-cache -t $common.docker_repo:$tag -t $common.docker_repo:$platform-cache .
 aws ecr get-login-password | docker login --username AWS --password-stdin $common.docker_ecr
 docker push $common.docker_repo:$tag
+docker push $common.docker_repo:$platform-cache
 """
                         }
                     }
