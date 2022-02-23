@@ -644,6 +644,7 @@ def gen_dockerfile_builder_job(platform, overwrite=false) {
     def jobs = [:]
     def dockerfile = libraryResource "docker_files/$platform/Dockerfile"
 
+    def base_image = platform.replaceFirst('-', ':')
     def tag = "$platform-${common.git_hash_object(dockerfile)}"
     def check_docker_image = common.is_open_ci_env ? "docker manifest inspect $common.docker_repo:$tag > /dev/null 2>&1" : "aws ecr describe-images --repository-name $common.docker_repo_name --image-ids imageTag=$tag"
 
@@ -681,8 +682,15 @@ docker push $common.docker_repo:$tag
                             }
                         } else {
                             sh """\
-DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 --cache-from $common.docker_repo:$platform-cache -t $common.docker_repo:$tag -t $common.docker_repo:$platform-cache .
 aws ecr get-login-password | docker login --username AWS --password-stdin $common.docker_ecr
+if docker pull $base_image; then
+    docker tag $base_image $common.docker_repo:$platform-base
+    docker push $common.docker_repo:$platform-base
+else
+    docker pull $common.docker_repo:$platform-base
+    docker tag $common.docker_repo:$platform-base $base_image
+fi
+DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 --cache-from $common.docker_repo:$platform-cache -t $common.docker_repo:$tag -t $common.docker_repo:$platform-cache .
 docker push $common.docker_repo:$tag
 docker push $common.docker_repo:$platform-cache
 """
