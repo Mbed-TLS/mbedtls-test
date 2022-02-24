@@ -686,6 +686,19 @@ aws ecr get-login-password | docker login --username AWS --password-stdin $commo
                         }
 
                         sh """\
+python3 -c '
+import json, urllib.request
+
+token = json.load(urllib.request.urlopen(
+    "https://auth.docker.io/token?service=registry.docker.io&scope=repository:ratelimitpreview/test:pull"))["token"]
+
+req = urllib.request.Request(
+    "https://registry-1.docker.io/v2/ratelimitpreview/test/manifests/latest",
+    headers={"Authorization": "Bearer " + token},
+    method="HEAD")
+print(urllib.request.urlopen(req).getheader("ratelimit-remaining").partition(";")[0])
+'
+
 # Use BuildKit and a remote build cache to pull only the reuseable layers
 # from the last successful build for this platform
 DOCKER_BUILDKIT=1 docker build \
