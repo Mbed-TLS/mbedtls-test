@@ -294,7 +294,7 @@ def run_release_jobs(name, jobs, failed_builds, coverage_details) {
     try {
         parallel jobs
     } finally {
-        if (currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause')) {
+        if (env.TEST_PASS_EMAIL_ADDRESS && env.TEST_FAIL_EMAIL_ADDRESS) {
             send_email(name, failed_builds, coverage_details)
         }
     }
