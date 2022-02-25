@@ -21,6 +21,9 @@ import java.security.MessageDigest
 
 import groovy.transform.Field
 
+/* Indicates if CI is running on Open CI (hosted on https://ci.trustedfirmware.org/) */
+@Field is_open_ci_env = env.JENKINS_URL ==~ /\S+(trustedfirmware)\S+/
+
 /*
  * This controls the timeout each job has. It does not count the time spent in
  * waiting queues and setting up the environment.
@@ -37,8 +40,8 @@ import groovy.transform.Field
     'cc' : 'cc'
 ]
 
-@Field docker_repo_name = 'jenkins-mbedtls'
-@Field docker_ecr = "666618195821.dkr.ecr.eu-west-1.amazonaws.com"
+@Field docker_repo_name = is_open_ci_env ? 'ci-amd64-mbed-tls-ubuntu' : 'jenkins-mbedtls'
+@Field docker_ecr = is_open_ci_env ? "trustedfirmware" : "666618195821.dkr.ecr.eu-west-1.amazonaws.com"
 @Field docker_repo = "$docker_ecr/$docker_repo_name"
 
 @Field linux_platforms = ["ubuntu-16.04", "ubuntu-18.04", "ubuntu-20.04"]
@@ -109,7 +112,12 @@ def get_docker_image(platform) {
     def docker_image = get_docker_tag(platform)
     for (int attempt = 1; attempt <= 3; attempt++) {
         try {
-            sh """\
+            if (is_open_ci_env)
+                sh """\
+docker pull $docker_repo:$docker_image
+"""
+            else
+                sh """\
 aws ecr get-login-password | docker login --username AWS --password-stdin $docker_ecr
 docker pull $docker_repo:$docker_image
 """
@@ -230,7 +238,8 @@ def maybe_notify_github(context, state, description) {
         description = description.take(MAX_DESCRIPTION_LENGTH - 1) + '…'
     }
 
-    githubNotify context: "${env.BRANCH_NAME} ${context}",
+    content = is_open_ci_env ? "TF OpenCI: ${env.BRANCH_NAME} ${context}" : "Internal CI: ${env.BRANCH_NAME} ${context}"
+    githubNotify context: content,
                  status: state,
                  description: description
 }
@@ -261,7 +270,7 @@ Logs: ${env.BUILD_URL}
 
 Failures: ${failures}
 """
-        subject = "${name} failed!"
+        subject = is_open_ci_env ? "TF Open CI ${name} failed!" : "Internal CI ${name} failed!"
         recipients = env.TEST_FAIL_EMAIL_ADDRESS
     } else {
         emailbody = """
@@ -269,7 +278,7 @@ ${coverage_details['coverage']}
 
 Logs: ${env.BUILD_URL}
 """
-        subject = "${name} passed!"
+        subject = is_open_ci_env ? "TF Open CI ${name} passed!" : "Internal CI ${name} passed!"
         recipients = env.TEST_PASS_EMAIL_ADDRESS
     }
     echo subject
