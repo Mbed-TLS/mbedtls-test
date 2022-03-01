@@ -23,6 +23,8 @@
 # This docker file is for creating the ubuntu-18.04 image that is used in the
 # CI. It can also be used for reproducing and testing CI failures.
 
+# Extra comment to alter file hash for CI testing
+
 FROM ubuntu:18.04
 
 ARG DEBIAN_FRONTEND=noninteractive
