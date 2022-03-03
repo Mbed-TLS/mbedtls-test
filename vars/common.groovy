@@ -270,7 +270,6 @@ Logs: ${env.BUILD_URL}
 
 Failures: ${failures}
 """
-        subject = is_open_ci_env ? "TF Open CI ${name} failed!" : "Internal CI ${name} failed! (branch: ${branch})"
         recipients = env.TEST_FAIL_EMAIL_ADDRESS
     } else {
         emailbody = """
@@ -278,9 +277,10 @@ ${coverage_details['coverage']}
 
 Logs: ${env.BUILD_URL}
 """
-        subject = is_open_ci_env ? "TF Open CI ${name} passed!" : "Internal CI ${name} passed! (branch: ${branch})"
         recipients = env.TEST_PASS_EMAIL_ADDRESS
     }
+    subject = ((is_open_ci_env ? "TF Open CI" : "Internal CI") + " ${name}" + \
+           (failed_builds ? "failed" : "passed") + "! (branch: ${branch})")
     echo subject
     echo emailbody
     emailext body: emailbody,
@@ -292,6 +292,7 @@ Logs: ${env.BUILD_URL}
 def run_release_jobs(name, jobs, failed_builds, coverage_details) {
     jobs.failFast = false
     try {
+
         parallel jobs
     } finally {
         if (currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause')) {
