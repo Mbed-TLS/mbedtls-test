@@ -139,6 +139,17 @@ docker run -u \$(id -u):\$(id -g) --rm --entrypoint $entrypoint \
 
 /* Get components of all.sh for a list of platforms*/
 def get_branch_information() {
+    parallel freebsd: {
+        node('freebsd') {
+            echo 'freebsd environment:'
+            sh script: 'env'
+        }
+    }, windows: {
+        node('windows') {
+            echo 'windows environment:'
+            bat script: 'set'
+        }
+    }, 'container-host': {
     node('container-host') {
         dir('src') {
             deleteDir()
@@ -154,10 +165,18 @@ def get_branch_information() {
         }
 
         // Log the environment for debugging purposes
-        sh script: 'export'
+        echo 'container-host environment:'
+        sh script: 'env'
 
         for (platform in linux_platforms) {
             get_docker_image(platform)
+
+            // Log the container's environment for debugging purposes
+            echo "$platform environment:"
+            sh script: docker_script(
+                platform, 'env'
+            )
+
             def all_sh_help = sh(
                 script: docker_script(
                     platform, "./tests/scripts/all.sh", "--help"
@@ -184,6 +203,7 @@ def get_branch_information() {
                 error('Pre Test Checks failed: Base branch out of date. Please rebase')
             }
         }
+    }
     }
 }
 
