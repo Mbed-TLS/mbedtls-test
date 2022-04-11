@@ -17,7 +17,7 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
-def checkout_repo() {
+void checkout_repo() {
     if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
         checkout scm
     } else {
@@ -25,7 +25,7 @@ def checkout_repo() {
     }
 }
 
-def checkout_mbed_os_example_repo(repo, branch) {
+void checkout_mbed_os_example_repo(String repo, String branch) {
     if (env.TARGET_REPO == 'example' && env.CHECKOUT_METHOD == 'scm') {
         checkout scm
     } else {
@@ -33,8 +33,8 @@ def checkout_mbed_os_example_repo(repo, branch) {
     }
 }
 
-def checkout_parametrized_repo(repo, branch) {
-    checkout([
+Map checkout_parametrized_repo(String repo, String branch) {
+    return checkout([
         scm: [
             $class: 'GitSCM',
             userRemoteConfigs: [[
@@ -52,7 +52,7 @@ def checkout_parametrized_repo(repo, branch) {
     ])
 }
 
-def checkout_mbed_os() {
+void checkout_mbed_os() {
     checkout([
         scm: [
             $class: 'GitSCM',
@@ -72,10 +72,10 @@ def checkout_mbed_os() {
                 deleteDir()
                 checkout_mbedtls_repo()
             }
-            sh """\
+            sh '''\
 ulimit -f 20971520
 make all
-"""
+'''
         }
     }
 }
