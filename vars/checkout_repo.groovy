@@ -17,11 +17,34 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+class StaticState {
+    static String repo = null
+    static String commit = null
+    static String parents = null
+}
+
 void checkout_repo() {
-    if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
-        checkout scm
+    echo "repo = $StaticState.repo\ncommit = $StaticState.commit\nparents = $StaticState.parents"
+    echo "$scm"
+    if (StaticState.commit == null) {
+        Map scm_vars
+        if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
+            scm_vars = checkout scm
+            echo scm_vars.toString()
+            if (scm_vars.GIT_AUTHOR_EMAIL == 'ce-oss-mbed@arm.com') {
+                StaticState.parents = sh(script: 'git rev-parse HEAD^@', returnStdout: true)
+                sh 'git bundle create merge-commit.bundle HEAD HEAD^!'
+                stash(name: 'merge-commit.bundle', includes: 'merge-commit.bundle')
+            }
+        } else {
+            scm_vars = checkout_parametrized_repo(MBED_TLS_REPO, MBED_TLS_BRANCH)
+        }
+        StaticState.repo = scm_vars.GIT_URL
+        StaticState.commit = scm_vars.GIT_COMMIT
+        echo "repo = $StaticState.repo; $scm_vars.GIT_URL"
+        echo "commit = $StaticState.commit; $scm_vars.GIT_COMMIT"
     } else {
-        checkout_parametrized_repo(MBED_TLS_REPO, MBED_TLS_BRANCH)
+        checkout_parametrized_repo(StaticState.repo, StaticState.commit, StaticState.parents)
     }
 }
 
@@ -33,23 +56,45 @@ void checkout_mbed_os_example_repo(String repo, String branch) {
     }
 }
 
-Map checkout_parametrized_repo(String repo, String branch) {
-    return checkout([
-        scm: [
+Map checkout_parametrized_repo(String repo, String branch, String parents = null) {
+    Map scm_config = [
+        $class: 'GitSCM',
+        userRemoteConfigs: [[
+            url: repo,
+            name: 'origin',
+            credentialsId: env.GIT_CREDENTIALS_ID
+        ]],
+        branches: [[name: branch]],
+        extensions: [
+            [$class: 'CloneOption', timeout: 60, honorRefspec: true],
+            [$class: 'SubmoduleOption', recursiveSubmodules: true],
+        ],
+    ]
+
+    if (parents != null) {
+        unstash('merge-commit.bundle')
+        sh 'cat merge-commit.bundle'
+        scm_config.branches = []
+        scm_config.userRemoteConfigs[0].refspec = parents
+        checkout(scm_config)
+        sh 'git bundle verify merge-commit.bundle'
+        return checkout([
             $class: 'GitSCM',
             userRemoteConfigs: [[
-                url: repo,
-                refspec: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*:refs/pull/*',
-                credentialsId: env.GIT_CREDENTIALS_ID
+                url: "${pwd()}/merge-commit.bundle",
+                name: 'bundle',
+                refspec: branch
             ]],
             branches: [[name: branch]],
             extensions: [
-                [$class: 'CloneOption', timeout: 60],
+                [$class: 'CloneOption', timeout: 60, honorRefspec: true],
                 [$class: 'SubmoduleOption', recursiveSubmodules: true],
                 [$class: 'LocalBranch', localBranch: branch],
             ],
-        ]
-    ])
+        ])
+    }
+
+    return checkout(scm_config)
 }
 
 void checkout_mbed_os() {
