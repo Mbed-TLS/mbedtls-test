@@ -162,6 +162,7 @@ def get_branch_information() {
                 script: docker_script(
                     platform, "./tests/scripts/all.sh", "--list-components"
                 ),
+                label: "./tests/scripts/all.sh --list-components #$platform",
                 returnStdout: true
             ).trim().split('\n')
             if (all_all_sh_components == []) {
@@ -170,6 +171,7 @@ def get_branch_information() {
                         platform, "./tests/scripts/all.sh",
                         "--list-all-components"
                     ),
+                    label: "./tests/scripts/all.sh --list-all-components",
                     returnStdout: true
                 ).trim().split('\n')
             }
@@ -235,7 +237,7 @@ def maybe_notify_github(context, state, description) {
 }
 
 def archive_zipped_log_files(job_name) {
-    sh """\
+    sh label: "rename+compress *.log", script: """\
 for i in *.log; do
     [ -f "\$i" ] || break
     mv "\$i" "$job_name-\$i"
