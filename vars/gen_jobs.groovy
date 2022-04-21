@@ -25,8 +25,6 @@ import groovy.transform.Field
 //Record coverage details for reporting
 @Field coverage_details = ['coverage': 'Code coverage job did not run']
 
-@Field armlmd_license_file = common.is_open_ci_env ? "27000@flexnet.trustedfirmware.org" : "7010@10.6.26.52:7010@10.6.26.53:7010@10.6.26.54:7010@10.6.26.56"
-
 def gen_simple_windows_jobs(label, script) {
     def jobs = [:]
 
@@ -661,7 +659,11 @@ def gen_dockerfile_builder_job(platform, overwrite=false) {
                     dir('docker') {
                         deleteDir()
                         writeFile file: 'Dockerfile', text: dockerfile
+                        def extra_build_args = ''
+
                         if (common.is_open_ci_env) {
+                            extra_build_args = '--build-arg ARMLMD_LICENSE_FILE=27000@flexnet.trustedfirmware.org'
+
                             withCredentials([string(credentialsId: 'DOCKER_AUTH', variable: 'TOKEN')]) {
                                 sh """\
 mkdir -p ${env.HOME}/.docker
@@ -675,17 +677,28 @@ cat > ${env.HOME}/.docker/config.json << EOF
 }
 EOF
 chmod 0600 ${env.HOME}/.docker/config.json
-docker build --build-arg ARMLMD_LICENSE_FILE=$armlmd_license_file -t $common.docker_repo:$tag .
-docker push $common.docker_repo:$tag
 """
                             }
                         } else {
                             sh """\
-docker build -t $common.docker_repo:$tag .
 aws ecr get-login-password | docker login --username AWS --password-stdin $common.docker_ecr
-docker push $common.docker_repo:$tag
 """
                         }
+
+                        sh """\
+# Use BuildKit and a remote build cache to pull only the reuseable layers
+# from the last successful build for this platform
+DOCKER_BUILDKIT=1 docker build \
+    --build-arg BUILDKIT_INLINE_CACHE=1 \
+    $extra_build_args \
+    --cache-from $common.docker_repo:$platform-cache \
+    -t $common.docker_repo:$tag \
+    -t $common.docker_repo:$platform-cache .
+
+# Push the image with its unique tag, as well as the build cache tag
+docker push $common.docker_repo:$tag
+docker push $common.docker_repo:$platform-cache
+"""
                     }
                 }
             }
