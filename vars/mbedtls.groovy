@@ -38,6 +38,7 @@ def run_tls_tests(label_prefix='') {
         currentBuild.result = 'FAILURE'
         common.maybe_notify_github "TLS Testing", 'FAILURE',
                                    "Failures: ${failed_names}"
+        throw (err)
     }
 }
 
