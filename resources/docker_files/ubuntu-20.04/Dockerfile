@@ -44,7 +44,7 @@ RUN apt-get update -q && apt-get install -yq \
         # for Mbed TLS tests
         abi-compliance-checker \
         # Note that there is a known issue #5332 that stock abi tools
-        # in ubuntu20.04 do not fail as expected. 
+        # in ubuntu20.04 do not fail as expected.
         # https://github.com/ARMmbed/mbedtls/issues/5332
         # Do not activae 20.04 until that is resolved
         # to use with abi-compliance-tester
@@ -127,7 +127,7 @@ RUN wget -q https://developer.arm.com/-/media/Files/downloads/compiler/DS500-PA-
 
 ENV ARMC5_BIN_DIR=/usr/local/ARM_Compiler_5.06u3/bin/
 ENV PATH=$PATH:/usr/local/ARM_Compiler_5.06u3/bin
-ARG ARMLMD_LICENSE_FILE=7010@10.6.26.52:7010@10.6.26.53:7010@10.6.26.54:7010@10.6.26.56
+ARG ARMLMD_LICENSE_FILE=7010@10.6.26.52:7010@10.6.26.53:7010@10.6.26.54:7010@10.6.26.56:1661@euhpc-lic05.euhpc.arm.com:7010@euhpc-lic05.euhpc.arm.com:7010@euhpc-lic07.euhpc.arm.com:7010@euhpc-lic03.euhpc.arm.com:7010@euhpc-lic04.euhpc.arm.com:8224@blr-lic05.blr.arm.com:7010@nahpc-lic09.nahpc.arm.com:7010@nahpc-lic06.nahpc.arm.com:8224@blr-lic03.blr.arm.com:224@blr-lic04.blr.arm.com
 ENV ARMLMD_LICENSE_FILE=${ARMLMD_LICENSE_FILE}
 
 # Install ARM Compiler 6.6
