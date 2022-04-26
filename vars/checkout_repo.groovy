@@ -62,7 +62,7 @@ Map checkout_parametrized_repo(String repo, String branch, String parents = null
         userRemoteConfigs: [[
             url: repo,
             name: 'origin',
-            credentialsId: env.GIT_CREDENTIALS_ID
+            credentialsId: common.git_credentials_id
         ]],
         branches: [[name: branch]],
         extensions: [
@@ -102,7 +102,7 @@ void checkout_mbed_os() {
         scm: [
             $class: 'GitSCM',
             userRemoteConfigs: [
-                [url: MBED_OS_REPO, credentialsId: env.GIT_CREDENTIALS_ID]
+                [url: MBED_OS_REPO, credentialsId: common.git_credentials_id]
             ],
             branches: [[name: MBED_OS_BRANCH]],
             extensions: [

@@ -35,9 +35,6 @@
  * Other parameters
  *  - TEST_BRANCH
  *
- * Environment variables:
- *  - GIT_CREDENTIALS_ID
- *
  */
 
 /* main job */

@@ -34,9 +34,6 @@
  * Other parameters
  *  - TEST_FAIL_EMAIL_ADDRESS - (only in nightly jobs)
  *  - TEST_PASS_EMAIL_ADDRESS - (only in nightly jobs)
- *
- * Environment variables:
- *  - GIT_CREDENTIALS_ID
  */
 
 /* main job */

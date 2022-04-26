@@ -335,7 +335,6 @@ def gen_windows_jobs(label_prefix='') {
 def gen_abi_api_checking_job(platform) {
     def jobs = [:]
     def job_name = "ABI-API-checking"
-    def credentials_id = common.is_open_ci_env ? "mbedtls-github-ssh" : "742b7080-e1cc-41c6-bf55-efb72013bc28"
 
     jobs[job_name] = {
         node('container-host') {
@@ -346,7 +345,7 @@ def gen_abi_api_checking_job(platform) {
                     checkout_repo.checkout_repo()
                     /* The credentials here are the SSH credentials for accessing the repositories.
                        They are defined at {JENKINS_URL}/credentials */
-                    withCredentials([sshUserPrivateKey(credentialsId: credentials_id, keyFileVariable: 'keyfile')]) {
+                    withCredentials([sshUserPrivateKey(credentialsId: common.git_credentials_id, keyFileVariable: 'keyfile')]) {
                         sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile}\" git fetch origin ${CHANGE_TARGET}"
                     }
                     writeFile file: 'steps.sh', text: """\
@@ -580,7 +579,7 @@ def gen_coverity_push_jobs() {
                     dir("src") {
                         deleteDir()
                         checkout_repo.checkout_repo()
-                        sshagent([env.GIT_CREDENTIALS_ID]) {
+                        sshagent([common.git_credentials_id]) {
                             sh 'git push origin HEAD:coverity_scan'
                         }
                     }
