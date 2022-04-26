@@ -40,7 +40,7 @@ def checkout_parametrized_repo(repo, branch) {
             userRemoteConfigs: [[
                 url: repo,
                 refspec: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*:refs/pull/*',
-                credentialsId: env.GIT_CREDENTIALS_ID
+                credentialsId: common.git_credentials_id
             ]],
             branches: [[name: branch]],
             extensions: [
@@ -57,7 +57,7 @@ def checkout_mbed_os() {
         scm: [
             $class: 'GitSCM',
             userRemoteConfigs: [
-                [url: MBED_OS_REPO, credentialsId: env.GIT_CREDENTIALS_ID]
+                [url: MBED_OS_REPO, credentialsId: common.git_credentials_id]
             ],
             branches: [[name: MBED_OS_BRANCH]],
             extensions: [

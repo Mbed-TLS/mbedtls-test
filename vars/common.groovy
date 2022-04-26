@@ -24,6 +24,8 @@ import groovy.transform.Field
 /* Indicates if CI is running on Open CI (hosted on https://ci.trustedfirmware.org/) */
 @Field is_open_ci_env = env.JENKINS_URL ==~ /\S+(trustedfirmware)\S+/
 
+@Field git_credentials_id = is_open_ci_env ? "mbedtls-github-ssh" : "742b7080-e1cc-41c6-bf55-efb72013bc28"
+
 /*
  * This controls the timeout each job has. It does not count the time spent in
  * waiting queues and setting up the environment.
