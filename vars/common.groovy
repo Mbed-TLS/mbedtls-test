@@ -100,11 +100,18 @@ def get_docker_tag(platform) {
 
 def init_docker_images() {
     stage('init-docker-images') {
-        def jobs = linux_platforms.collectEntries {
-            platform -> gen_jobs.gen_dockerfile_builder_job(platform)
+        try {
+            maybe_notify_github 'Init Docker images', 'PENDING', 'In progress'
+            def jobs = linux_platforms.collectEntries {
+                platform -> gen_jobs.gen_dockerfile_builder_job(platform)
+            }
+            jobs.failFast = false
+            parallel jobs
+            maybe_notify_github 'Init Docker images', 'SUCCESS', 'OK'
+        } catch (err) {
+            maybe_notify_github 'Init Docker images', 'FAILURE',
+                                'Initialization failed'
         }
-        jobs.failFast = false
-        parallel jobs
     }
 }
 

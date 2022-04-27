@@ -74,6 +74,8 @@ def analyze_results() {
 
 def analyze_results_and_notify_github() {
     try {
+        common.maybe_notify_github 'Result analysis', 'PENDING',
+                                   'In progress'
         analyze_results()
         common.maybe_notify_github "Result analysis", 'SUCCESS', 'OK'
     } catch (err) {

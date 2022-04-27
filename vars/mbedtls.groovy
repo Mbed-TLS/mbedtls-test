@@ -19,6 +19,8 @@
 
 def run_tls_tests(label_prefix='') {
     try {
+        common.maybe_notify_github 'TLS Testing', 'PENDING',
+                                   'In progress'
         def jobs = [:]
 
         jobs = jobs + gen_jobs.gen_release_jobs(label_prefix, false)
@@ -91,30 +93,23 @@ def run_pr_job(is_production=true) {
             }
         }
 
-        common.maybe_notify_github "Pre Test Checks", 'PENDING',
-                                   'Checking if all PR tests can be run'
-        common.maybe_notify_github "TLS Testing", 'PENDING',
-                                   'In progress'
-        common.maybe_notify_github "Result analysis", 'PENDING',
-                                   'In progress'
-
         common.init_docker_images()
 
         stage('pre-test-checks') {
             try {
+                common.maybe_notify_github 'Pre Test Checks', 'PENDING',
+                                           'Checking if all PR tests can be run'
                 environ.set_tls_pr_environment(is_production)
                 common.get_branch_information()
                 common.check_every_all_sh_component_will_be_run()
                 common.maybe_notify_github "Pre Test Checks", 'SUCCESS', 'OK'
             } catch (err) {
-                if (env.BRANCH_NAME) {
-                    def description = 'Pre Test Checks failed.'
-                    if (err.getMessage().contains('Pre Test Checks')) {
-                        description = err.getMessage()
-                    }
-                    common.maybe_notify_github "Pre Test Checks", 'FAILURE',
-                                               description
+                def description = 'Pre Test Checks failed.'
+                if (err.getMessage().contains('Pre Test Checks')) {
+                    description = err.getMessage()
                 }
+                common.maybe_notify_github 'Pre Test Checks', 'FAILURE',
+                                            description
                 throw (err)
             }
         }
