@@ -658,14 +658,15 @@ def gen_dockerfile_builder_job(platform, overwrite=false) {
                 if (overwrite || !image_exists) {
                     dir('docker') {
                         deleteDir()
-                        writeFile file: 'Dockerfile', text: dockerfile
-                        def extra_build_args = ''
+                        try {
+                            writeFile file: 'Dockerfile', text: dockerfile
+                            def extra_build_args = ''
 
-                        if (common.is_open_ci_env) {
-                            extra_build_args = '--build-arg ARMLMD_LICENSE_FILE=27000@flexnet.trustedfirmware.org'
+                            if (common.is_open_ci_env) {
+                                extra_build_args = '--build-arg ARMLMD_LICENSE_FILE=27000@flexnet.trustedfirmware.org'
 
-                            withCredentials([string(credentialsId: 'DOCKER_AUTH', variable: 'TOKEN')]) {
-                                sh """\
+                                withCredentials([string(credentialsId: 'DOCKER_AUTH', variable: 'TOKEN')]) {
+                                    sh """\
 mkdir -p ${env.HOME}/.docker
 cat > ${env.HOME}/.docker/config.json << EOF
 {
@@ -683,9 +684,9 @@ chmod 0600 ${env.HOME}/.docker/config.json
                             sh """\
 aws ecr get-login-password | docker login --username AWS --password-stdin $common.docker_ecr
 """
-                        }
+                            }
 
-                        sh """\
+                            sh """\
 # Use BuildKit and a remote build cache to pull only the reuseable layers
 # from the last successful build for this platform
 DOCKER_BUILDKIT=1 docker build \
@@ -699,6 +700,9 @@ DOCKER_BUILDKIT=1 docker build \
 docker push $common.docker_repo:$tag
 docker push $common.docker_repo:$platform-cache
 """
+                        } finally {
+                            deleteDir()
+                        }
                     }
                 }
             }
