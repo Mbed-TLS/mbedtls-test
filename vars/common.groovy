@@ -147,11 +147,11 @@ docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS --rm --entrypoint $entrypoint \
 }
 
 /* Get components of all.sh for a list of platforms*/
-def get_branch_information() {
+void get_branch_information(boolean merge=false) {
     node('container-host') {
         dir('src') {
             deleteDir()
-            checkout_repo.checkout_repo()
+            checkout_repo.checkout_repo(merge)
 
             has_min_requirements = fileExists('scripts/min_requirements.py')
 
@@ -247,7 +247,7 @@ def maybe_notify_github(context, state, description) {
         description = description.take(MAX_DESCRIPTION_LENGTH - 1) + '…'
     }
 
-    content = is_open_ci_env ? "TF OpenCI: ${env.BRANCH_NAME} ${context}" : "Internal CI: ${env.BRANCH_NAME} ${context}"
+    content = "${is_open_ci_env ? 'TF OpenCI' : 'Internal CI'}: ${env.BRANCH_NAME} ${context}"
     githubNotify context: content,
                  status: state,
                  description: description

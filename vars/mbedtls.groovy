@@ -47,6 +47,8 @@ def run_tls_tests(label_prefix='') {
 /* main job */
 def run_pr_job(is_production=true) {
     timestamps {
+        Boolean merge = false
+
         if (is_production) {
             // Cancel in-flight jobs for the same PR when a new job is launched
             def buildNumber = env.BUILD_NUMBER as int
@@ -74,6 +76,11 @@ def run_pr_job(is_production=true) {
                     )
                 )
             ])
+
+            waitUntil {
+                merge = pullRequest.mergeable
+                return merge != null
+            }
         }
 
         /* During the nightly branch indexing, if a target branch has been
@@ -95,22 +102,26 @@ def run_pr_job(is_production=true) {
 
         common.init_docker_images()
 
-        stage('pre-test-checks') {
-            try {
-                common.maybe_notify_github 'Pre Test Checks', 'PENDING',
-                                           'Checking if all PR tests can be run'
-                environ.set_tls_pr_environment(is_production)
-                common.get_branch_information()
-                common.check_every_all_sh_component_will_be_run()
-                common.maybe_notify_github "Pre Test Checks", 'SUCCESS', 'OK'
-            } catch (err) {
-                def description = 'Pre Test Checks failed.'
-                if (err.getMessage().contains('Pre Test Checks')) {
-                    description = err.getMessage()
+        retry(merge ? 2 : 1) {
+            stage("${merge ? 'merge' : 'head'}-pre-test-checks") {
+                String display_name = "${merge ? 'MERGE' : 'HEAD'}: Pre Test Checks"
+                try {
+                    common.maybe_notify_github display_name, 'PENDING',
+                                            'Checking if all PR tests can be run'
+                    environ.set_tls_pr_environment(is_production, merge)
+                    common.get_branch_information(merge)
+                    common.check_every_all_sh_component_will_be_run()
+                    common.maybe_notify_github display_name, 'SUCCESS', 'OK'
+                } catch (err) {
+                    def description = 'Pre Test Checks failed.'
+                    if (err.getMessage().contains('Pre Test Checks')) {
+                        description = err.getMessage()
+                    }
+                    common.maybe_notify_github display_name, 'FAILURE',
+                                               description
+                    merge = false
+                    throw (err)
                 }
-                common.maybe_notify_github 'Pre Test Checks', 'FAILURE',
-                                            description
-                throw (err)
             }
         }
 

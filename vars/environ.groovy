@@ -26,25 +26,25 @@ def set_common_environment() {
     env.MAKEFLAGS = '-j2'
 }
 
-def set_tls_pr_environment(is_production) {
+void set_tls_pr_environment(boolean is_production, boolean merge=false) {
     set_common_environment()
     env.JOB_TYPE = 'PR'
     env.TARGET_REPO = 'tls'
     env.REPO_TO_CHECKOUT = 'tls'
     if (is_production) {
-        set_common_pr_production_environment()
+        set_common_pr_production_environment(merge)
         set_tls_pr_production_environment()
     } else {
         env.CHECKOUT_METHOD = 'parametrized'
     }
 }
 
-def set_common_pr_production_environment() {
+void set_common_pr_production_environment(boolean merge=false) {
     env.CHECKOUT_METHOD = 'scm'
     env.RUN_FREEBSD = 'true'
     env.RUN_WINDOWS_TEST = common.is_open_ci_env ? 'false' : 'true'
     env.RUN_ALL_SH = 'true'
-    if (!env.BRANCH_NAME.contains('-head')) {
+    if (merge) {
         env.RUN_ABI_CHECK = 'true'
     }
 }
