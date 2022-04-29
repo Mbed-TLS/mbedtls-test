@@ -121,7 +121,7 @@ RUN wget -q https://developer.arm.com/-/media/Files/downloads/compiler/DS500-PA-
 
 ENV ARMC5_BIN_DIR=/usr/local/ARM_Compiler_5.06u3/bin/
 ENV PATH=$PATH:/usr/local/ARM_Compiler_5.06u3/bin
-ARG ARMLMD_LICENSE_FILE=7010@10.6.26.52:7010@10.6.26.53:7010@10.6.26.54:7010@10.6.26.56:1661@euhpc-lic05.euhpc.arm.com:7010@euhpc-lic05.euhpc.arm.com:7010@euhpc-lic07.euhpc.arm.com:7010@euhpc-lic03.euhpc.arm.com:7010@euhpc-lic04.euhpc.arm.com:8224@blr-lic05.blr.arm.com:7010@nahpc-lic09.nahpc.arm.com:7010@nahpc-lic06.nahpc.arm.com:8224@blr-lic03.blr.arm.com:224@blr-lic04.blr.arm.com
+ARG ARMLMD_LICENSE_FILE=7010@euhpc-lic04.euhpc.arm.com:7010@euhpc-lic06.euhpc.arm.com:7010@euhpc-lic07.euhpc.arm.com:7010@euhpc-lic03.euhpc.arm.com:7010@aphpc-lic04.ap01.arm.com:7010@aphpc-lic05.ap01.arm.com:7010@nahpc-lic09.nahpc.arm.com:7010@nahpc-lic06.nahpc.arm.com:7010@aphpc-lic03.ap01.arm.com:7010@euhpc-lic-armlmd.euhpc.arm.com
 ENV ARMLMD_LICENSE_FILE=${ARMLMD_LICENSE_FILE}
 
 # Install ARM Compiler 6.6
