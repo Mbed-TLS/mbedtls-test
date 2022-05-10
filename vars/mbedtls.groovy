@@ -107,14 +107,12 @@ def run_pr_job(is_production=true) {
                 common.check_every_all_sh_component_will_be_run()
                 common.maybe_notify_github "Pre Test Checks", 'SUCCESS', 'OK'
             } catch (err) {
-                if (env.BRANCH_NAME) {
-                    def description = 'Pre Test Checks failed.'
-                    if (err.getMessage().contains('Pre Test Checks')) {
-                        description = err.getMessage()
-                    }
-                    common.maybe_notify_github "Pre Test Checks", 'FAILURE',
-                                               description
+                def description = 'Pre Test Checks failed.'
+                if (err.getMessage().contains('Pre Test Checks')) {
+                    description = err.getMessage()
                 }
+                common.maybe_notify_github "Pre Test Checks", 'FAILURE',
+                                           description
                 throw (err)
             }
         }
