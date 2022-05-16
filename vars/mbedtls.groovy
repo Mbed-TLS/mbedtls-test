@@ -44,78 +44,81 @@ def run_tls_tests(label_prefix='') {
 /* main job */
 def run_pr_job(is_production=true) {
     timestamps {
-        if (is_production) {
-            // Cancel in-flight jobs for the same PR when a new job is launched
-            def buildNumber = env.BUILD_NUMBER as int
-            if (buildNumber > 1)
-                milestone(buildNumber - 1)
-            /* If buildNumber > 1, the following statement aborts all builds
-             * whose most-recently passed milestone was the previous milestone
-             * passed by this job (buildNumber - 1).
-             * After this, it checks to see if a later build has already passed
-             * milestone(buildNumber), and if so aborts the current build as well.
-             *
-             * Because of the order of operations, each build is only responsible
-             * for aborting the one directly before it, and itself if necessary.
-             * Thus we don't have to iterate over all milestones 1 to buildNumber.
-             */
-            milestone(buildNumber)
+        try {
+            if (is_production) {
+                // Cancel in-flight jobs for the same PR when a new job is launched
+                def buildNumber = env.BUILD_NUMBER as int
+                if (buildNumber > 1)
+                    milestone(buildNumber - 1)
+                /* If buildNumber > 1, the following statement aborts all builds
+                * whose most-recently passed milestone was the previous milestone
+                * passed by this job (buildNumber - 1).
+                * After this, it checks to see if a later build has already passed
+                * milestone(buildNumber), and if so aborts the current build as well.
+                *
+                * Because of the order of operations, each build is only responsible
+                * for aborting the one directly before it, and itself if necessary.
+                * Thus we don't have to iterate over all milestones 1 to buildNumber.
+                */
+                milestone(buildNumber)
 
-            /* Discarding old builds has to be individually configured for each
-             * branch in a multibranch pipeline, so do it from groovy.
-             */
-            properties([
-                buildDiscarder(
-                    logRotator(
-                        numToKeepStr: '5'
+                /* Discarding old builds has to be individually configured for each
+                * branch in a multibranch pipeline, so do it from groovy.
+                */
+                properties([
+                    buildDiscarder(
+                        logRotator(
+                            numToKeepStr: '5'
+                        )
                     )
-                )
-            ])
-        }
-
-        /* During the nightly branch indexing, if a target branch has been
-         * updated, new merge jobs are triggered for each PR to that branch.
-         * If a PR hasn't been updated recently enough, don't run the merge
-         * job for that PR.
-         */
-        if (env.BRANCH_NAME ==~ /PR-\d+-merge/ &&
-            currentBuild.rawBuild.getCauses()[0].toString().contains('BranchIndexingCause'))
-        {
-            upd_timestamp_ms = pullRequest.updatedAt.getTime()
-            now_timestamp_ms = currentBuild.startTimeInMillis
-            /* current threshold is 7 days */
-            long threshold_ms = 7L * 24L * 60L * 60L * 1000L
-            if (now_timestamp_ms - upd_timestamp_ms > threshold_ms) {
-                error('Not running: PR has not been updated recently enough.')
+                ])
             }
-        }
 
-        common.maybe_notify_github "Pre Test Checks", 'PENDING',
-                                   'Checking if all PR tests can be run'
-        common.maybe_notify_github "TLS Testing", 'PENDING',
-                                   'In progress'
-        common.maybe_notify_github "Result analysis", 'PENDING',
-                                   'In progress'
+            /* During the nightly branch indexing, if a target branch has been
+            * updated, new merge jobs are triggered for each PR to that branch.
+            * If a PR hasn't been updated recently enough, don't run the merge
+            * job for that PR.
+            */
+            if (env.BRANCH_NAME ==~ /PR-\d+-merge/ &&
+                currentBuild.rawBuild.getCauses()[0].toString().contains('BranchIndexingCause'))
+            {
+                upd_timestamp_ms = pullRequest.updatedAt.getTime()
+                now_timestamp_ms = currentBuild.startTimeInMillis
+                /* current threshold is 7 days */
+                long threshold_ms = 7L * 24L * 60L * 60L * 1000L
+                if (now_timestamp_ms - upd_timestamp_ms > threshold_ms) {
+                    currentBuild.result = 'NOT_BUILT'
+                    error('Pre Test Checks did not run: PR has not been updated recently enough.')
+                }
+            }
 
-        common.init_docker_images()
+            common.maybe_notify_github "Pre Test Checks", 'PENDING',
+                                       'Checking if all PR tests can be run'
+            common.maybe_notify_github "TLS Testing", 'PENDING',
+                                       'In progress'
+            common.maybe_notify_github "Result analysis", 'PENDING',
+                                       'In progress'
 
-        stage('pre-test-checks') {
-            try {
+            common.init_docker_images()
+
+            stage('pre-test-checks') {
                 environ.set_tls_pr_environment(is_production)
                 common.get_branch_information()
                 common.check_every_all_sh_component_will_be_run()
                 common.maybe_notify_github "Pre Test Checks", 'SUCCESS', 'OK'
-            } catch (err) {
-                if (env.BRANCH_NAME) {
-                    def description = 'Pre Test Checks failed.'
-                    if (err.getMessage().contains('Pre Test Checks')) {
-                        description = err.getMessage()
-                    }
-                    common.maybe_notify_github "Pre Test Checks", 'FAILURE',
-                                               description
-                }
-                throw (err)
             }
+        } catch (err) {
+            def description = 'Pre Test Checks failed.'
+            if (err.getMessage().contains('Pre Test Checks')) {
+                description = err.getMessage()
+            }
+            common.maybe_notify_github "Pre Test Checks", 'FAILURE',
+                                        description
+            common.maybe_notify_github 'TLS Testing', 'FAILURE',
+                                       'Did not run'
+            common.maybe_notify_github 'Result analysis', 'FAILURE',
+                                       'Did not run'
+            throw (err)
         }
 
         try {
