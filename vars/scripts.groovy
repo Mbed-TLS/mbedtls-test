@@ -20,8 +20,8 @@
 import groovy.transform.Field
 
 @Field win32_mingw_test_bat = """\
-set CC=gcc
 if exist scripts\\min_requirements.py python scripts\\min_requirements.py || exit
+set CC=gcc
 if exist scripts\\make_generated_files.bat call scripts\\make_generated_files.bat || exit
 cmake . -G "MinGW Makefiles" || exit
 mingw32-make || exit
@@ -31,8 +31,8 @@ programs\\test\\selftest.exe || exit
 """
 
 @Field iar8_mingw_test_bat = """\
-set CC=iccarm
 if exist scripts\\min_requirements.py python scripts\\min_requirements.py || exit
+set CC=iccarm
 if exist scripts\\make_generated_files.bat call scripts\\make_generated_files.bat || exit
 perl scripts/config.pl baremetal || exit
 cmake -D CMAKE_BUILD_TYPE:String=Check -G "MinGW Makefiles" . || exit
@@ -40,9 +40,9 @@ mingw32-make lib || exit
 """
 
 @Field win32_msvc12_32_test_bat = """\
+if exist scripts\\min_requirements.py python scripts\\min_requirements.py || exit
 call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat" || exit
 set CC=cl
-if exist scripts\\min_requirements.py python scripts\\min_requirements.py || exit
 if exist scripts\\make_generated_files.bat call scripts\\make_generated_files.bat || exit
 cmake . -G "Visual Studio 12" || exit
 MSBuild ALL_BUILD.vcxproj || exit
@@ -50,9 +50,9 @@ programs\\test\\Debug\\selftest.exe || exit
 """
 
 @Field win32_msvc12_64_test_bat = """\
+if exist scripts\\min_requirements.py python scripts\\min_requirements.py || exit
 call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat" || exit
 set CC=cl
-if exist scripts\\min_requirements.py python scripts\\min_requirements.py || exit
 if exist scripts\\make_generated_files.bat call scripts\\make_generated_files.bat || exit
 cmake . -G "Visual Studio 12 Win64" || exit
 MSBuild ALL_BUILD.vcxproj || exit
