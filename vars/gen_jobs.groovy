@@ -298,7 +298,8 @@ def gen_windows_testing_job(build, label_prefix='') {
                  * written to a file so that it can be run on a node. */
                 def windows_testing = libraryResource 'windows/windows_testing.py'
                 writeFile file: 'windows_testing.py', text: windows_testing
-                timeout(time: common.perJobTimeout.time,
+                timeout(time: common.perJobTimeout.time +
+                              common.perJobTimeout.windowsTestingOffset,
                         unit: common.perJobTimeout.unit) {
                     bat "python windows_testing.py src logs -b $build"
                 }
