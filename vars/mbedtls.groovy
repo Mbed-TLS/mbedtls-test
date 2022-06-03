@@ -17,7 +17,11 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+import hudson.model.Item
 import jenkins.branch.BranchIndexingCause
+import jenkins.scm.api.SCMSource
+import org.jenkinsci.plugins.github_branch_source.Connector
+import org.jenkinsci.plugins.github_branch_source.GitHubSCMSource
 
 Map wrap_report_errors(Map jobs) {
     return jobs.collectEntries { name, job ->
@@ -107,12 +111,32 @@ def run_pr_job(is_production=true) {
                 long now_timestamp_ms = currentBuild.startTimeInMillis
                 try {
                     if (currentBuild.rawBuild.causes[0] instanceof BranchIndexingCause) {
-                        /* Try to retrieve the update timestamp from the previous run.
-                         * Fall back on updatedAt if the environment variable is missing
-                         */
-                        upd_timestamp_ms = (currentBuild.previousBuild?.buildVariables?.UPD_TIMESTAMP_MS ?: pullRequest.updatedAt.time) as long
+                        /* Try to retrieve the update timestamp from the previous run. */
+                        upd_timestamp_ms = (currentBuild.previousBuild?.buildVariables?.UPD_TIMESTAMP_MS ?: 0L) as long
                         /* current threshold is 2 days */
                         long threshold_ms = 2L * 24L * 60L * 60L * 1000L
+
+                        if (now_timestamp_ms - upd_timestamp_ms > threshold_ms) {
+                            /* Check the time of the latest review */
+                            def src = (GitHubSCMSource) SCMSource.SourceByItem.findSource(currentBuild.rawBuild.parent)
+                            def cred = Connector.lookupScanCredentials((Item) src.owner, src.apiUri, src.credentialsId)
+
+                            def gh = Connector.connect(src.apiUri, cred)
+                            def pr = gh.getRepository("$src.repoOwner/$src.repository").getPullRequest(env.CHANGE_ID as int)
+
+                            try {
+                                long review_timestamp_ms = pr.listReviews().last().submittedAt.time
+                                upd_timestamp_ms = Math.max(review_timestamp_ms, upd_timestamp_ms)
+                            } catch (NoSuchElementException err) {
+                                /* No reviews */
+                            }
+
+                            if (upd_timestamp_ms == 0L) {
+                                /* Fall back to updatedAt */
+                                upd_timestamp_ms = pr.updatedAt.time
+                            }
+                        }
+
                         if (now_timestamp_ms - upd_timestamp_ms > threshold_ms) {
                             currentBuild.result = 'NOT_BUILT'
                             error("Pre Test Checks did not run: PR was last updated on ${new Date(upd_timestamp_ms)}.")
