@@ -43,11 +43,7 @@ RUN dpkg --add-architecture i386
 RUN apt-get update -q && apt-get install -yq \
         # for Mbed TLS tests
         abi-compliance-checker \
-        # Note that there is a known issue #5332 that stock abi tools
-        # in ubuntu20.04 do not fail as expected. 
-        # https://github.com/ARMmbed/mbedtls/issues/5332
-        # Do not activae 20.04 until that is resolved
-        # to use with abi-compliance-tester
+        # installed from source, but this installs the dependencies
         abi-dumper \
         # to build Mbed TLS: gcc, binutils, make, etc.
         build-essential \
@@ -234,6 +230,10 @@ RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.7.3.tar.gz && \
 
 ENV GNUTLS_NEXT_CLI=/usr/local/gnutls-3.7.2/bin/gnutls-cli
 ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.7.2/bin/gnutls-serv
+
+# Install abi-dumper
+RUN git clone --branch 1.2 https://github.com/lvc/abi-dumper.git && \
+    cd abi-dumper && make install prefix=/usr && cd .. && rm -rf abi-dumper
 
 # Install Python pip packages
 #
