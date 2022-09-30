@@ -11,54 +11,58 @@ with open("pr-data.p", "rb") as f:
     prs = pickle.load(f)
 
 
+# current and past team members, alphabetical order (sort -f)
 _team_logins = (
+    "aditya-deshpande-arm",
+    "andresag01",
+    "AndrzejKurek",
+    "artokin",
+    "bensze01",
+    "brett-warren-arm",
+    "d3zd3z",
+    "danh-arm",
+    "daverodgman",
+    "davidhorstmann-arm",
+    "dgreen-arm",
+    "gabor-mezei-arm",
     "gilles-peskine-arm",
     "hanno-arm",
-    "RonEld",
-    "andresag01",
-    "mpg",
-    "sbutcher-arm",
-    "Patater",
-    "k-stachowiak",
-    "AndrzejKurek",
-    "yanesca",
-    "mazimkhan",
-    "dgreen-arm",
-    "artokin",
+    "jackbondpreston-arm",
     "jarlamsa",
+    "jarvte",
+    "JoeSubbiani",
+    "k-stachowiak",
+    "lukgni",
+    "mazimkhan",
+    "minosgalanakis",
+    "mpg",
+    "mprse",
+    "mstarzyk-mobica",
+    "Patater",
+    "paul-elliott-arm",
     "piotr-now",
     "pjbakker",
-    "jarvte",
-    "danh-arm",
+    "RcColes",
     "ronald-cron-arm",
-    "paul-elliott-arm",
-    "gabor-mezei-arm",
-    "bensze01",
+    "RonEld",
+    "sbutcher-arm",
+    "tom-cosgrove-arm",
+    "tom-daubney-arm",
+    "tuvshinzayaArm",
+    "wernerlewis",
+    "xkqian",
+    "yanesca",
+    "yuhaoth",
+    "yutotakano",
+    "zhangsenWang",
 )
-
-def old_is_community(pr):
-    # in the past we used to inconsistently labeled PRs from the team or ARM,
-    # so complement that with a list of team members
-    labels = tuple(l.name for l in pr.labels)
-    if "mbed TLS team" in labels or "Arm Contribution" in labels:
-        return False
-    if pr.user.login in _team_logins:
-        return False
-    return True
-
-
-def new_is_community(pr):
-    labels = tuple(l.name for l in pr.labels)
-    return "Community" in labels
 
 
 def is_community(pr):
-    """Return False if the PR is from a team member or from inside Arm."""
-    # starting from 2021 we consistently label community PRs
-    if pr.created_at.date().year >= 2021:
-        return new_is_community(pr)
-
-    return old_is_community(pr)
+    """Return False if the PR is from a team member."""
+    if pr.user.login in _team_logins:
+        return False
+    return True
 
 
 def quarter(date):
