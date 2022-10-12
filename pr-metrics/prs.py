@@ -11,14 +11,21 @@ with open("pr-data.p", "rb") as f:
     prs = pickle.load(f)
 
 
-# current and past team members, alphabetical order (sort -f)
+# Current and past core contributors, alphabetical order (sort -f).
+#
+# That is, people who are or have been in one of:
+# - https://github.com/orgs/Mbed-TLS/teams/mbed-tls-reviewers/members
+# - https://github.com/orgs/Mbed-TLS/teams/mbed-tls-developers/members
+# The list is maintained manually in order to retain past members.
 _team_logins = (
+    "adeaarm",
     "aditya-deshpande-arm",
     "andresag01",
     "AndrzejKurek",
     "artokin",
     "bensze01",
     "brett-warren-arm",
+    "chris-jones-arm",
     "d3zd3z",
     "danh-arm",
     "daverodgman",
@@ -32,6 +39,7 @@ _team_logins = (
     "jarvte",
     "JoeSubbiani",
     "k-stachowiak",
+    "lpy4105",
     "lukgni",
     "mazimkhan",
     "minosgalanakis",
@@ -46,14 +54,18 @@ _team_logins = (
     "ronald-cron-arm",
     "RonEld",
     "sbutcher-arm",
+    "shanechko",
+    "superna9999",
     "tom-cosgrove-arm",
     "tom-daubney-arm",
     "tuvshinzayaArm",
     "wernerlewis",
     "xkqian",
     "yanesca",
+    "yanrayw",
     "yuhaoth",
     "yutotakano",
+    "Zaya-dyno",
     "zhangsenWang",
 )
 
