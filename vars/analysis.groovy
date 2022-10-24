@@ -54,7 +54,8 @@ def gather_outcomes() {
                 }
                 try {
                     if (fileExists('tests/scripts/analyze_outcomes.py')) {
-                        sh 'tests/scripts/analyze_outcomes.py outcomes.csv'
+                        sh 'tests/scripts/analyze_outcomes.py outcomes.csv --task analyze_coverage'
+                        sh 'tests/scripts/analyze_outcomes.py outcomes.csv --task analyze_driver_vs_reference --components test_psa_crypto_config_accel_hash_use_psa,test_psa_crypto_config_reference_hash_use_psa --ignore md,mdx,shax,entropy,hmac_drbg,random,psa_crypto_init,hkdf'
                     }
                 } finally {
                     sh 'xz outcomes.csv'
