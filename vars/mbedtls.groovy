@@ -109,8 +109,8 @@ def run_pr_job(is_production=true) {
             }
         } catch (err) {
             def description = 'Pre Test Checks failed.'
-            if (err.getMessage().contains('Pre Test Checks')) {
-                description = err.getMessage()
+            if (err.message?.startsWith('Pre Test Checks')) {
+                description = err.message
             }
             common.maybe_notify_github "Pre Test Checks", 'FAILURE',
                                         description
