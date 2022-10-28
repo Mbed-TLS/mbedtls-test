@@ -57,6 +57,8 @@ timestamps {
         }
     }
     finally {
-        analysis.analyze_results()
+        stage('result-analysis') {
+            analysis.analyze_results()
+        }
     }
 }

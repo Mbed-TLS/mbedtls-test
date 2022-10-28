@@ -126,7 +126,9 @@ def run_pr_job(is_production=true) {
                 run_tls_tests()
             }
         } finally {
-            analysis.analyze_results_and_notify_github()
+            stage('result-analysis') {
+                analysis.analyze_results_and_notify_github()
+            }
         }
     }
 }
