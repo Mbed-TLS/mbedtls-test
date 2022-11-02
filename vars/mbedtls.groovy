@@ -105,8 +105,8 @@ def run_pr_job(is_production=true) {
             {
                 upd_timestamp_ms = pullRequest.updatedAt.getTime()
                 now_timestamp_ms = currentBuild.startTimeInMillis
-                /* current threshold is 7 days */
-                long threshold_ms = 7L * 24L * 60L * 60L * 1000L
+                /* current threshold is 2 days */
+                long threshold_ms = 2L * 24L * 60L * 60L * 1000L
                 if (now_timestamp_ms - upd_timestamp_ms > threshold_ms) {
                     currentBuild.result = 'NOT_BUILT'
                     error('Pre Test Checks did not run: PR has not been updated recently enough.')
