@@ -17,6 +17,25 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+Map wrap_report_errors(Map jobs) {
+    return jobs.collectEntries { name, job ->
+        [(name): {
+            try {
+                job()
+            } catch (err) {
+                echo "Caught: ${err}"
+                echo "Failed job: ${name}"
+                if (!currentBuild.resultIsWorseOrEqualTo('FAILURE')) {
+                    currentBuild.result = 'FAILURE'
+                    common.maybe_notify_github 'TLS Testing', 'FAILURE',
+                            "Failures: ${name}…"
+                }
+                throw err
+            }
+        }]
+    }
+}
+
 def run_tls_tests(label_prefix='') {
     try {
         def jobs = [:]
@@ -26,6 +45,8 @@ def run_tls_tests(label_prefix='') {
         if (env.RUN_ABI_CHECK == "true") {
             jobs = jobs + gen_jobs.gen_abi_api_checking_job('ubuntu-16.04')
         }
+
+        jobs = wrap_report_errors(jobs)
 
         jobs.failFast = false
         parallel jobs
