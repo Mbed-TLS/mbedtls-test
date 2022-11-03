@@ -113,6 +113,8 @@ def run_pr_job(is_production=true) {
                     if (currentBuild.rawBuild.causes[0] instanceof BranchIndexingCause) {
                         /* Try to retrieve the update timestamp from the previous run. */
                         upd_timestamp_ms = (currentBuild.previousBuild?.buildVariables?.UPD_TIMESTAMP_MS ?: 0L) as long
+                        echo "Previous update timestamp: ${new Date(upd_timestamp_ms)}"
+
                         /* current threshold is 2 days */
                         long threshold_ms = 2L * 24L * 60L * 60L * 1000L
 
@@ -126,6 +128,7 @@ def run_pr_job(is_production=true) {
 
                             try {
                                 long review_timestamp_ms = pr.listReviews().last().submittedAt.time
+                                echo "Latest review timestamp: ${new Date(review_timestamp_ms)}"
                                 upd_timestamp_ms = Math.max(review_timestamp_ms, upd_timestamp_ms)
                             } catch (NoSuchElementException err) {
                                 /* No reviews */
@@ -134,6 +137,7 @@ def run_pr_job(is_production=true) {
                             if (upd_timestamp_ms == 0L) {
                                 /* Fall back to updatedAt */
                                 upd_timestamp_ms = pr.updatedAt.time
+                                echo "UpdateAt timestamp: ${new Date(upd_timestamp_ms)}"
                             }
                         }
 
