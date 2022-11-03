@@ -103,8 +103,8 @@ def run_pr_job(is_production=true) {
             if (env.BRANCH_NAME ==~ /PR-\d+-merge/ &&
                 currentBuild.rawBuild.getCauses()[0].toString().contains('BranchIndexingCause'))
             {
-                upd_timestamp_ms = pullRequest.updatedAt.getTime()
-                now_timestamp_ms = currentBuild.startTimeInMillis
+                long upd_timestamp_ms = pullRequest.updatedAt.time
+                long now_timestamp_ms = currentBuild.startTimeInMillis
                 /* current threshold is 2 days */
                 long threshold_ms = 2L * 24L * 60L * 60L * 1000L
                 if (now_timestamp_ms - upd_timestamp_ms > threshold_ms) {
