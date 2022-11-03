@@ -17,6 +17,8 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+import jenkins.branch.BranchIndexingCause
+
 Map wrap_report_errors(Map jobs) {
     return jobs.collectEntries { name, job ->
         [(name): {
@@ -101,7 +103,7 @@ def run_pr_job(is_production=true) {
             * job for that PR.
             */
             if (env.BRANCH_NAME ==~ /PR-\d+-merge/ &&
-                currentBuild.rawBuild.getCauses()[0].toString().contains('BranchIndexingCause'))
+                currentBuild.rawBuild.causes[0] instanceof BranchIndexingCause)
             {
                 long upd_timestamp_ms = pullRequest.updatedAt.time
                 long now_timestamp_ms = currentBuild.startTimeInMillis
