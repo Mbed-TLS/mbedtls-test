@@ -137,7 +137,7 @@ def run_pr_job(is_production=true) {
                             if (upd_timestamp_ms == 0L) {
                                 /* Fall back to updatedAt */
                                 upd_timestamp_ms = pr.updatedAt.time
-                                echo "UpdateAt timestamp: ${new Date(upd_timestamp_ms)}"
+                                echo "PR updatedAt timestamp: ${new Date(upd_timestamp_ms)}"
                             }
                         }
 
@@ -152,6 +152,7 @@ def run_pr_job(is_production=true) {
                 } finally {
                     /* Record the update timestamp in the environment, so it can be retrieved by the next run */
                     env.UPD_TIMESTAMP_MS = upd_timestamp_ms
+                    echo "UPD_TIMESTAMP_MS=$env.UPD_TIMESTAMP_MS (${new Date(upd_timestamp_ms)})"
                 }
             }
 
