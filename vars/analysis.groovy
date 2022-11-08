@@ -45,14 +45,17 @@ def process_outcomes() {
 
     // The complete outcome file is ~14MB compressed as I write.
     // Often we just want the failures, so make an artifact with just those.
-    // If no test case failed, don't offer an empty file (this is debatable).
-    sh '''\
-awk -F';' '
-$5 == "FAIL" {print >"failures.csv"; ++count}
+    // Only produce a failure file if there was a failing job (otherwise
+    // we'd just waste time creating an empty file).
+    if (gen_jobs.failed_builds) {
+        sh '''\
+awk -F';' '$5 == "FAIL"' outcomes.csv >"failures.csv"
 # Compress the failure list if it is large (for some value of large)
-END {close("failures.csv"); if (count > 999) system("xz failures.csv")}
-' outcomes.csv
-    '''
+if [ "$(wc -c <failures.csv)" -gt 99999 ]; then
+    xz failures.csv
+fi
+'''
+    }
 
     try {
         if (fileExists('tests/scripts/analyze_outcomes.py')) {
