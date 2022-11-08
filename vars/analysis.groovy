@@ -42,14 +42,27 @@ def process_outcomes() {
         sh 'cat *.csv >../outcomes.csv'
         deleteDir()
     }
+
+    // The complete outcome file is ~14MB compressed as I write.
+    // Often we just want the failures, so make an artifact with just those.
+    // If no test case failed, don't offer an empty file (this is debatable).
+    sh '''\
+awk -F';' '
+$5 == "FAIL" {print >"failures.csv"; ++count}
+# Compress the failure list if it is large (for some value of large)
+END {close("failures.csv"); if (count > 999) system("xz failures.csv")}
+' outcomes.csv
+    '''
+
     try {
         if (fileExists('tests/scripts/analyze_outcomes.py')) {
             sh 'tests/scripts/analyze_outcomes.py outcomes.csv'
         }
     } finally {
         sh 'xz outcomes.csv'
-        archiveArtifacts(artifacts: 'outcomes.csv.xz',
-        fingerprint: true, allowEmptyArchive: true)
+        archiveArtifacts(artifacts: 'outcomes.csv.xz, failures.csv*',
+                         fingerprint: true,
+                         allowEmptyArchive: true)
     }
 }
 
