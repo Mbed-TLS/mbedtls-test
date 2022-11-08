@@ -236,6 +236,12 @@ RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.7.3.tar.gz && \
 ENV GNUTLS_NEXT_CLI=/usr/local/gnutls-3.7.2/bin/gnutls-cli
 ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.7.2/bin/gnutls-serv
 
+# Install uncrustify
+# We need version 0.75.1
+RUN git clone --branch uncrustify-0.75.1 https://github.com/uncrustify/uncrustify.git && \
+    cd uncrustify && mkdir build && cd build && cmake .. && make install && \
+    cd .. && rm -rf uncrustify
+
 # Install Python pip packages
 #
 # The pip wrapper scripts can get out of sync with pip due to upgrading it
