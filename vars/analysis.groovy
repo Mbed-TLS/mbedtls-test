@@ -32,6 +32,27 @@ def stash_outcomes(job_name) {
     }
 }
 
+// In a directory with the source tree available, process the outcome files
+// from all the jobs.
+def process_outcomes() {
+    dir('csvs') {
+        for (stash_name in outcome_stashes) {
+            unstash(stash_name)
+        }
+        sh 'cat *.csv >../outcomes.csv'
+        deleteDir()
+    }
+    try {
+        if (fileExists('tests/scripts/analyze_outcomes.py')) {
+            sh 'tests/scripts/analyze_outcomes.py outcomes.csv'
+        }
+    } finally {
+        sh 'xz outcomes.csv'
+        archiveArtifacts(artifacts: 'outcomes.csv.xz',
+        fingerprint: true, allowEmptyArchive: true)
+    }
+}
+
 def gather_outcomes() {
     // After running on an old branch which doesn't have the outcome
     // file generation mechanism, or after running a partial run,
@@ -45,22 +66,7 @@ def gather_outcomes() {
             deleteDir()
             try {
                 checkout_repo.checkout_repo()
-                dir('csvs') {
-                    for (stash_name in outcome_stashes) {
-                        unstash(stash_name)
-                    }
-                    sh 'cat *.csv >../outcomes.csv'
-                    deleteDir()
-                }
-                try {
-                    if (fileExists('tests/scripts/analyze_outcomes.py')) {
-                        sh 'tests/scripts/analyze_outcomes.py outcomes.csv'
-                    }
-                } finally {
-                    sh 'xz outcomes.csv'
-                    archiveArtifacts(artifacts: 'outcomes.csv.xz',
-                    fingerprint: true, allowEmptyArchive: true)
-                }
+                process_outcomes()
             } finally {
                 deleteDir()
             }
