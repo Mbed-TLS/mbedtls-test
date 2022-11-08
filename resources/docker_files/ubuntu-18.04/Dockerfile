@@ -121,7 +121,7 @@ RUN wget -q https://github.com/lvc/abi-compliance-checker/archive/2.3.tar.gz && 
     rm -rf abi-compliance-checker* && rm 2.3.tar.gz
 
 # Install ARM Compiler 5.06
-RUN wget -q https://developer.arm.com/-/media/Files/downloads/compiler/DS500-PA-00003-r5p0-22rel0.tgz && \
+RUN wget -q https://armkeil.blob.core.windows.net/developer/Files/downloads/compiler/DS500-PA-00003-r5p0-22rel0.tgz && \
     tar -zxf DS500-PA-00003-r5p0-22rel0.tgz && \
     ./Installer/setup.sh --i-agree-to-the-contained-eula --no-interactive -d /usr/local/ARM_Compiler_5.06u3 --quiet && \
     rm -rf DS500-PA-00003-r5p0-22rel0.tgz releasenotes.html Installer/
@@ -133,7 +133,7 @@ ENV ARMLMD_LICENSE_FILE=${ARMLMD_LICENSE_FILE}
 
 # Install ARM Compiler 6.6
 RUN mkdir temp && cd temp && \
-    wget -q --no-check-certificate https://developer.arm.com/-/media/Files/downloads/compiler/DS500-BN-00026-r5p0-07rel0.tgz?revision=8f0d9fb0-9616-458c-b2f5-d0dac83ea93c?product=Downloads,64-bit,,Linux,6.6 -O arm6.tgz && \
+    wget -q --no-check-certificate https://armkeil.blob.core.windows.net/developer//sitecore/shell/-/media/Files/downloads/compiler/DS500-BN-00026-r5p0-07rel0.tgz -O arm6.tgz && \
     tar -zxf arm6.tgz  && ls -ltr && \
     ./install_x86_64.sh --i-agree-to-the-contained-eula --no-interactive -d /usr/local/ARM_Compiler_6.6 --quiet && \
     cd .. && rm -rf temp/
