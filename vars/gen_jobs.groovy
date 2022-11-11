@@ -19,8 +19,9 @@
 
 import groovy.transform.Field
 
-// Keep track of builds that fail
-@Field failed_builds = [:]
+// Keep track of builds that fail.
+// Use static field, so the is content preserved across stages.
+@Field static failed_builds = [:]
 
 //Record coverage details for reporting
 @Field coverage_details = ['coverage': 'Code coverage job did not run']
