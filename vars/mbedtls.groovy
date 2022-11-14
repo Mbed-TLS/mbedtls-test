@@ -62,9 +62,9 @@ def run_tls_tests(label_prefix='') {
         def failed_names = gen_jobs.failed_builds.keySet().sort().join(" ")
         echo "Caught: ${err}"
         echo "Failed jobs: ${failed_names}"
-        currentBuild.result = 'FAILURE'
         common.maybe_notify_github "TLS Testing", 'FAILURE',
                                    "Failures: ${failed_names}"
+        throw err
     }
 }
 
