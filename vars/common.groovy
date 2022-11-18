@@ -22,6 +22,7 @@ import java.security.MessageDigest
 import groovy.transform.Field
 
 import hudson.AbortException
+import hudson.triggers.TimerTrigger
 
 /* Indicates if CI is running on Open CI (hosted on https://ci.trustedfirmware.org/) */
 @Field is_open_ci_env = env.JENKINS_URL ==~ /\S+(trustedfirmware)\S+/
@@ -301,7 +302,7 @@ def run_release_jobs(name, jobs, failed_builds, coverage_details) {
     try {
         parallel jobs
     } finally {
-        if (currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause')) {
+        if (currentBuild.rawBuild.causes[0] instanceof TimerTrigger.TimerTriggerCause) {
             send_email(name, env.MBED_TLS_BRANCH, failed_builds, coverage_details)
         }
     }
