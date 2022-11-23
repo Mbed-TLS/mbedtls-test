@@ -51,10 +51,6 @@ import groovy.transform.Field
 
 @Field linux_platforms = ["ubuntu-16.04", "ubuntu-18.04", "ubuntu-20.04"]
 @Field bsd_platforms = ["freebsd"]
-@Field bsd_compilers = ["clang"]
-@Field all_compilers = ['gcc', 'clang']
-@Field gcc_compilers = ['gcc']
-@Field asan_compilers = ['clang']
 
 @Field available_all_sh_components = [:]
 @Field all_all_sh_components = []
