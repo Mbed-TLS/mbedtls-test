@@ -49,11 +49,15 @@ import groovy.transform.Field
 @Field docker_ecr = is_open_ci_env ? "trustedfirmware" : "666618195821.dkr.ecr.eu-west-1.amazonaws.com"
 @Field docker_repo = "$docker_ecr/$docker_repo_name"
 
+/* List of Linux platforms. When a job can run on multiple Linux platforms,
+ * it runs on the first element of the list that supports this job. */
 @Field linux_platforms = ["ubuntu-16.04", "ubuntu-18.04", "ubuntu-20.04"]
+/* List of BSD platforms. They all run freebsd_all_sh_components. */
 @Field bsd_platforms = ["freebsd"]
 
-@Field available_all_sh_components = [:]
-@Field all_all_sh_components = []
+/* Map from component name to chosen platform to run it, or to null
+ * if no platform has been chosen yet. */
+@Field all_all_sh_components = [:]
 
 /* Whether scripts/min_requirements.py is available. Older branches don't
  * have it, so they only get what's hard-coded in the docker files on Linux,
@@ -166,20 +170,29 @@ def get_branch_information() {
                 returnStdout: true
             )
             if (all_sh_help.contains('list-components')) {
-                available_all_sh_components[platform] = sh(
-                    script: docker_script(
-                        platform, "./tests/scripts/all.sh", "--list-components"
-                    ),
-                    returnStdout: true
-                ).trim().split('\n')
-                if (all_all_sh_components == []) {
-                    all_all_sh_components = sh(
+                if (!all_all_sh_components) {
+                    def all = sh(
                         script: docker_script(
                             platform, "./tests/scripts/all.sh",
                             "--list-all-components"
                         ),
                         returnStdout: true
                     ).trim().split('\n')
+                    for (element in all) {
+                        all_all_sh_components[element] = null
+                    }
+                }
+                def available = sh(
+                    script: docker_script(
+                        platform, "./tests/scripts/all.sh", "--list-components"
+                    ),
+                    returnStdout: true
+                ).trim().split('\n')
+                echo "Available all.sh components on ${platform}: ${available.join(" ")}"
+                for (element in available) {
+                    if (!all_all_sh_components[element]) {
+                        all_all_sh_components[element] = platform
+                    }
                 }
             } else {
                 error('Pre Test Checks failed: Base branch out of date. Please rebase')
@@ -189,10 +202,8 @@ def get_branch_information() {
 }
 
 def check_every_all_sh_component_will_be_run() {
-    def untested_all_sh_components = all_all_sh_components
-    available_all_sh_components.each { platform, components ->
-        untested_all_sh_components -= components
-    }
+    def untested_all_sh_components = all_all_sh_components.collectMany(
+        {name, platform -> platform ? [] : [name]})
     if (untested_all_sh_components != []) {
         error(
             "Pre Test Checks failed: Unable to run all.sh components: \
