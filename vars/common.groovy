@@ -165,30 +165,22 @@ def get_branch_information() {
 
         for (platform in linux_platforms) {
             get_docker_image(platform)
-            def all_sh_help = sh(
+            available_all_sh_components[platform] = sh(
                 script: docker_script(
-                    platform, "./tests/scripts/all.sh", "--help"
+                    platform, "./tests/scripts/all.sh", "--list-components"
                 ),
+                label: "./tests/scripts/all.sh --list-components #$platform",
                 returnStdout: true
-            )
-            if (all_sh_help.contains('list-components')) {
-                available_all_sh_components[platform] = sh(
+            ).trim().split('\n')
+            if (all_all_sh_components == []) {
+                all_all_sh_components = sh(
                     script: docker_script(
-                        platform, "./tests/scripts/all.sh", "--list-components"
+                        platform, "./tests/scripts/all.sh",
+                        "--list-all-components"
                     ),
+                    label: "./tests/scripts/all.sh --list-all-components",
                     returnStdout: true
                 ).trim().split('\n')
-                if (all_all_sh_components == []) {
-                    all_all_sh_components = sh(
-                        script: docker_script(
-                            platform, "./tests/scripts/all.sh",
-                            "--list-all-components"
-                        ),
-                        returnStdout: true
-                    ).trim().split('\n')
-                }
-            } else {
-                error('Pre Test Checks failed: Base branch out of date. Please rebase')
             }
         }
     }
@@ -252,7 +244,7 @@ def maybe_notify_github(context, state, description) {
 }
 
 def archive_zipped_log_files(job_name) {
-    sh """\
+    sh label: "rename+compress *.log", script: """\
 for i in *.log; do
     [ -f "\$i" ] || break
     mv "\$i" "$job_name-\$i"

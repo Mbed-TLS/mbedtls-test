@@ -39,7 +39,7 @@ def gen_simple_windows_jobs(label, script) {
                     checkout_repo.checkout_repo()
                     timeout(time: common.perJobTimeout.time,
                             unit: common.perJobTimeout.unit) {
-                        bat script
+                        bat script: script, label: label
                     }
                 }
             } catch (err) {
@@ -47,86 +47,6 @@ def gen_simple_windows_jobs(label, script) {
                 throw (err)
             } finally {
                 deleteDir()
-            }
-        }
-    }
-    return jobs
-}
-
-def gen_docker_jobs_foreach(label, platforms, compilers, script) {
-    def jobs = [:]
-
-    for (platform in platforms) {
-        for (compiler in compilers) {
-            def job_name = "${label}-${compiler}-${platform}"
-            def shell_script = sprintf(script, common.compiler_paths[compiler])
-            jobs[job_name] = {
-                node('container-host') {
-                    try {
-                        deleteDir()
-                        common.get_docker_image(platform)
-                        dir('src') {
-                            checkout_repo.checkout_repo()
-                            writeFile file: 'steps.sh', text: """\
-#!/bin/sh
-set -eux
-ulimit -f 20971520
-${shell_script}
-"""
-                            sh 'chmod +x steps.sh'
-                        }
-                        timeout(time: common.perJobTimeout.time,
-                                unit: common.perJobTimeout.unit) {
-                            try {
-                                sh common.docker_script(
-                                    platform, "/var/lib/build/steps.sh"
-                                )
-                            } finally {
-                                dir('src/tests/') {
-                                    common.archive_zipped_log_files(job_name)
-                                }
-                            }
-                        }
-                    } catch (err) {
-                        failed_builds[job_name] = true
-                        throw (err)
-                    } finally {
-                        deleteDir()
-                    }
-                }
-            }
-        }
-    }
-    return jobs
-}
-
-def gen_node_jobs_foreach(label, platforms, compilers, script) {
-    def jobs = [:]
-
-    for (platform in platforms) {
-        for (compiler in compilers) {
-            def job_name = "${label}-${compiler}-${platform}"
-            def shell_script = sprintf(script, common.compiler_paths[compiler])
-            jobs[job_name] = {
-                node(platform) {
-                    try {
-                        deleteDir()
-                        checkout_repo.checkout_repo()
-                        shell_script = """\
-ulimit -f 20971520
-export PYTHON=/usr/local/bin/python2.7
-""" + shell_script
-                        timeout(time: common.perJobTimeout.time,
-                                unit: common.perJobTimeout.unit) {
-                            sh shell_script
-                        }
-                    } catch (err) {
-                        failed_builds[job_name] = true
-                        throw (err)
-                    } finally {
-                        deleteDir()
-                    }
-                }
             }
         }
     }
@@ -237,12 +157,13 @@ ${extra_setup_code}
                         unit: common.perJobTimeout.unit) {
                     try {
                         if (use_docker) {
-                            sh common.docker_script(
+                            sh script: common.docker_script(
                                 platform, "/var/lib/build/steps.sh"
-                            )
+                            ), label: "docker run steps.sh #${job_name}"
                         } else {
                             dir('src') {
-                                sh './steps.sh'
+                                sh script: './steps.sh',
+                                   label: "docker run steps.sh #${job_name}"
                             }
                         }
                     } finally {
@@ -349,7 +270,8 @@ def gen_abi_api_checking_job(platform) {
                     /* The credentials here are the SSH credentials for accessing the repositories.
                        They are defined at {JENKINS_URL}/credentials */
                     withCredentials([sshUserPrivateKey(credentialsId: credentials_id, keyFileVariable: 'keyfile')]) {
-                        sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile}\" git fetch origin ${CHANGE_TARGET}"
+                        sh script: "GIT_SSH_COMMAND=\"ssh -i ${keyfile}\" git fetch origin ${CHANGE_TARGET}",
+                           label: "git fetch origin ${CHANGE_TARGET}"
                     }
                     writeFile file: 'steps.sh', text: """\
 #!/bin/sh
@@ -367,9 +289,9 @@ scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
                 }
                 timeout(time: common.perJobTimeout.time,
                         unit: common.perJobTimeout.unit) {
-                    sh common.docker_script(
+                    sh script: common.docker_script(
                         platform, "/var/lib/build/steps.sh"
-                    )
+                    ), label: "steps.sh #${job_name}"
                 }
             } catch (err) {
                 failed_builds[job_name] = true
@@ -418,9 +340,9 @@ fi
                 timeout(time: common.perJobTimeout.time,
                         unit: common.perJobTimeout.unit) {
                     try {
-                        sh common.docker_script(
+                        sh script: common.docker_script(
                                 platform, "/var/lib/build/steps.sh"
-                        )
+                        ), label: "steps.sh #${job_name}"
                         dir('src') {
                             String coverage_log = readFile('coverage-summary.txt')
                             coverage_details['coverage'] = coverage_log.substring(
@@ -476,7 +398,7 @@ def gen_mbed_os_example_job(repo, branch, example, compiler, platform, raas) {
             try {
                 deleteDir()
 /* Create python virtual environment and install mbed tools */
-                sh """\
+                sh label: "virtualenv #${job_name}", script: """\
 ulimit -f 20971520
 virtualenv $WORKSPACE/mbed-venv
 . $WORKSPACE/mbed-venv/bin/activate
@@ -490,7 +412,7 @@ pip install mbed-host-tests
 /* If the job is targeting an example repo, then we wish to use the versions
  * of Mbed OS, TLS and Crypto specified by the mbed-os.lib file. */
                         if (env.TARGET_REPO == 'example') {
-                            sh """\
+                            sh label: "mbed deploy #${job_name}", script: """\
 ulimit -f 20971520
 . $WORKSPACE/mbed-venv/bin/activate
 mbed config root .
@@ -502,7 +424,7 @@ mbed deploy -vv
  * checking it out twice. Mbed deploy is still run in case other libraries
  * are required to be deployed. We then check out Mbed OS, TLS and Crypto
  * according to the job parameters. */
-                            sh """\
+                            sh label: "rm mbed-os.lib; mbed deploy #${job_name}", script: """\
 ulimit -f 20971520
 . $WORKSPACE/mbed-venv/bin/activate
 rm -f mbed-os.lib
@@ -513,7 +435,7 @@ mbed deploy -vv
                                 deleteDir()
                                 checkout_repo.checkout_mbed_os()
 /* Check that python requirements are up to date */
-                                sh """\
+                                sh label: "pip install #${job_name}", script: """\
 ulimit -f 20971520
 . $WORKSPACE/mbed-venv/bin/activate
 pip install -r requirements.txt
@@ -527,14 +449,14 @@ pip install -r requirements.txt
                             if (example == 'atecc608a') {
                                 tag_filter = "--tag-filters HAS_CRYPTOKIT"
                             }
-                            sh """\
+                            sh label: "mbed compile #${job_name}", script: """\
 ulimit -f 20971520
 . $WORKSPACE/mbed-venv/bin/activate
 mbed compile -m ${platform} -t ${compiler}
 """
                             for (int attempt = 1; attempt <= 3; attempt++) {
                                 try {
-                                    sh """\
+                                    sh label: "mbedhtrun #${job_name}#${attempt}", script: """\
 ulimit -f 20971520
 if [ -e BUILD/${platform}/${compiler}/${example}.bin ]
 then
@@ -657,7 +579,9 @@ def gen_dockerfile_builder_job(platform, overwrite=false) {
             node('dockerfile-builder') {
                 def image_exists = false
                 if (!overwrite) {
-                    image_exists = sh(script: check_docker_image, returnStatus: true) == 0
+                    image_exists = sh(script: check_docker_image,
+                                      label: "check_docker_image ${tag}",
+                                      returnStatus: true) == 0
                 }
                 if (overwrite || !image_exists) {
                     dir('docker') {
@@ -669,7 +593,7 @@ def gen_dockerfile_builder_job(platform, overwrite=false) {
                             extra_build_args = '--build-arg ARMLMD_LICENSE_FILE=27000@flexnet.trustedfirmware.org'
 
                             withCredentials([string(credentialsId: 'DOCKER_AUTH', variable: 'TOKEN')]) {
-                                sh """\
+                                sh label: ">.docker/config.json #${platform}", script: """\
 mkdir -p ${env.HOME}/.docker
 cat > ${env.HOME}/.docker/config.json << EOF
 {
@@ -684,12 +608,12 @@ chmod 0600 ${env.HOME}/.docker/config.json
 """
                             }
                         } else {
-                            sh """\
+                            sh label: "docker login #${platform}", script: """\
 aws ecr get-login-password | docker login --username AWS --password-stdin $common.docker_ecr
 """
                         }
 
-                        sh """\
+                        sh label: "docker push #${tag}", script: """\
 # Use BuildKit and a remote build cache to pull only the reuseable layers
 # from the last successful build for this platform
 DOCKER_BUILDKIT=1 docker build \
