@@ -21,6 +21,8 @@ import java.security.MessageDigest
 
 import groovy.transform.Field
 
+import hudson.AbortException
+
 /* Indicates if CI is running on Open CI (hosted on https://ci.trustedfirmware.org/) */
 @Field is_open_ci_env = env.JENKINS_URL ==~ /\S+(trustedfirmware)\S+/
 
@@ -127,7 +129,7 @@ aws ecr get-login-password | docker login --username AWS --password-stdin $docke
 docker pull $docker_repo:$docker_image
 """
             break
-        } catch (err) {
+        } catch (AbortException err) {
             if (attempt == 3) throw (err)
         }
     }
