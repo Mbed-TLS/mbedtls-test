@@ -609,13 +609,9 @@ def gen_release_jobs(label_prefix='', run_examples=true) {
     }
 
     if (env.RUN_ALL_SH == "true") {
-        for (component in common.available_all_sh_components['ubuntu-16.04']) {
-            jobs = jobs + gen_all_sh_jobs('ubuntu-16.04', component, label_prefix)
-        }
-        for (component in (common.available_all_sh_components['ubuntu-18.04'] -
-                           common.available_all_sh_components['ubuntu-16.04'])) {
-            jobs = jobs + gen_all_sh_jobs('ubuntu-18.04', component, label_prefix)
-        }
+        common.all_all_sh_components.each({component, platform ->
+            jobs = jobs + gen_all_sh_jobs(platform, component, label_prefix)
+        })
     }
 
     /* FreeBSD all.sh jobs */
