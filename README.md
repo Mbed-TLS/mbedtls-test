@@ -23,6 +23,8 @@ If `<mount dir>` is the root of an Mbed TLS source tree, the tests can be run wi
 ./tests/scripts/all.sh --no-armcc
 ```
 
+For more details on the docker images, see [their dedicated Readme](resources/docker_files/README.md).
+
 ## Contribution
 
 This repository accepts contributions only from Mbed TLS maintainers.
