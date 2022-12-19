@@ -13,7 +13,7 @@ Remember to build the docker image before running ```run.sh```.
 
 See the [Quick Start section of the top-level README](../../README.md#quick-start) in this repository.
 
-## Re-builing images locally
+## Re-building images locally
 
 A docker image can be built with following command:
 ```sh
@@ -22,7 +22,7 @@ sudo docker build --network=host -t ubuntu-18.04 -f ubuntu-18.04/Dockerfile .
 ```
 This creates an image from the specified file. The built image is maintained by docker in it's own workspace on the host. Don't worry where the built image is gone! From this point the built image is referred by it's tag name. For example ```ubuntu-18.04```. See [Listing images](#listing-images) below.
 
-Note: `--network=host` may or may not necessary depending on your machine's
+Note: `--network=host` may or may not be necessary depending on your machine's
 configuration, including whether you're using a VPN or not.
 
 ## Running the images using the helper script
@@ -31,7 +31,7 @@ The helper script ```run.sh``` can be used to launch a docker image:
 ```sh
 ./run.sh <mount dir> <image tag>
 ```
-```run.sh``` makes it easier to start images with a suitable working environment. It
+```run.sh``` makes it easier to start images with a suitable working environment. It:
 - mounts a local directory on to the container at startup. Hence, a local checkout of Mbed TLS can be used and artefacts produced can be preserved even after exiting the image.
 - mounts ```~/.ssh``` directory to the docker home so that ```git``` can be used from within the docker.
 - configures user ids for the docker user to be same as the host user to preserve the permissions on the files created or modified inside the docker.
@@ -46,7 +46,7 @@ Above, ```-i``` is for interactive mode and ```-t``` is for emulating a tty. ```
 
 ## Listing images
 
-Built images on host machine can be viewed using command:
+Built images on host machine can be viewed using the command:
 ```sh
 sudo docker images
 ```
