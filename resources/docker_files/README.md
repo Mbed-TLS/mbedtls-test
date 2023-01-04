@@ -1,6 +1,6 @@
 # Mbed TLS development Environment on docker
 
-Docker files for some of the supported platforms are provided here. These are prepared with all necessary tools for building and testing Mbed TLS library and it's sample applications (as tested in the CI). These images can also be seen as a reference for building a development enviroment for Mbed TLS.
+Docker files for some of the supported platforms are provided here. These are prepared with all necessary tools for building and testing Mbed TLS library and its sample applications (as tested in the CI). These images can also be seen as a reference for building a development enviroment for Mbed TLS.
 
 These images have proved very useful in replicating CI build environment and reproducing build & test failures. Hence, very useful for developers fixing issues found in the CI.
 
@@ -20,7 +20,7 @@ A docker image can be built with following command:
 cd mbedtls-test/dev_envs/docker_files
 sudo docker build --network=host -t ubuntu-18.04 -f ubuntu-18.04/Dockerfile .
 ```
-This creates an image from the specified file. The built image is maintained by docker in it's own workspace on the host. Don't worry where the built image is gone! From this point the built image is referred by it's tag name. For example ```ubuntu-18.04```. See [Listing images](#listing-images) below.
+This creates an image from the specified file. The built image is maintained by docker in its own workspace on the host. Don't worry where the built image is gone! From this point the built image is referred by its tag name. For example ```ubuntu-18.04```. See [Listing images](#listing-images) below.
 
 Note: `--network=host` may or may not be necessary depending on your machine's
 configuration, including whether you're using a VPN or not.
