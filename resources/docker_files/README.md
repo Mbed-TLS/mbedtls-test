@@ -7,7 +7,7 @@ These images have proved very useful in replicating CI build environment and rep
 ## Using the images
 
 
-Remember to build the docker image before running ```run.sh```.
+Remember to build the docker image before running `run.sh`.
 
 ## Getting pre-built images from the CI
 
@@ -20,20 +20,20 @@ A docker image can be built with following command:
 cd mbedtls-test/dev_envs/docker_files
 sudo docker build --network=host -t ubuntu-18.04 -f ubuntu-18.04/Dockerfile .
 ```
-This creates an image from the specified file. The built image is maintained by docker in its own workspace on the host. Don't worry where the built image is gone! From this point the built image is referred by its tag name. For example ```ubuntu-18.04```. See [Listing images](#listing-images) below.
+This creates an image from the specified file. The built image is maintained by docker in its own workspace on the host. Don't worry where the built image is gone! From this point the built image is referred by its tag name. For example `ubuntu-18.04`. See [Listing images](#listing-images) below.
 
 Note: `--network=host` may or may not be necessary depending on your machine's
 configuration, including whether you're using a VPN or not.
 
 ## Running the images using the helper script
 
-The helper script ```run.sh``` can be used to launch a docker image:
+The helper script `run.sh` can be used to launch a docker image:
 ```sh
 ./run.sh <mount dir> <image tag>
 ```
-```run.sh``` makes it easier to start images with a suitable working environment. It:
+`run.sh` makes it easier to start images with a suitable working environment. It:
 - mounts a local directory on to the container at startup. Hence, a local checkout of Mbed TLS can be used and artefacts produced can be preserved even after exiting the image.
-- mounts ```~/.ssh``` directory to the docker home so that ```git``` can be used from within the docker.
+- mounts `~/.ssh` directory to the docker home so that `git` can be used from within the docker.
 - configures user ids for the docker user to be same as the host user to preserve the permissions on the files created or modified inside the docker.
 
 ## Running the images manually
@@ -42,7 +42,7 @@ The following basic command starts docker in an interactive mode:
 ```sh
 sudo docker run --network=host --rm -i -t ubuntu-18.04
 ```
-Above, ```-i``` is for interactive mode and ```-t``` is for emulating a tty. ```--rm``` tells docker to cleanup the container after exit. (See note above regarding `--network=host`.) All images launch ```bash``` on startup. Hence, user is on a ```bash``` shell when image is started in the interactive mode.
+Above, `-i` is for interactive mode and `-t` is for emulating a tty. `--rm` tells docker to cleanup the container after exit. (See note above regarding `--network=host`.) All images launch `bash` on startup. Hence, user is on a `bash` shell when image is started in the interactive mode.
 
 ## Listing images
 
