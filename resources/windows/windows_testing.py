@@ -582,8 +582,13 @@ class MbedWindowsTesting(object):
                     git_worktree_path, test_run, vs_logger
                 )
             else:
-                solution_dir = glob.glob(os.path.join(
-                        git_worktree_path, "visualc", "VS*"))[0]
+                solution_dirs = glob.glob(os.path.join(
+                        git_worktree_path, "visualc", "VS*"))
+                if len(solution_dirs) != 1:
+                    raise Exception(
+                        "Found {} paths matching visualc/VS*, expected exactly one".format(len(solution_dirs))
+                    )
+                solution_dir = solution_dirs[0]
                 if not os.path.isdir(solution_dir):
                     raise Exception(
                         "Found file instead of directory when looking "
