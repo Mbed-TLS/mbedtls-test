@@ -37,6 +37,7 @@ import tempfile
 import shutil
 import sys
 import traceback
+import glob
 
 
 class VStestrun(object):
@@ -581,9 +582,8 @@ class MbedWindowsTesting(object):
                     git_worktree_path, test_run, vs_logger
                 )
             else:
-                solution_dir = os.path.join(
-                    git_worktree_path, "visualc", "VS2010"
-                )
+                solution_dir = glob.glob(os.path.join(
+                        git_worktree_path, "visualc", "VS*"))[0]
             build_result = self.build_code_using_visual_studio(
                 solution_dir, test_run, solution_type, vs_logger, c89
             )
