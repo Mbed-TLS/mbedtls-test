@@ -1,6 +1,6 @@
 # Mbed TLS development Environment on docker
 
-Docker files for some of the supported platforms are provided here. These are prepared with all necessary tools for building and testing Mbed TLS library and its sample applications (as tested in the CI). These images can also be seen as a reference for building a development enviroment for Mbed TLS.
+Docker files for some of the supported platforms are provided here. These are prepared with all necessary tools for building and testing Mbed TLS library and its sample applications (as tested in the CI). These images can also be seen as a reference for building a development environment for Mbed TLS.
 
 These images have proved very useful in replicating CI build environment and reproducing build & test failures. Hence, very useful for developers fixing issues found in the CI.
 
