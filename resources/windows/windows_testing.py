@@ -584,6 +584,11 @@ class MbedWindowsTesting(object):
             else:
                 solution_dir = glob.glob(os.path.join(
                         git_worktree_path, "visualc", "VS*"))[0]
+                if not os.path.isdir(solution_dir):
+                    raise Exception(
+                        "Found file instead of directory when looking "
+                        "for VS solution directory: {}".format(solution_dir)
+                    )
             build_result = self.build_code_using_visual_studio(
                 solution_dir, test_run, solution_type, vs_logger, c89
             )
