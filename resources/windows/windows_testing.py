@@ -37,6 +37,7 @@ import tempfile
 import shutil
 import sys
 import traceback
+import glob
 
 
 class VStestrun(object):
@@ -581,9 +582,18 @@ class MbedWindowsTesting(object):
                     git_worktree_path, test_run, vs_logger
                 )
             else:
-                solution_dir = os.path.join(
-                    git_worktree_path, "visualc", "VS2010"
-                )
+                solution_dirs = glob.glob(os.path.join(
+                        git_worktree_path, "visualc", "VS*"))
+                if len(solution_dirs) != 1:
+                    raise Exception(
+                        "Found {} paths matching visualc/VS*, expected exactly one".format(len(solution_dirs))
+                    )
+                solution_dir = solution_dirs[0]
+                if not os.path.isdir(solution_dir):
+                    raise Exception(
+                        "Found file instead of directory when looking "
+                        "for VS solution directory: {}".format(solution_dir)
+                    )
             build_result = self.build_code_using_visual_studio(
                 solution_dir, test_run, solution_type, vs_logger, c89
             )
