@@ -9,6 +9,7 @@ from collections import defaultdict
 
 import matplotlib.pyplot as plt
 from datetime import datetime
+from statistics import median
 
 first_q = quarter(first)
 last_q = quarter(last)
@@ -35,23 +36,6 @@ for beg, end, com in pr_dates():
         lifetimes_com[q].append(lt)
 
 quarters = tuple(sorted(q for q in lifetimes_all if first_q <= q <= last_q))
-
-for q in quarters:
-    lifetimes_all[q].sort()
-    lifetimes_com[q].sort()
-
-
-def median(sl):
-    """Return the median value of a sorted list of numbers (0 if empty)."""
-    index = (len(sl) - 1) / 2
-    if index < 0:
-        return 0
-    if int(index) == index:
-        return sl[int(index)]
-
-    i, j = int(index - 0.5), int(index + 0.5)
-    return (sl[i] + sl[j]) / 2
-
 
 med_all = tuple(median(lifetimes_all[q]) for q in quarters)
 med_com = tuple(median(lifetimes_com[q]) for q in quarters)
