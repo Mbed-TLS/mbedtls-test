@@ -10,39 +10,46 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 from datetime import datetime
 from statistics import median
+import math
 
 first_q = quarter(first)
 last_q = quarter(last)
 
-lifetimes_all = defaultdict(list)
-lifetimes_com = defaultdict(list)
+lifetimes_all_hi = defaultdict(list)
+lifetimes_all_lo = defaultdict(list)
+lifetimes_com_hi = defaultdict(list)
+lifetimes_com_lo = defaultdict(list)
 
+today = datetime.now().date()
 for beg, end, com in pr_dates():
-    # If the PR is still open and it's recent, assign an arbitrary large
-    # lifetime. (The exact value doesn't matter for computing the median, as
-    # long as it's greater than the median - that is, as long as we've closed
-    # at least half the PRs created that quarter. Otherwise the large value
-    # will make that pretty visible.)
     if end is None:
-        today = datetime.now().date()
-        lt_so_far = (today - beg).days
-        lt = max(365, lt_so_far)
+        lo = (today - beg).days
+        hi = math.inf
     else:
-        lt = (end - beg).days
+        hi = lo = (end - beg).days
 
     q = quarter(beg)
-    lifetimes_all[q].append(lt)
+    lifetimes_all_hi[q].append(hi)
+    lifetimes_all_lo[q].append(lo)
     if com:
-        lifetimes_com[q].append(lt)
+        lifetimes_com_hi[q].append(hi)
+        lifetimes_com_lo[q].append(lo)
 
-quarters = tuple(sorted(q for q in lifetimes_all if first_q <= q <= last_q))
+quarters = tuple(sorted(q for q in lifetimes_all_hi if first_q <= q <= last_q))
 
-med_all = tuple(median(lifetimes_all[q]) for q in quarters)
-med_com = tuple(median(lifetimes_com[q]) for q in quarters)
+med_all_hi = tuple(median(lifetimes_all_hi[q]) for q in quarters)
+med_all_lo = tuple(median(lifetimes_all_lo[q]) for q in quarters)
+med_com_hi = tuple(median(lifetimes_com_hi[q]) for q in quarters)
+med_com_lo = tuple(median(lifetimes_com_lo[q]) for q in quarters)
+
+# skip uncertain quarters in the graph
+i = len(quarters)
+while med_all_hi[i - 1] != med_all_lo[i - 1] or med_com_hi[i - 1] != med_com_lo[i - 1]:
+    i -= 1
 
 fig, ax = plt.subplots()
-ax.plot(quarters, med_all, "b-", label="median overall")
-ax.plot(quarters, med_com, "r-", label="median community")
+ax.plot(quarters[:i], med_all_hi[:i], "b-", label="median overall")
+ax.plot(quarters[:i], med_com_hi[:i], "r-", label="median community")
 ax.legend(loc="upper right")
 ax.grid(True)
 ax.set_xlabel("quarter")
@@ -54,6 +61,22 @@ fig.suptitle("Median lifetime of PRs per quarter (less is better)")
 fig.set_size_inches(12.8, 7.2)  # default 100 dpi -> 720p
 fig.savefig("prs-lifetime.png")
 
+
+def interval(lo, hi):
+    if hi == lo:
+        return str(int(hi))
+    if math.isinf(hi):
+        return "> " + str(int(lo))
+
+    return str(int(lo)) + "-" + str(int(hi))
+
+
 print("Quarter,median overall,median community")
-for q, a, c in zip(quarters, med_all, med_com):
-    print("{},{},{}".format(q, int(a), int(c)))
+for i in range(len(quarters)):
+    print(
+        "{},{},{}".format(
+            quarters[i],
+            interval(med_all_lo[i], med_all_hi[i]),
+            interval(med_com_lo[i], med_com_hi[i]),
+        )
+    )
