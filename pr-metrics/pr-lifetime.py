@@ -8,7 +8,7 @@ from prs import pr_dates, quarter, first, last
 from collections import defaultdict
 
 import matplotlib.pyplot as plt
-from datetime import datetime
+from datetime import datetime, timedelta
 
 first_q = quarter(first)
 last_q = quarter(last)
@@ -29,7 +29,12 @@ for beg, end, com in pr_dates():
     else:
         lt = (end - beg).days
 
-    q = quarter(beg)
+    # Shit one month (that is, for q2 count March to May, not April to July).
+    # This is because we want to measure this at the end of each quarter, but
+    # including PRs raised too recently skew the results. Shifting one month
+    # means we had time to look at the PR by the time we generate quaterly
+    # metrics.
+    q = quarter(beg - timedelta(days=30))
     lifetimes_all[q].append(lt)
     if com:
         lifetimes_com[q].append(lt)
@@ -62,11 +67,11 @@ ax.plot(quarters, med_com, "r-", label="median community")
 ax.legend(loc="upper right")
 ax.grid(True)
 ax.set_xlabel("quarter")
-ax.set_ylabel("median lifetime in days of PRs created that quarter")
+ax.set_ylabel("median lifetime in days of PRs created that quarter (shifted 1 month)")
 ax.tick_params(axis="x", labelrotation=90)
 bot, top = ax.set_ylim()
 ax.set_ylim(0, min(365, top))  # we don't care about values over 1 year
-fig.suptitle("Median lifetime of PRs per quarter (less is better)")
+fig.suptitle("Median lifetime of PRs per quarter (shifted 1 month) (less is better)")
 fig.set_size_inches(12.8, 7.2)  # default 100 dpi -> 720p
 fig.savefig("prs-lifetime.png")
 
