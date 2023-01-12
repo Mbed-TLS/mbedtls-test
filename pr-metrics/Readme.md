@@ -9,6 +9,20 @@ token](https://help.github.com/en/github/authenticating-to-github/creating-a-per
 2. `PR_LAST_DATE=20yy-mm-dd ./do.sh` - this works offline from the data in
    `pr-data.p` and generates a bunch of png and csv files.
 
+For example, the report for 22Q4 can be generated with:
+```
+./get-pr-data.py # assuming GITHUB_API_TOKEN is set in the environement
+PR_LAST_DATE=2022-12-31 ./do.sh
+```
+The use of `PR_LAST_DATE` is mostly cosmectic in order to avoid including
+incomplete data about 23Q1 in the outputs.
+
+Note that the usage the metric "median lifetime" is special in that it can't
+always be computed right after the quarter is over, it sometimes need more
+time to pass and/or more PRs from that quarter to be closed. In that case, the
+uncertain quarter(s) will be excluded from the png graph, and in the csv file
+an interval will be reported for the value(s) that can't be determined yet.
+
 Requirements
 ------------
 
