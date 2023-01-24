@@ -147,6 +147,7 @@ docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS --rm --entrypoint $entrypoint \
 /* Get components of all.sh for a list of platforms*/
 def get_branch_information() {
     node('container-host') {
+        sh 'uname -a; lsb_release -a; docker --version'
         dir('src') {
             deleteDir()
             checkout_repo.checkout_repo()
