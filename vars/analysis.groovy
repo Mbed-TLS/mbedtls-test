@@ -17,10 +17,82 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+import java.util.concurrent.Callable
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentMap
+import java.util.function.Function
+
 import groovy.transform.Field
+
+import com.cloudbees.groovy.cps.NonCPS
+import net.sf.json.JSONObject
+
+import org.mbed.tls.jenkins.JobTimestamps
 
 // A static field has its content preserved across stages.
 @Field static outcome_stashes = []
+
+@Field private static ConcurrentMap<String, ConcurrentMap<String, JobTimestamps>> timestamps =
+        new ConcurrentHashMap<String, ConcurrentMap<String, JobTimestamps>>();
+
+void record_timestamps(String group, String job_name, Callable<Void> body, String node_label = null) {
+    def ts = new JobTimestamps()
+    def group_map = timestamps.computeIfAbsent(group, new Function<String, ConcurrentMap<String, JobTimestamps>>() {
+        @Override
+        @NonCPS
+        ConcurrentMap<String, JobTimestamps> apply(String key) {
+            return new ConcurrentHashMap<String, JobTimestamps>()
+        }
+    })
+
+    if (group_map.putIfAbsent(job_name, ts) != null) {
+        throw new IllegalArgumentException("Group and job name pair '$group:$job_name' used multiple times.")
+    }
+
+    try {
+        def stamped_body = {
+            ts.start = System.currentTimeMillis()
+            body()
+        }
+        if (node_label != null) {
+            node(node_label, stamped_body)
+        } else {
+            stamped_body()
+        }
+    } finally {
+        ts.end = System.currentTimeMillis()
+    }
+}
+
+void node_record_timestamps(String node_label, String job_name, Callable<Void> body) {
+    record_timestamps(node_label, job_name, body, node_label)
+}
+
+void record_inner_timestamps(String group, String job_name, Callable<Void> body) {
+    def ts = timestamps[group][job_name]
+    if (ts == null) {
+        throw new NoSuchElementException(job_name)
+    }
+    ts.innerStart = System.currentTimeMillis()
+    try {
+        body()
+    } finally {
+        ts.innerEnd = System.currentTimeMillis()
+    }
+}
+
+void print_timestamps() {
+    writeFile(
+        file: 'timestamps.json',
+        text: JSONObject.fromObject([
+            job: currentBuild.fullProjectName,
+            build: currentBuild.number,
+            main: timestamps.remove('main'),
+            subtasks: timestamps
+        ]).toString()
+    )
+    archiveArtifacts(artifacts: 'timestamps.json')
+}
 
 def stash_outcomes(job_name) {
     def stash_name = job_name + '-outcome'
@@ -77,21 +149,22 @@ def gather_outcomes() {
     if (outcome_stashes.isEmpty()) {
         return
     }
-    node('helper-container-host') {
-        dir('outcomes') {
+    dir('outcomes') {
+        deleteDir()
+        try {
+            checkout_repo.checkout_repo()
+            process_outcomes()
+        } finally {
             deleteDir()
-            try {
-                checkout_repo.checkout_repo()
-                process_outcomes()
-            } finally {
-                deleteDir()
-            }
         }
     }
 }
 
 def analyze_results() {
-    gather_outcomes()
+    node('helper-container-host') {
+        gather_outcomes()
+        print_timestamps()
+    }
 }
 
 def analyze_results_and_notify_github() {
