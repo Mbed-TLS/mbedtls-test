@@ -29,8 +29,14 @@ Map wrap_report_errors(Map jobs) {
             try {
                 job()
             } catch (err) {
-                echo "Caught: ${err}"
-                echo "Failed job: ${name}"
+                StringWriter writer = new StringWriter()
+                PrintWriter printWriter = new PrintWriter(writer)
+                err.printStackTrace(printWriter)
+                printWriter.close()
+                echo """\
+Failed job: $name
+Caught: $writer
+"""
                 if (!currentBuild.resultIsWorseOrEqualTo('FAILURE')) {
                     currentBuild.result = 'FAILURE'
                     common.maybe_notify_github 'TLS Testing', 'FAILURE',
