@@ -582,7 +582,7 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
     return job(platform) {
         /* Take the lock on the master node, so we don't tie up an executor while waiting */
         lock(tag) {
-            analysis.node_record_timestamps('dockerfile-builder', platform) {
+            analysis.node_record_timestamps('helper-container-host', platform) {
                 def image_exists = false
                 if (!overwrite) {
                     image_exists = sh(script: check_docker_image, returnStatus: true) == 0
