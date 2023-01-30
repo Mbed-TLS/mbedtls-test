@@ -105,11 +105,37 @@ def get_docker_tag(platform) {
         return tag
 }
 
+Map wrap_report_errors(Map jobs) {
+    return jobs.collectEntries { name, job ->
+        [(name): {
+            try {
+                job()
+            } catch (err) {
+                StringWriter writer = new StringWriter()
+                PrintWriter printWriter = new PrintWriter(writer)
+                err.printStackTrace(printWriter)
+                printWriter.close()
+                echo """\
+Failed job: $name
+Caught: $writer
+"""
+                if (!currentBuild.resultIsWorseOrEqualTo('FAILURE')) {
+                    currentBuild.result = 'FAILURE'
+                    common.maybe_notify_github 'TLS Testing', 'FAILURE',
+                            "Failures: ${name}…"
+                }
+                throw err
+            }
+        }]
+    }
+}
+
+
 def init_docker_images() {
     stage('init-docker-images') {
-        def jobs = linux_platforms.collectEntries {
+        def jobs = wrap_report_errors(linux_platforms.collectEntries {
             platform -> gen_jobs.gen_dockerfile_builder_job(platform)
-        }
+        })
         jobs.failFast = false
         parallel jobs
     }

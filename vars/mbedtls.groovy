@@ -23,31 +23,6 @@ import jenkins.scm.api.SCMSource
 import org.jenkinsci.plugins.github_branch_source.Connector
 import org.jenkinsci.plugins.github_branch_source.GitHubSCMSource
 
-Map wrap_report_errors(Map jobs) {
-    return jobs.collectEntries { name, job ->
-        [(name): {
-            try {
-                job()
-            } catch (err) {
-                StringWriter writer = new StringWriter()
-                PrintWriter printWriter = new PrintWriter(writer)
-                err.printStackTrace(printWriter)
-                printWriter.close()
-                echo """\
-Failed job: $name
-Caught: $writer
-"""
-                if (!currentBuild.resultIsWorseOrEqualTo('FAILURE')) {
-                    currentBuild.result = 'FAILURE'
-                    common.maybe_notify_github 'TLS Testing', 'FAILURE',
-                            "Failures: ${name}…"
-                }
-                throw err
-            }
-        }]
-    }
-}
-
 def run_tls_tests(label_prefix='') {
     try {
         def jobs = [:]
@@ -58,7 +33,7 @@ def run_tls_tests(label_prefix='') {
             jobs = jobs + gen_jobs.gen_abi_api_checking_job('ubuntu-16.04')
         }
 
-        jobs = wrap_report_errors(jobs)
+        jobs = common.wrap_report_errors(jobs)
 
         jobs.failFast = false
         parallel jobs
