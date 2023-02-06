@@ -18,7 +18,11 @@ Then to run the image:
 ```
 Where `<mount dir>` is a directory from the host that will be mounted on the container at startup (usually a local checkout of Mbed TLS).
 
-If `<mount dir>` is the root of an Mbed TLS source tree, the tests can be run with:
+Assuming `<mount dir>` is the root of an Mbed TLS source tree, first install the requirements:
+```sh
+./scripts/min_requirements.py --user
+```
+Then the tests can be run with:
 ```sh
 ./tests/scripts/all.sh --no-armcc
 ```
