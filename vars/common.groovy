@@ -105,11 +105,37 @@ def get_docker_tag(platform) {
         return tag
 }
 
+Map wrap_report_errors(Map jobs) {
+    return jobs.collectEntries { name, job ->
+        [(name): {
+            try {
+                job()
+            } catch (err) {
+                StringWriter writer = new StringWriter()
+                PrintWriter printWriter = new PrintWriter(writer)
+                err.printStackTrace(printWriter)
+                printWriter.close()
+                echo """\
+Failed job: $name
+Caught: $writer
+"""
+                if (!currentBuild.resultIsWorseOrEqualTo('FAILURE')) {
+                    currentBuild.result = 'FAILURE'
+                    common.maybe_notify_github 'TLS Testing', 'FAILURE',
+                            "Failures: ${name}…"
+                }
+                throw err
+            }
+        }]
+    }
+}
+
+
 def init_docker_images() {
     stage('init-docker-images') {
-        def jobs = linux_platforms.collectEntries {
+        def jobs = wrap_report_errors(linux_platforms.collectEntries {
             platform -> gen_jobs.gen_dockerfile_builder_job(platform)
-        }
+        })
         jobs.failFast = false
         parallel jobs
     }
@@ -304,9 +330,10 @@ Logs: ${env.BUILD_URL}
 }
 
 def run_release_jobs(name, jobs, failed_builds, coverage_details) {
-    jobs.failFast = false
+    def jobs_wrapped = common.wrap_report_errors(jobs)
+    jobs_wrapped.failFast = false
     try {
-        parallel jobs
+        parallel jobs_wrapped
     } finally {
         if (currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause')) {
             send_email(name, env.MBED_TLS_BRANCH, failed_builds, coverage_details)
