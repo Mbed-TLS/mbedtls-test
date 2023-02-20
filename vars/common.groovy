@@ -330,7 +330,7 @@ Logs: ${env.BUILD_URL}
 }
 
 def run_release_jobs(name, jobs, failed_builds, coverage_details) {
-    def jobs_wrapped = common.wrap_report_errors(jobs)
+    def jobs_wrapped = wrap_report_errors(jobs)
     jobs_wrapped.failFast = false
     try {
         parallel jobs_wrapped
