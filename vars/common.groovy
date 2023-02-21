@@ -121,7 +121,7 @@ Caught: $writer
 """
                 if (!currentBuild.resultIsWorseOrEqualTo('FAILURE')) {
                     currentBuild.result = 'FAILURE'
-                    common.maybe_notify_github 'TLS Testing', 'FAILURE',
+                    maybe_notify_github 'TLS Testing', 'FAILURE',
                             "Failures: ${name}…"
                 }
                 throw err
