@@ -21,6 +21,7 @@ import java.security.MessageDigest
 
 import groovy.transform.Field
 
+import com.cloudbees.groovy.cps.NonCPS
 import hudson.AbortException
 
 /* Indicates if CI is running on Open CI (hosted on https://ci.trustedfirmware.org/) */
@@ -105,19 +106,24 @@ def get_docker_tag(platform) {
         return tag
 }
 
+@NonCPS
+static String stack_trace_to_string(Throwable t) {
+    StringWriter writer = new StringWriter()
+    PrintWriter printWriter = new PrintWriter(writer)
+    t.printStackTrace(printWriter)
+    printWriter.close()
+    return writer.toString()
+}
+
 Map wrap_report_errors(Map jobs) {
     return jobs.collectEntries { name, job ->
         [(name): {
             try {
                 job()
             } catch (err) {
-                StringWriter writer = new StringWriter()
-                PrintWriter printWriter = new PrintWriter(writer)
-                err.printStackTrace(printWriter)
-                printWriter.close()
                 echo """\
 Failed job: $name
-Caught: $writer
+Caught: ${stack_trace_to_string(err)}
 """
                 if (!currentBuild.resultIsWorseOrEqualTo('FAILURE')) {
                     currentBuild.result = 'FAILURE'
