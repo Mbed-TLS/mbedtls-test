@@ -18,6 +18,7 @@
  */
 
 import java.nio.file.Files
+import java.nio.file.NoSuchFileException
 import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
@@ -28,7 +29,11 @@ import groovy.transform.Field
 import com.cloudbees.groovy.cps.NonCPS
 import hudson.FilePath
 import hudson.Launcher
+import hudson.model.ItemGroup
+import hudson.model.Job
+import hudson.model.Run
 import hudson.model.TaskListener
+import hudson.plugins.git.util.BuildData
 import jenkins.util.BuildListenerAdapter
 import net.sf.json.JSONObject
 
@@ -111,6 +116,74 @@ void print_timestamps() {
         ]).toString()
     )
     archiveArtifacts(artifacts: 'timestamps.json')
+}
+
+@NonCPS
+static List<JSONObject> gather_timestamps_since(ItemGroup project_root, long threshold_ms) {
+    List<JSONObject> builds = []
+    def names = ['mbed-tls-nightly-tests', 'mbed-tls-pr-head', 'mbed-tls-pr-merge']
+    for (def name : names) {
+        def item = project_root.getItem(name)
+        def jobs
+        if (item instanceof ItemGroup<Job<Job, Run>>) {
+            jobs = item.items
+        } else {
+            assert item instanceof Job<Job, Run>
+            jobs = [item]
+        }
+        for (def job : jobs) {
+            for (def build : job.builds) {
+                if (!build.building && build.startTimeInMillis + build.duration >= threshold_ms) {
+                    JSONObject json
+                    try {
+                        json = JSONObject.fromObject(build.artifactManager.root().child('timestamps.json').open().text)
+                    } catch (NoSuchFileException ignored) {
+                        continue
+                    }
+
+                    if (json.getOrDefault('version', 0) < 1) {
+                        // Convert to version 1 format
+                        def data = build.getActions(BuildData).find({ data -> data.remoteUrls[0] =~ /mbedtls-test/ })
+                        def env = build.getEnvironment(TaskListener.NULL)
+                        def pr = env.CHANGE_ID
+                        json.testCommit = data.lastBuiltRevision.sha1String
+                        json.job = item.name
+                        json.branch = env.CHANGE_TARGET ?: env.MBED_TLS_BRANCH
+                        if (pr) {
+                            json.pr = pr as Integer
+                        }
+                        ((JSONObject) json.subtasks).main = json.remove('main')
+                        json.version = 1
+                    }
+                    builds.add(json)
+                }
+            }
+        }
+    }
+    return builds
+}
+
+void gather_timestamps() {
+    stage('gather-timestamps') {
+        def builds = gather_timestamps_since(currentBuild.rawBuild.parent.parent, currentBuild.startTimeInMillis - 24 * 60 * 60 * 1000)
+        def group_path = ['testCommit': null, 'job': null, 'branch': null, 'pr': -1, 'build': -1]
+        def ts_format = ['start', 'end', 'innerStart', 'innerEnd']
+
+        List<String> records = [(group_path.keySet() + ['group', 'subtask'] + ts_format).join(',')]
+        builds.collectMany(records, { build ->
+            def build_header = group_path.collect(build.&getOrDefault)
+            return ((Map<String, Map<String, JSONObject>>) build.subtasks).collectMany { group, tasks ->
+                tasks.collect { subtask, ts ->
+                    return ts_format.collect(build_header + [group, subtask], ts.&get).join(',')
+                }
+            }
+        })
+
+        archive_strings([
+            'timestamps-bundle.json': JSONObject.fromObject([builds: builds]).toString(),
+            'timestamps-bundle.csv' : records.join('\n')
+        ])
+    }
 }
 
 def stash_outcomes(job_name) {
