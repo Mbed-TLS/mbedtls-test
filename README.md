@@ -20,8 +20,9 @@ Where `<mount dir>` is a directory from the host that will be mounted on the con
 
 If `<mount dir>` is the root of an Mbed TLS source tree, the tests can be run with:
 ```sh
-./tests/scripts/all.sh --no-armcc
+./tests/scripts/all.sh
 ```
+Note that this runs all the tests that can run in that image. Running a full test campaign requires some tests to run on different images because they require different versions of tools.
 
 For more details on the docker images, see [their dedicated Readme](resources/docker_files/README.md).
 
