@@ -54,7 +54,10 @@ import hudson.AbortException
 
 /* List of Linux platforms. When a job can run on multiple Linux platforms,
  * it runs on the first element of the list that supports this job. */
-@Field linux_platforms = ["ubuntu-16.04", "ubuntu-18.04", "ubuntu-20.04"]
+@Field linux_platforms = [
+    "ubuntu-16.04", "ubuntu-18.04", "ubuntu-20.04",
+    "arm-compilers",
+]
 /* List of BSD platforms. They all run freebsd_all_sh_components. */
 @Field bsd_platforms = ["freebsd"]
 

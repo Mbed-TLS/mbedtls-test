@@ -83,6 +83,7 @@ def platform_lacks_tls_tools(platform) {
 
 def gen_all_sh_jobs(platform, component, label_prefix='') {
     def shorthands = [
+        "arm-compilers": "armcc",
         "ubuntu-16.04": "u16",
         "ubuntu-18.04": "u18",
         "ubuntu-20.04": "u20",
