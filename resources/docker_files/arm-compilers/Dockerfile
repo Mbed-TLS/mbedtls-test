@@ -1,4 +1,4 @@
-# ubuntu-20.04/Dockerfile
+# arm-compilers/Dockerfile
 #
 #  Copyright (c) 2018-2022, ARM Limited, All Rights Reserved
 #  SPDX-License-Identifier: Apache-2.0
@@ -20,8 +20,12 @@
 # Purpose
 # -------
 #
-# This docker file is for creating the ubuntu-20.04 image that is used in the
-# CI. It can also be used for reproducing and testing CI failures.
+# This docker file is for creating the Linux image that is used in the
+# CI with proprietary Arm compilers. It can also be used for reproducing and
+# testing CI failures if you have access to the Arm internal license servers,
+# or if you have access to different license servers by overriding the
+# ARMLMD_LICENSE_FILE argument when building the image
+# (docker build --build-arg ARMLMD_LICENSE_FILE=... arm-compilers).
 
 FROM ubuntu:20.04
 
