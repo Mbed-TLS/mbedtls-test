@@ -615,7 +615,7 @@ aws ecr get-login-password | docker login --username AWS --password-stdin $commo
                          * So arrange to look for cached copies of the image.
                          */
                         if (platform == 'arm-compilers') {
-                            extra_build_args += " --cache-from $common.docker_repoubuntu-20.04-f15359b0ac46e767133991b76ccf23e3cd2e5e0f: "
+                            extra_build_args += " --cache-from $common.docker_repo:ubuntu-20.04-f15359b0ac46e767133991b76ccf23e3cd2e5e0f "
                         }
 
                         analysis.record_inner_timestamps('dockerfile-builder', platform) {
