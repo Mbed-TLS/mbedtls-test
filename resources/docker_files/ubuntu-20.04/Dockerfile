@@ -32,9 +32,7 @@ WORKDIR /opt/src
 # destination for installing python dependencies
 ENV HOME=/var/lib/builds
 
-# Support for i386:
-# - for 32-bit builds+tests of Mbed TLS
-# - required to install Arm Compiler 5.06 (armcc)
+# Support for i386, for 32-bit builds+tests of Mbed TLS
 RUN dpkg --add-architecture i386
 
 # Main apt-get call with all packages except those that have conflicts,
@@ -65,19 +63,19 @@ RUN apt-get update -q && apt-get install -yq \
         graphviz \
         # to measure code coverage of Mbed TLS
         lcov \
-        # for 32-bit Mbed TLS testing and armcc
+        # for 32-bit Mbed TLS testing
         libc6-i386 \
-        # for 32-bit Mbed TLS testing and armcc
+        # for 32-bit Mbed TLS testing
         libc6:i386 \
         # to build GnuTLS (nettle with public key support aka hogweed)
         libgmp-dev \
         # to build GnuTLS >= 3.6 (could also use --with-included-unistring)
         libunistring-dev \
-        # for armcc
+        # to test 32-bit C++ linkage (not done at the time of writing)
         libstdc++6:i386 \
         # to build GnuTLS
         libtasn1-6-dev \
-        # needed for armcc (see locale-gen below)
+        # to have a UTF-8 locale (see locale-gen below)
         locales \
         # used by compat.sh and ssl-opt.sh
         lsof \
@@ -118,26 +116,6 @@ RUN apt-get update -q && apt-get install -yq \
         gcc-arm-linux-gnueabi \
         libc6-dev-armel-cross \
     && rm -rf /var/lib/apt/lists/
-
-# Install ARM Compiler 5.06
-RUN wget -q https://armkeil.blob.core.windows.net/developer/Files/downloads/compiler/DS500-PA-00003-r5p0-22rel0.tgz && \
-    tar -zxf DS500-PA-00003-r5p0-22rel0.tgz && \
-    ./Installer/setup.sh --i-agree-to-the-contained-eula --no-interactive -d /usr/local/ARM_Compiler_5.06u3 --quiet && \
-    rm -rf DS500-PA-00003-r5p0-22rel0.tgz releasenotes.html Installer/
-
-ENV ARMC5_BIN_DIR=/usr/local/ARM_Compiler_5.06u3/bin/
-ENV PATH=$PATH:/usr/local/ARM_Compiler_5.06u3/bin
-ARG ARMLMD_LICENSE_FILE=7010@10.6.26.52:7010@10.6.26.53:7010@10.6.26.54:7010@10.6.26.56
-ENV ARMLMD_LICENSE_FILE=${ARMLMD_LICENSE_FILE}
-
-# Install ARM Compiler 6.6
-RUN mkdir temp && cd temp && \
-    wget -q --no-check-certificate https://armkeil.blob.core.windows.net/developer//sitecore/shell/-/media/Files/downloads/compiler/DS500-BN-00026-r5p0-07rel0.tgz -O arm6.tgz && \
-    tar -zxf arm6.tgz  && ls -ltr && \
-    ./install_x86_64.sh --i-agree-to-the-contained-eula --no-interactive -d /usr/local/ARM_Compiler_6.6 --quiet && \
-    cd .. && rm -rf temp/
-
-ENV ARMC6_BIN_DIR=/usr/local/ARM_Compiler_6.6/bin/
 
 # Install arm-none-eabi-gcc
 RUN wget -q https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -O gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 && \
@@ -249,7 +227,7 @@ RUN python3 -m pip config set global.progress_bar off && \
     python3 -m pip install setuptools --upgrade && \
     true
 
-# Set locale for ARMCC to work
+# Make sure we have a UTF-8 locale
 RUN locale && \
     locale-gen "en_US.UTF-8" && \
     dpkg-reconfigure locales
