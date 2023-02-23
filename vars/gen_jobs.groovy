@@ -609,7 +609,7 @@ aws ecr get-login-password | docker login --username AWS --password-stdin $commo
 """
                         }
 
-                        analysis.record_inner_timestamps('helper-container-host', platform) {
+                        analysis.record_inner_timestamps('dockerfile-builder', platform) {
                             sh """\
 # Use BuildKit and a remote build cache to pull only the reuseable layers
 # from the last successful build for this platform
