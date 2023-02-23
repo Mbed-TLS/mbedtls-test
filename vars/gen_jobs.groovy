@@ -609,6 +609,15 @@ aws ecr get-login-password | docker login --username AWS --password-stdin $commo
 """
                         }
 
+                        /* Hack alert: at the time of writing, building the
+                         * arm-compilers image doesn't work, because the
+                         * URLS to download Arm compilers aren't valid anymore.
+                         * So arrange to look for cached copies of the image.
+                         */
+                        if (platform == 'arm-compilers') {
+                            extra_build_args += " --cache-from $common.docker_repoubuntu-20.04-f15359b0ac46e767133991b76ccf23e3cd2e5e0f: "
+                        }
+
                         analysis.record_inner_timestamps('dockerfile-builder', platform) {
                             sh """\
 # Use BuildKit and a remote build cache to pull only the reuseable layers

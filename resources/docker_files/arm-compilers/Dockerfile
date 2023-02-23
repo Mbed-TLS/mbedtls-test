@@ -27,7 +27,10 @@
 # ARMLMD_LICENSE_FILE argument when building the image
 # (docker build --build-arg ARMLMD_LICENSE_FILE=... arm-compilers).
 
-FROM ubuntu:20.04
+# For now, use a fixed base version which is present in our image caches.
+# This avoids the problem that the download URLs for Arm compilers are
+# not longer valid.
+FROM ubuntu:focal-20221019
 
 ARG DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt/src
