@@ -190,17 +190,18 @@ def run_job() {
 }
 
 void run_release_job() {
-    environ.set_tls_release_environment()
-
     timestamps {
         try {
-            analysis.record_timestamps('main', 'release_jobs') {
+            analysis.record_timestamps('main', 'run_release_job') {
+                environ.set_tls_release_environment()
                 common.init_docker_images()
                 stage('tls-testing') {
                     def jobs = common.wrap_report_errors(gen_jobs.gen_release_jobs())
                     jobs.failFast = false
                     try {
-                        parallel jobs
+                        analysis.record_inner_timestamps('main', 'run_release_job') {
+                            parallel jobs
+                        }
                     } finally {
                         if (currentBuild.rawBuild.causes[0] instanceof ParameterizedTimerTriggerCause ||
                             currentBuild.rawBuild.causes[0] instanceof TimerTrigger.TimerTriggerCause) {
