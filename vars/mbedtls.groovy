@@ -18,10 +18,12 @@
  */
 
 import hudson.model.Item
+import hudson.triggers.TimerTrigger
 import jenkins.branch.BranchIndexingCause
 import jenkins.scm.api.SCMSource
 import org.jenkinsci.plugins.github_branch_source.Connector
 import org.jenkinsci.plugins.github_branch_source.GitHubSCMSource
+import org.jenkinsci.plugins.parameterizedscheduler.ParameterizedTimerTriggerCause
 
 def run_tls_tests(label_prefix='') {
     try {
@@ -185,4 +187,33 @@ def run_pr_job(is_production=true) {
 /* main job */
 def run_job() {
     run_pr_job()
+}
+
+void run_release_job() {
+    environ.set_tls_release_environment()
+
+    timestamps {
+        try {
+            analysis.record_timestamps('main', 'release_jobs') {
+                common.init_docker_images()
+                stage('tls-testing') {
+                    def jobs = common.wrap_report_errors(gen_jobs.gen_release_jobs())
+                    jobs.failFast = false
+                    try {
+                        parallel jobs
+                    } finally {
+                        if (currentBuild.rawBuild.causes[0] instanceof ParameterizedTimerTriggerCause ||
+                            currentBuild.rawBuild.causes[0] instanceof TimerTrigger.TimerTriggerCause) {
+                            common.send_email('Mbed TLS nightly tests', env.MBED_TLS_BRANCH, gen_jobs.failed_builds, gen_jobs.coverage_details)
+                        }
+                    }
+                }
+            }
+        }
+        finally {
+            stage('result-analysis') {
+                analysis.analyze_results()
+            }
+        }
+    }
 }
