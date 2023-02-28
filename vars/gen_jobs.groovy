@@ -73,11 +73,17 @@ def node_label_for_platform(platform) {
 }
 
 def platform_has_docker(platform) {
+    if (platform == 'arm-compilers') {
+        return true
+    }
     def os = platform.replaceFirst(/-.*/, "")
     return ['debian', 'ubuntu'].contains(os)
 }
 
 def platform_lacks_tls_tools(platform) {
+    if (platform == 'arm-compilers') {
+        return true
+    }
     def os = platform.replaceFirst(/-.*/, "")
     return ['freebsd'].contains(os)
 }
