@@ -17,6 +17,7 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+import java.nio.file.Files
 import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
@@ -25,6 +26,10 @@ import java.util.function.Function
 import groovy.transform.Field
 
 import com.cloudbees.groovy.cps.NonCPS
+import hudson.FilePath
+import hudson.Launcher
+import hudson.model.TaskListener
+import jenkins.util.BuildListenerAdapter
 import net.sf.json.JSONObject
 
 import org.mbed.tls.jenkins.JobTimestamps
@@ -78,6 +83,20 @@ void record_inner_timestamps(String group, String job_name, Callable<Void> body)
         body()
     } finally {
         ts.innerEnd = System.currentTimeMillis()
+    }
+}
+
+// Takes a filename -> content map, and produces archives for each entry, without launching an executor
+void archive_strings(Map<String, String> artifacts) {
+    def dir = new FilePath(Files.createTempDirectory('artifacts').toFile())
+    try {
+        def files = (Map<String, String>) artifacts.collectEntries {
+            name, content -> [(name): dir.createTextTempFile(name, null, content).name]
+        }
+        currentBuild.rawBuild.pickArtifactManager().archive(
+            dir, (Launcher) getContext(Launcher), BuildListenerAdapter.wrap((TaskListener) getContext(TaskListener)), files)
+    } finally {
+        dir.deleteRecursive()
     }
 }
 
