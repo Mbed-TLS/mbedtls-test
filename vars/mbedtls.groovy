@@ -55,126 +55,124 @@ def run_tls_tests(label_prefix='') {
 
 /* main job */
 def run_pr_job(is_production=true) {
-    timestamps {
+    analysis.main_record_timestamps('run_pr_job') {
         try {
-            analysis.record_timestamps('main', 'run_pr_job') {
+            if (is_production) {
+                // Cancel in-flight jobs for the same PR when a new job is launched
+                def buildNumber = env.BUILD_NUMBER as int
+                if (buildNumber > 1)
+                    milestone(buildNumber - 1)
+                /* If buildNumber > 1, the following statement aborts all builds
+                * whose most-recently passed milestone was the previous milestone
+                * passed by this job (buildNumber - 1).
+                * After this, it checks to see if a later build has already passed
+                * milestone(buildNumber), and if so aborts the current build as well.
+                *
+                * Because of the order of operations, each build is only responsible
+                * for aborting the one directly before it, and itself if necessary.
+                * Thus we don't have to iterate over all milestones 1 to buildNumber.
+                */
+                milestone(buildNumber)
+
+                /* Discarding old builds has to be individually configured for each
+                * branch in a multibranch pipeline, so do it from groovy.
+                */
+                properties([
+                    buildDiscarder(
+                        logRotator(
+                            numToKeepStr: '5'
+                        )
+                    )
+                ])
+            }
+
+            /* During the nightly branch indexing, if a target branch has been
+            * updated, new merge jobs are triggered for each PR to that branch.
+            * If a PR hasn't been updated recently enough, don't run the merge
+            * job for that PR.
+            */
+            if (env.BRANCH_NAME ==~ /PR-\d+-merge/) {
+                long upd_timestamp_ms = 0L
+                long now_timestamp_ms = currentBuild.startTimeInMillis
                 try {
-                    if (is_production) {
-                        // Cancel in-flight jobs for the same PR when a new job is launched
-                        def buildNumber = env.BUILD_NUMBER as int
-                        if (buildNumber > 1)
-                            milestone(buildNumber - 1)
-                        /* If buildNumber > 1, the following statement aborts all builds
-                        * whose most-recently passed milestone was the previous milestone
-                        * passed by this job (buildNumber - 1).
-                        * After this, it checks to see if a later build has already passed
-                        * milestone(buildNumber), and if so aborts the current build as well.
-                        *
-                        * Because of the order of operations, each build is only responsible
-                        * for aborting the one directly before it, and itself if necessary.
-                        * Thus we don't have to iterate over all milestones 1 to buildNumber.
-                        */
-                        milestone(buildNumber)
+                    if (currentBuild.rawBuild.causes[0] instanceof BranchIndexingCause) {
+                        /* Try to retrieve the update timestamp from the previous run. */
+                        upd_timestamp_ms = (currentBuild.previousBuild?.buildVariables?.UPD_TIMESTAMP_MS ?: 0L) as long
+                        echo "Previous update timestamp: ${new Date(upd_timestamp_ms)}"
 
-                        /* Discarding old builds has to be individually configured for each
-                        * branch in a multibranch pipeline, so do it from groovy.
-                        */
-                        properties([
-                                buildDiscarder(
-                                        logRotator(
-                                                numToKeepStr: '5'
-                                        )
-                                )
-                        ])
-                    }
+                        /* current threshold is 2 days */
+                        long threshold_ms = 2L * 24L * 60L * 60L * 1000L
 
-                    /* During the nightly branch indexing, if a target branch has been
-                    * updated, new merge jobs are triggered for each PR to that branch.
-                    * If a PR hasn't been updated recently enough, don't run the merge
-                    * job for that PR.
-                    */
-                    if (env.BRANCH_NAME ==~ /PR-\d+-merge/) {
-                        long upd_timestamp_ms = 0L
-                        long now_timestamp_ms = currentBuild.startTimeInMillis
-                        try {
-                            if (currentBuild.rawBuild.causes[0] instanceof BranchIndexingCause) {
-                                /* Try to retrieve the update timestamp from the previous run. */
-                                upd_timestamp_ms = (currentBuild.previousBuild?.buildVariables?.UPD_TIMESTAMP_MS ?: 0L) as long
-                                echo "Previous update timestamp: ${new Date(upd_timestamp_ms)}"
+                        if (now_timestamp_ms - upd_timestamp_ms > threshold_ms) {
+                            /* Check the time of the latest review */
+                            def src = (GitHubSCMSource) SCMSource.SourceByItem.findSource(currentBuild.rawBuild.parent)
+                            def cred = Connector.lookupScanCredentials((Item) src.owner, src.apiUri, src.credentialsId)
 
-                                /* current threshold is 2 days */
-                                long threshold_ms = 2L * 24L * 60L * 60L * 1000L
+                            def gh = Connector.connect(src.apiUri, cred)
+                            def pr = gh.getRepository("$src.repoOwner/$src.repository").getPullRequest(env.CHANGE_ID as int)
 
-                                if (now_timestamp_ms - upd_timestamp_ms > threshold_ms) {
-                                    /* Check the time of the latest review */
-                                    def src = (GitHubSCMSource) SCMSource.SourceByItem.findSource(currentBuild.rawBuild.parent)
-                                    def cred = Connector.lookupScanCredentials((Item) src.owner, src.apiUri, src.credentialsId)
-
-                                    def gh = Connector.connect(src.apiUri, cred)
-                                    def pr = gh.getRepository("$src.repoOwner/$src.repository").getPullRequest(env.CHANGE_ID as int)
-
-                                    try {
-                                        long review_timestamp_ms = pr.listReviews().last().submittedAt.time
-                                        echo "Latest review timestamp: ${new Date(review_timestamp_ms)}"
-                                        upd_timestamp_ms = Math.max(review_timestamp_ms, upd_timestamp_ms)
-                                    } catch (NoSuchElementException err) {
-                                        /* No reviews */
-                                    }
-
-                                    if (upd_timestamp_ms == 0L) {
-                                        /* Fall back to updatedAt */
-                                        upd_timestamp_ms = pr.updatedAt.time
-                                        echo "PR updatedAt timestamp: ${new Date(upd_timestamp_ms)}"
-                                    }
-                                }
-
-                                if (now_timestamp_ms - upd_timestamp_ms > threshold_ms) {
-                                    currentBuild.result = 'NOT_BUILT'
-                                    error("Pre Test Checks did not run: PR was last updated on ${new Date(upd_timestamp_ms)}.")
-                                }
-                            } else {
-                                /* Job triggered manually, or by pushing the branch. Update the timestamp */
-                                upd_timestamp_ms = now_timestamp_ms
+                            try {
+                                long review_timestamp_ms = pr.listReviews().last().submittedAt.time
+                                echo "Latest review timestamp: ${new Date(review_timestamp_ms)}"
+                                upd_timestamp_ms = Math.max(review_timestamp_ms, upd_timestamp_ms)
+                            } catch (NoSuchElementException err) {
+                                /* No reviews */
                             }
-                        } finally {
-                            /* Record the update timestamp in the environment, so it can be retrieved by the next run */
-                            env.UPD_TIMESTAMP_MS = upd_timestamp_ms
-                            echo "UPD_TIMESTAMP_MS=$env.UPD_TIMESTAMP_MS (${new Date(upd_timestamp_ms)})"
+
+                            if (upd_timestamp_ms == 0L) {
+                                /* Fall back to updatedAt */
+                                upd_timestamp_ms = pr.updatedAt.time
+                                echo "PR updatedAt timestamp: ${new Date(upd_timestamp_ms)}"
+                            }
                         }
-                    }
 
-                    common.maybe_notify_github "Pre Test Checks", 'PENDING',
-                            'Checking if all PR tests can be run'
-                    common.maybe_notify_github "TLS Testing", 'PENDING',
-                            'In progress'
-                    common.maybe_notify_github "Result analysis", 'PENDING',
-                            'In progress'
-
-                    common.init_docker_images()
-
-                    stage('pre-test-checks') {
-                        environ.set_tls_pr_environment(is_production)
-                        common.get_branch_information()
-                        common.check_every_all_sh_component_will_be_run()
-                        common.maybe_notify_github "Pre Test Checks", 'SUCCESS', 'OK'
+                        if (now_timestamp_ms - upd_timestamp_ms > threshold_ms) {
+                            currentBuild.result = 'NOT_BUILT'
+                            error("Pre Test Checks did not run: PR was last updated on ${new Date(upd_timestamp_ms)}.")
+                        }
+                    } else {
+                        /* Job triggered manually, or by pushing the branch. Update the timestamp */
+                        upd_timestamp_ms = now_timestamp_ms
                     }
-                } catch (err) {
-                    def description = 'Pre Test Checks failed.'
-                    if (err.message?.startsWith('Pre Test Checks')) {
-                        description = err.message
-                    }
-                    common.maybe_notify_github "Pre Test Checks", 'FAILURE',
-                            description
-                    common.maybe_notify_github 'TLS Testing', 'FAILURE',
-                            'Did not run'
-                    common.maybe_notify_github 'Result analysis', 'FAILURE',
-                            'Did not run'
-                    throw (err)
+                } finally {
+                    /* Record the update timestamp in the environment, so it can be retrieved by the next run */
+                    env.UPD_TIMESTAMP_MS = upd_timestamp_ms
+                    echo "UPD_TIMESTAMP_MS=$env.UPD_TIMESTAMP_MS (${new Date(upd_timestamp_ms)})"
                 }
+            }
 
-                stage('tls-testing') {
-                    run_tls_tests()
-                }
+            common.maybe_notify_github "Pre Test Checks", 'PENDING',
+                                       'Checking if all PR tests can be run'
+            common.maybe_notify_github "TLS Testing", 'PENDING',
+                                       'In progress'
+            common.maybe_notify_github "Result analysis", 'PENDING',
+                                       'In progress'
+
+            common.init_docker_images()
+
+            stage('pre-test-checks') {
+                environ.set_tls_pr_environment(is_production)
+                common.get_branch_information()
+                common.check_every_all_sh_component_will_be_run()
+                common.maybe_notify_github "Pre Test Checks", 'SUCCESS', 'OK'
+            }
+        } catch (err) {
+            def description = 'Pre Test Checks failed.'
+            if (err.message?.startsWith('Pre Test Checks')) {
+                description = err.message
+            }
+            common.maybe_notify_github "Pre Test Checks", 'FAILURE',
+                                        description
+            common.maybe_notify_github 'TLS Testing', 'FAILURE',
+                                       'Did not run'
+            common.maybe_notify_github 'Result analysis', 'FAILURE',
+                                       'Did not run'
+            throw (err)
+        }
+
+        try {
+            stage('tls-testing') {
+                run_tls_tests()
             }
         } finally {
             stage('result-analysis') {
@@ -190,23 +188,21 @@ def run_job() {
 }
 
 void run_release_job() {
-    timestamps {
+    analysis.main_record_timestamps('run_release_job') {
         try {
-            analysis.record_timestamps('main', 'run_release_job') {
-                environ.set_tls_release_environment()
-                common.init_docker_images()
-                stage('tls-testing') {
-                    def jobs = common.wrap_report_errors(gen_jobs.gen_release_jobs())
-                    jobs.failFast = false
-                    try {
-                        analysis.record_inner_timestamps('main', 'run_release_job') {
-                            parallel jobs
-                        }
-                    } finally {
-                        if (currentBuild.rawBuild.causes[0] instanceof ParameterizedTimerTriggerCause ||
-                            currentBuild.rawBuild.causes[0] instanceof TimerTrigger.TimerTriggerCause) {
-                            common.send_email('Mbed TLS nightly tests', env.MBED_TLS_BRANCH, gen_jobs.failed_builds, gen_jobs.coverage_details)
-                        }
+            environ.set_tls_release_environment()
+            common.init_docker_images()
+            stage('tls-testing') {
+                def jobs = common.wrap_report_errors(gen_jobs.gen_release_jobs())
+                jobs.failFast = false
+                try {
+                    analysis.record_inner_timestamps('main', 'run_release_job') {
+                        parallel jobs
+                    }
+                } finally {
+                    if (currentBuild.rawBuild.causes[0] instanceof ParameterizedTimerTriggerCause ||
+                        currentBuild.rawBuild.causes[0] instanceof TimerTrigger.TimerTriggerCause) {
+                        common.send_email('Mbed TLS nightly tests', env.MBED_TLS_BRANCH, gen_jobs.failed_builds, gen_jobs.coverage_details)
                     }
                 }
             }

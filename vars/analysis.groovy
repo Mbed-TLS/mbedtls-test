@@ -74,6 +74,18 @@ void record_timestamps(String group, String job_name, Callable<Void> body, Strin
     }
 }
 
+void main_record_timestamps(String job_name, Callable<Void> body) {
+    timestamps {
+        try {
+            record_timestamps('main', job_name, body)
+        } finally {
+            stage('archive-timestamps') {
+                archive_timestamps()
+            }
+        }
+    }
+}
+
 void node_record_timestamps(String node_label, String job_name, Callable<Void> body) {
     record_timestamps(node_label, job_name, body, node_label)
 }
@@ -105,17 +117,15 @@ void archive_strings(Map<String, String> artifacts) {
     }
 }
 
-void print_timestamps() {
-    writeFile(
-        file: 'timestamps.json',
-        text: JSONObject.fromObject([
+void archive_timestamps() {
+    archive_strings([
+        'timestamps.json': JSONObject.fromObject([
             job: currentBuild.fullProjectName,
             build: currentBuild.number,
             main: timestamps.remove('main'),
             subtasks: timestamps
         ]).toString()
-    )
-    archiveArtifacts(artifacts: 'timestamps.json')
+    ])
 }
 
 @NonCPS
@@ -224,7 +234,9 @@ fi
 
     try {
         if (fileExists('tests/scripts/analyze_outcomes.py')) {
-            sh 'tests/scripts/analyze_outcomes.py outcomes.csv'
+            record_inner_timestamps('helper-container-host', 'result-analysis') {
+                sh 'tests/scripts/analyze_outcomes.py outcomes.csv'
+            }
         }
     } finally {
         sh 'xz outcomes.csv'
@@ -242,22 +254,21 @@ def gather_outcomes() {
     if (outcome_stashes.isEmpty()) {
         return
     }
-    dir('outcomes') {
-        deleteDir()
-        try {
-            checkout_repo.checkout_repo()
-            process_outcomes()
-        } finally {
+    node_record_timestamps('helper-container-host', 'result-analysis') {
+        dir('outcomes') {
             deleteDir()
+            try {
+                checkout_repo.checkout_repo()
+                process_outcomes()
+            } finally {
+                deleteDir()
+            }
         }
     }
 }
 
 def analyze_results() {
-    node('helper-container-host') {
-        gather_outcomes()
-        print_timestamps()
-    }
+    gather_outcomes()
 }
 
 def analyze_results_and_notify_github() {
