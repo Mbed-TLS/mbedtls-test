@@ -65,6 +65,7 @@ Map<String, Callable<Void>> gen_simple_windows_jobs(String label, String script)
 def node_label_for_platform(platform) {
     switch (platform) {
     case ~/^(debian|ubuntu)(-.*)?/: return 'container-host';
+    case 'arm-compilers': return 'container-host';
     case ~/^freebsd(-.*)?/: return 'freebsd';
     case ~/^windows(-.*)?/: return 'windows';
     default: return platform;
