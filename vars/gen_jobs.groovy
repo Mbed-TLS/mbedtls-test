@@ -65,6 +65,7 @@ Map<String, Callable<Void>> gen_simple_windows_jobs(String label, String script)
 def node_label_for_platform(platform) {
     switch (platform) {
     case ~/^(debian|ubuntu)(-.*)?/: return 'container-host';
+    case 'arm-compilers': return 'container-host';
     case ~/^freebsd(-.*)?/: return 'freebsd';
     case ~/^windows(-.*)?/: return 'windows';
     default: return platform;
@@ -72,17 +73,24 @@ def node_label_for_platform(platform) {
 }
 
 def platform_has_docker(platform) {
+    if (platform == 'arm-compilers') {
+        return true
+    }
     def os = platform.replaceFirst(/-.*/, "")
     return ['debian', 'ubuntu'].contains(os)
 }
 
 def platform_lacks_tls_tools(platform) {
+    if (platform == 'arm-compilers') {
+        return true
+    }
     def os = platform.replaceFirst(/-.*/, "")
     return ['freebsd'].contains(os)
 }
 
 def gen_all_sh_jobs(platform, component, label_prefix='') {
     def shorthands = [
+        "arm-compilers": "armcc",
         "ubuntu-16.04": "u16",
         "ubuntu-18.04": "u18",
         "ubuntu-20.04": "u20",
@@ -608,7 +616,16 @@ aws ecr get-login-password | docker login --username AWS --password-stdin $commo
 """
                         }
 
-                        analysis.record_inner_timestamps('helper-container-host', platform) {
+                        /* Hack alert: at the time of writing, building the
+                         * arm-compilers image doesn't work, because the
+                         * URLS to download Arm compilers aren't valid anymore.
+                         * So arrange to look for cached copies of the image.
+                         */
+                        if (platform == 'arm-compilers') {
+                            extra_build_args += " --cache-from $common.docker_repo:ubuntu-20.04-f15359b0ac46e767133991b76ccf23e3cd2e5e0f "
+                        }
+
+                        analysis.record_inner_timestamps('dockerfile-builder', platform) {
                             sh """\
 # Use BuildKit and a remote build cache to pull only the reuseable layers
 # from the last successful build for this platform

@@ -56,7 +56,10 @@ import org.jenkinsci.plugins.parameterizedscheduler.ParameterizedTimerTriggerCau
 
 /* List of Linux platforms. When a job can run on multiple Linux platforms,
  * it runs on the first element of the list that supports this job. */
-@Field linux_platforms = ["ubuntu-16.04", "ubuntu-18.04", "ubuntu-20.04"]
+@Field linux_platforms = [
+    "ubuntu-16.04", "ubuntu-18.04", "ubuntu-20.04",
+    "arm-compilers",
+]
 /* List of BSD platforms. They all run freebsd_all_sh_components. */
 @Field bsd_platforms = ["freebsd"]
 
@@ -234,6 +237,16 @@ def get_branch_information() {
                 error('Pre Test Checks failed: Base branch out of date. Please rebase')
             }
         }
+
+        /* Temporary ad hoc assignment: at the time of writing,
+         * all.sh does not detect the presence of arm compilers, so
+         * it always reports build_armcc as available. Until
+         * https://github.com/Mbed-TLS/mbedtls/pull/7163 is merged
+         * and we no longer care about older pull requests, choose
+         * its dispatch manually.
+         */
+        all_all_sh_components['build_armcc'] = 'arm-compilers'
+        echo "Overriding all_all_sh_components['build_armcc'] = 'arm-compilers'"
     }
 }
 
