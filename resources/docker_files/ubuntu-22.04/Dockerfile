@@ -41,6 +41,11 @@ RUN dpkg --add-architecture i386
 RUN apt-get update -q && apt-get install -yq \
         # for Mbed TLS tests
         abi-compliance-checker \
+        # Note that there is a known issue #5332 that stock abi tools
+        # in ubuntu22.04 do not fail as expected.
+        # https://github.com/ARMmbed/mbedtls/issues/5332
+        # Do not activae 22.04 until that is resolved
+        # to use with abi-compliance-tester
         abi-dumper \
         # to build Mbed TLS: gcc, binutils, make, etc.
         build-essential \
