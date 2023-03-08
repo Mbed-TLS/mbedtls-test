@@ -628,6 +628,12 @@ aws ecr get-login-password | docker login --username AWS --password-stdin $commo
 
                         analysis.record_inner_timestamps('dockerfile-builder', platform) {
                             sh """\
+lsb_release -a
+uname -a
+docker --version
+free -h
+df -h
+
 # Use BuildKit and a remote build cache to pull only the reuseable layers
 # from the last successful build for this platform
 DOCKER_BUILDKIT=1 docker build \

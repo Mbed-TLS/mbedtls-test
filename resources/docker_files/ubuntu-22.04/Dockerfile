@@ -38,7 +38,7 @@ RUN dpkg --add-architecture i386
 # Main apt-get call with all packages except those that have conflicts,
 # handled below. One big alphabetised list, in order to avoid duplicates, with
 # comments explaining why each package is needed.
-RUN apt-get update -q && apt-get install -yq \
+RUN apt-get -oDebug::pkgAcquire::Worker=1 -oDebug::RunScripts=1 update -q && apt-get install -yq \
         # for Mbed TLS tests
         abi-compliance-checker \
         # Note that there is a known issue #5332 that stock abi tools
