@@ -152,6 +152,7 @@ static List<JSONObject> gather_timestamps_since(ItemGroup project_root, long thr
                         if (pr) {
                             json.pr = pr as Integer
                         }
+                        json.result = build.result.toString()
                         ((JSONObject) json.subtasks).main = json.remove('main')
                         json.version = 1
                     }
@@ -166,7 +167,7 @@ static List<JSONObject> gather_timestamps_since(ItemGroup project_root, long thr
 void gather_timestamps() {
     stage('gather-timestamps') {
         def builds = gather_timestamps_since(currentBuild.rawBuild.parent.parent, currentBuild.startTimeInMillis - 24 * 60 * 60 * 1000)
-        def group_path = ['testCommit': null, 'job': null, 'branch': null, 'pr': -1, 'build': -1]
+        def group_path = ['testCommit': null, 'job': null, 'branch': null, 'pr': -1, 'build': -1, 'result': null]
         def ts_format = ['start', 'end', 'innerStart', 'innerEnd']
 
         List<String> records = [(group_path.keySet() + ['group', 'subtask'] + ts_format).join(',')]
