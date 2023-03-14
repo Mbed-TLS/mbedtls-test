@@ -34,6 +34,7 @@ import hudson.model.Job
 import hudson.model.Run
 import hudson.model.TaskListener
 import hudson.plugins.git.util.BuildData
+import jenkins.branch.MultiBranchProject
 import jenkins.util.BuildListenerAdapter
 import net.sf.json.JSONObject
 
@@ -117,14 +118,35 @@ void archive_strings(Map<String, String> artifacts) {
     }
 }
 
+// Gather the build information we store in timestamp files, and write it in a provided / new map
+@NonCPS
+static Map<String, Object> get_build_info(Run build, Map<String, Object> info=[:]) {
+    def data = build.getActions(BuildData).find({ data -> data.remoteUrls[0] =~ /mbedtls-test/ })
+    def project = build.parent
+    def group = project.parent
+    if (group instanceof MultiBranchProject) {
+        project = group
+    }
+    def env = build.getEnvironment(TaskListener.NULL)
+    def pr = env.CHANGE_ID
+
+    info.version = 1
+    info.testCommit = data.lastBuiltRevision.sha1String
+    info.job = project.name
+    info.branch = env.CHANGE_TARGET ?: env.MBED_TLS_BRANCH
+    if (pr) {
+        info.pr = pr as Integer
+    }
+    info.build = build.number
+    info.result = build.result?.toString() ?: 'SUCCESS'
+    return info
+}
+
 void archive_timestamps() {
     archive_strings([
-        'timestamps.json': JSONObject.fromObject([
-            job: currentBuild.fullProjectName,
-            build: currentBuild.number,
-            main: timestamps.remove('main'),
+        'timestamps.json': JSONObject.fromObject(get_build_info(currentBuild.rawBuild, [
             subtasks: timestamps
-        ]).toString()
+        ])).toString()
     ])
 }
 
@@ -153,18 +175,8 @@ static List<JSONObject> gather_timestamps_since(ItemGroup project_root, long thr
 
                     if (json.getOrDefault('version', 0) < 1) {
                         // Convert to version 1 format
-                        def data = build.getActions(BuildData).find({ data -> data.remoteUrls[0] =~ /mbedtls-test/ })
-                        def env = build.getEnvironment(TaskListener.NULL)
-                        def pr = env.CHANGE_ID
-                        json.testCommit = data.lastBuiltRevision.sha1String
-                        json.job = item.name
-                        json.branch = env.CHANGE_TARGET ?: env.MBED_TLS_BRANCH
-                        if (pr) {
-                            json.pr = pr as Integer
-                        }
-                        json.result = build.result.toString()
+                        get_build_info(build, json)
                         ((JSONObject) json.subtasks).main = json.remove('main')
-                        json.version = 1
                     }
                     builds.add(json)
                 }
