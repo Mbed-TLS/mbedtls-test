@@ -94,6 +94,7 @@ def gen_all_sh_jobs(platform, component, label_prefix='') {
         "ubuntu-16.04": "u16",
         "ubuntu-18.04": "u18",
         "ubuntu-20.04": "u20",
+        "ubuntu-22.04": "u22",
         "freebsd": "fbsd",
     ]
     /* Default to the full platform hame is a shorthand is not found */
