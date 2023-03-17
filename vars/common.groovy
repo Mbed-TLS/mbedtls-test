@@ -23,8 +23,6 @@ import groovy.transform.Field
 
 import com.cloudbees.groovy.cps.NonCPS
 import hudson.AbortException
-import hudson.triggers.TimerTrigger
-import org.jenkinsci.plugins.parameterizedscheduler.ParameterizedTimerTriggerCause
 
 /* Indicates if CI is running on Open CI (hosted on https://ci.trustedfirmware.org/) */
 @Field is_open_ci_env = env.JENKINS_URL ==~ /\S+(trustedfirmware)\S+/
@@ -348,17 +346,4 @@ Logs: ${env.BUILD_URL}
              subject: subject,
              to: recipients,
              mimeType: 'text/plain'
-}
-
-def run_release_jobs(name, jobs, failed_builds, coverage_details) {
-    def jobs_wrapped = wrap_report_errors(jobs)
-    jobs_wrapped.failFast = false
-    try {
-        parallel jobs_wrapped
-    } finally {
-        if (currentBuild.rawBuild.causes[0] instanceof ParameterizedTimerTriggerCause ||
-            currentBuild.rawBuild.causes[0] instanceof TimerTrigger.TimerTriggerCause) {
-            send_email(name, env.MBED_TLS_BRANCH, failed_builds, coverage_details)
-        }
-    }
 }
