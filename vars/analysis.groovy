@@ -80,11 +80,14 @@ void main_record_timestamps(String job_name, Callable<Void> body) {
         try {
             record_timestamps('main', job_name, body)
         } catch (exception) {
+            echo "Caught: $exception"
             /* If an exception has propagated this far without modifying the build result,
              * set it to FAILED, so that archive_timestamps() reports it correctly. */
+            echo "Result: $currentBuild.result"
             if (currentBuild.currentResult == 'SUCCESS') {
                 currentBuild.result = 'FAILED'
             }
+            echo "Result: $currentBuild.result"
             throw exception
         } finally {
             stage('archive-timestamps') {
