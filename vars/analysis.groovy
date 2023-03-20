@@ -79,6 +79,13 @@ void main_record_timestamps(String job_name, Callable<Void> body) {
     timestamps {
         try {
             record_timestamps('main', job_name, body)
+        } catch (exception) {
+            /* If an exception has propagated this far without modifying the build result,
+             * set it to FAILED, so that archive_timestamps() reports it correctly. */
+            if (currentBuild.currentResult == 'SUCCESS') {
+                currentBuild.result = 'FAILED'
+            }
+            throw exception
         } finally {
             stage('archive-timestamps') {
                 archive_timestamps()
