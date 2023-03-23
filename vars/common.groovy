@@ -181,6 +181,10 @@ docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS --rm --entrypoint $entrypoint \
 
 /* Get components of all.sh for a list of platforms*/
 def get_branch_information() {
+    if (all_all_sh_components) {
+        return
+    }
+
     node('container-host') {
         dir('src') {
             deleteDir()
