@@ -37,6 +37,7 @@ import hudson.plugins.git.util.BuildData
 import jenkins.branch.MultiBranchProject
 import jenkins.util.BuildListenerAdapter
 import net.sf.json.JSONObject
+import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
 import org.mbed.tls.jenkins.JobTimestamps
 
@@ -79,6 +80,10 @@ void main_record_timestamps(String job_name, Callable<Void> body) {
     timestamps {
         try {
             record_timestamps('main', job_name, body)
+        } catch (FlowInterruptedException exception) {
+            // If the job was interrupted / aborted, record the desired result instead of failure.
+            currentBuild.result = exception.result
+            throw exception
         } catch (exception) {
             /* If an exception has propagated this far without modifying the build result,
              * set it to FAILED, so that archive_timestamps() reports it correctly. */
