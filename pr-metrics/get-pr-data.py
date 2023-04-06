@@ -3,8 +3,9 @@
 
 """Get PR data from github and pickle it."""
 
-import pickle
 import os
+import requests.exceptions
+import time
 
 from github import Github
 
@@ -38,4 +39,13 @@ for p in prs:
         p.update()
 
 with open("pr-data.p", "wb") as f:
-    pickle.dump(prs, f)
+    for i, p in enumerate(prs):
+        for retry in range(0, 9):
+            try:
+                g.dump(p, f)
+                break
+            except requests.exceptions.ReadTimeout:
+                delay = 2 ** retry
+                print(f"timeout; sleeping {delay} s and retrying...")
+                time.sleep(2 ** delay)
+        print(f"saved {i+1}/{len(prs)}")
