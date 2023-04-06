@@ -12,7 +12,7 @@ from itertools import chain
 import matplotlib.pyplot as plt
 
 # Group PRs by age, according to these thresholds
-thresholds = [90, 365, 365 * 1000]
+thresholds = [15, 90, 180, 365, 365 * 1000]
 
 counters   = {t: Counter() for t in thresholds}
 
@@ -41,7 +41,10 @@ quarters = tuple(sorted(set(quarters)))
 
 buckets_y = {t: tuple(counters[t][q] for q in quarters) for t in thresholds}
 
-names = {t: f"<= {t} days" for t in thresholds}
+names = {t: None} #f"<= {t} days" for t in thresholds}
+names[thresholds[0]] = f"<= {thresholds[0]} days"
+for i in range(1, len(thresholds)):
+    names[thresholds[i]] = f"{thresholds[i-1] + 1}..{thresholds[i]} days"
 names[thresholds[-1]] = f"> {thresholds[-2]} days"
 
 width = 0.9
