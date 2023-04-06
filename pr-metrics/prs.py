@@ -100,8 +100,14 @@ def pr_dates():
         yield (beg, end, com)
 
 
-first = datetime.date(2015, 1, 1)
-last = datetime.date(2099, 12, 31)
+# default start date: 2020-01-01 (when we moved to tf.org)
+first = datetime.date(2020, 1, 1)
+# default end date: end of the previous quarter
+last = datetime.datetime.now().date()
+current_q = quarter(last)
+while quarter(last) == current_q:
+    last -= datetime.timedelta(days=1)
+# default start/end dates can be overriden from the environment
 if "PR_LAST_DATE" in os.environ:
     last_str = os.environ["PR_LAST_DATE"]
     last = datetime.datetime.strptime(last_str, "%Y-%m-%d").date()

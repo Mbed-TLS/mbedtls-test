@@ -6,22 +6,26 @@ Usage
 1. `./get-pr-data.py` - this takes a long time and requires the environment
    variable `GITHUB_API_TOKEN` to be set to a valid [github API
 token](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) (unauthenticated access to the API has a limit on the number or requests that is too low for our number of PRs). It generates `pr-data.p` with pickled data.
-2. `PR_LAST_DATE=20yy-mm-dd ./do.sh` - this works offline from the data in
+2. `./do.sh` - this works offline from the data in
    `pr-data.p` and generates a bunch of png and csv files.
 
-For example, the report for 22Q4 can be generated with:
+For example, the report for the last quarter can be generated with:
 ```
 ./get-pr-data.py # assuming GITHUB_API_TOKEN is set in the environement
-PR_LAST_DATE=2022-12-31 ./do.sh
+./do.sh
 ```
-The use of `PR_LAST_DATE` is mostly cosmectic in order to avoid including
-incomplete data about 23Q1 in the outputs.
+Note that the metric "median lifetime" is special in that it can't always be
+computed right after the quarter is over, it sometimes need more time to pass
+and/or more PRs from that quarter to be closed. In that case, the uncertain
+quarter(s) will shown with an error bar the png graph, and in the csv file an
+interval will be reported for the value(s) that can't be determined yet.
 
-Note that the usage the metric "median lifetime" is special in that it can't
-always be computed right after the quarter is over, it sometimes need more
-time to pass and/or more PRs from that quarter to be closed. In that case, the
-uncertain quarter(s) will be excluded from the png graph, and in the csv file
-an interval will be reported for the value(s) that can't be determined yet.
+By default, data extends from start of 2020 to end of the previous quarter. It
+is possible to change that range using environment variables, for example:
+```
+PR_FIRST_DATE=2016-01-01 PR_LAST_DATE=2022-12-32 ./do.sh
+```
+gives date from 2016 to 2022 included.
 
 Requirements
 ------------
