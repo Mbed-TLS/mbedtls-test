@@ -40,6 +40,7 @@ _team_logins = (
     "jarvte",
     "JoeSubbiani",
     "k-stachowiak",
+    "laumor01",
     "lpy4105",
     "lukgni",
     "mazimkhan",
