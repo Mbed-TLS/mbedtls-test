@@ -42,14 +42,15 @@ med_all_lo = tuple(median(lifetimes_all_lo[q]) for q in quarters)
 med_com_hi = tuple(median(lifetimes_com_hi[q]) for q in quarters)
 med_com_lo = tuple(median(lifetimes_com_lo[q]) for q in quarters)
 
-# skip uncertain quarters in the graph
-i = len(quarters)
-while med_all_hi[i - 1] != med_all_lo[i - 1] or med_com_hi[i - 1] != med_com_lo[i - 1]:
-    i -= 1
+l = len(quarters)
+med_all = tuple((med_all_hi[i] + med_all_lo[i]) / 2 for i in range(l))
+med_com = tuple((med_com_hi[i] + med_com_lo[i]) / 2 for i in range(l))
+err_all = tuple((med_all_hi[i] - med_all_lo[i]) / 2 for i in range(l))
+err_com = tuple((med_com_hi[i] - med_com_lo[i]) / 2 for i in range(l))
 
 fig, ax = plt.subplots()
-ax.plot(quarters[:i], med_all_hi[:i], "b-", label="median overall")
-ax.plot(quarters[:i], med_com_hi[:i], "r-", label="median community")
+ax.errorbar(quarters, med_all, yerr=err_all, fmt="b-", ecolor="r", label="median overall")
+ax.errorbar(quarters, med_com, yerr=err_com, fmt="g-", ecolor="r", label="median community")
 ax.legend(loc="upper right")
 ax.grid(True)
 ax.set_xlabel("quarter")
