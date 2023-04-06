@@ -55,10 +55,10 @@ for t in reversed(thresholds):
     prev_tops = [a + b for a,b in zip(prev_tops, buckets_y[t])]
 ax.legend(loc="upper left")
 ax.grid(True)
-ax.set_xlabel("quarter")
-ax.set_ylabel("Number or PRs pending")
+#ax.set_xlabel("quarter")
+ax.set_ylabel("Open PR count")
 ax.tick_params(axis="x", labelrotation=90)
-fig.suptitle("State of the PR backlog at the end of each quarter")
+fig.suptitle("Open PR count, broken down by PR age")
 fig.set_size_inches(12.8, 7.2)  # default 100 dpi -> 720p
 fig.savefig("prs-backlog.png")
 

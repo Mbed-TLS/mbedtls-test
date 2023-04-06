@@ -91,7 +91,7 @@ def is_community(pr):
 def quarter(date):
     """Return a string decribing this date's quarter, for example 19q3."""
     q = str(date.year % 100)
-    q += "q"
+    q += " Q"
     q += str((date.month + 2) // 3)
     return q
 
