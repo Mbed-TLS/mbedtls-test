@@ -317,7 +317,6 @@ done
 """
     archiveArtifacts(
         artifacts: '*.log.xz',
-        fingerprint: true,
         allowEmptyArchive: true
     )
 }

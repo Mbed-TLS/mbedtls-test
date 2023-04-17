@@ -260,7 +260,6 @@ fi
     } finally {
         sh 'xz outcomes.csv'
         archiveArtifacts(artifacts: 'outcomes.csv.xz, failures.csv*',
-                         fingerprint: true,
                          allowEmptyArchive: true)
     }
 }
