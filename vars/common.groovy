@@ -308,13 +308,25 @@ def maybe_notify_github(context, state, description) {
 }
 
 def archive_zipped_log_files(job_name) {
-    sh """\
-for i in *.log; do
-    [ -f "\$i" ] || break
-    mv "\$i" "$job_name-\$i"
-    xz "$job_name-\$i"
-done
+    writeFile file: 'xz_log_files.py', text: """
+import lzma
+import os
+
+for file in os.scandir():
+    if file.name.endswith('.log') and file.is_file():
+        file_xz = file.name + '.xz'
+        if not file.name.startswith('$job_name'):
+            file_xz = '{}-{}'.format('$job_name', file_xz)
+        with open(file, 'rb') as log, lzma.open(file_xz, 'wb') as xz:
+            while xz.write(log.read(1024 * 1024)):
+                pass
+        os.remove(file)
 """
+    if (isUnix()) {
+        sh 'python3 xz_log_files.py'
+    } else {
+        bat 'python xz_log_files.py'
+    }
     archiveArtifacts(
         artifacts: '*.log.xz',
         allowEmptyArchive: true

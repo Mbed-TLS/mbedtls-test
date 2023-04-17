@@ -188,7 +188,7 @@ class MbedWindowsTesting(object):
         logger = logging.getLogger(name)
         logger.setLevel(level)
         logger.addHandler(file_handler)
-        logger.addHandler(console)
+#       logger.addHandler(console)
         return logger
 
     def get_clean_worktree_for_git_reference(self, logger):
@@ -294,7 +294,7 @@ class MbedWindowsTesting(object):
         by parsing the output for any test failures."""
         log_name = "MinGW"
         mingw_logger = self.setup_logger(
-            log_name, os.path.join(self.log_dir, log_name + ".txt")
+            log_name, os.path.join(self.log_dir, log_name + ".log")
         )
         git_worktree_path = None
         try:
@@ -562,7 +562,7 @@ class MbedWindowsTesting(object):
             solution_type
         )
         vs_logger = self.setup_logger(
-            log_name, os.path.join(self.log_dir, log_name + ".txt")
+            log_name, os.path.join(self.log_dir, log_name + ".log")
         )
         git_worktree_path = None
         try:
@@ -629,7 +629,7 @@ class MbedWindowsTesting(object):
     def log_results(self):
         result_logger = self.setup_logger(
             "Results",
-            os.path.join(self.log_dir, "results.txt")
+            os.path.join(self.log_dir, "results.log")
         )
         total_test_runs = 0
         successful_test_runs = 0

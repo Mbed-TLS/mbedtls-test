@@ -49,7 +49,11 @@ Map<String, Callable<Void>> gen_simple_windows_jobs(String label, String script)
                 timeout(time: common.perJobTimeout.time,
                         unit: common.perJobTimeout.unit) {
                     analysis.record_inner_timestamps('windows', label) {
-                        bat script
+                        bat """
+(
+${script}
+) >"tests\\${label}.log" 2>&1
+"""
                     }
                 }
             }
@@ -57,6 +61,9 @@ Map<String, Callable<Void>> gen_simple_windows_jobs(String label, String script)
             failed_builds[label] = true
             throw (err)
         } finally {
+            dir('src/tests') {
+                common.archive_zipped_log_files(label)
+            }
             deleteDir()
         }
     }
@@ -161,11 +168,13 @@ scripts/min_requirements.py --user
                 checkout_repo.checkout_repo()
                 writeFile file: 'steps.sh', text: """\
 #!/bin/sh
+{
 set -eux
 ulimit -f 20971520
 export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv'
 ${extra_setup_code}
 ./tests/scripts/all.sh --seed 4 --keep-going $component
+} >'tests/${job_name}.log' 2>&1
 """
                 sh 'chmod +x steps.sh'
             }
@@ -248,6 +257,9 @@ def gen_windows_testing_job(build, label_prefix='') {
             failed_builds[job_name] = true
             throw (err)
         } finally {
+            dir('logs') {
+                common.archive_zipped_log_files(job_name)
+            }
             deleteDir()
         }
     }
@@ -287,6 +299,7 @@ def gen_abi_api_checking_job(platform) {
                 }
                 writeFile file: 'steps.sh', text: """\
 #!/bin/sh
+{
 set -eux
 ulimit -f 20971520
 
@@ -296,6 +309,7 @@ fi
 
 tests/scripts/list-identifiers.sh --internal
 scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
+} >'tests/${job_name}.log' 2>&1
 """
                 sh 'chmod +x steps.sh'
             }
@@ -311,6 +325,9 @@ scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
             failed_builds[job_name] = true
             throw (err)
         } finally {
+            dir('src/tests/') {
+                common.archive_zipped_log_files(job_name)
+            }
             deleteDir()
         }
     }
@@ -324,7 +341,8 @@ def gen_code_coverage_job(platform) {
             common.get_docker_image(platform)
             dir('src') {
                 checkout_repo.checkout_repo()
-                writeFile file: 'steps.sh', text: '''#!/bin/sh
+                writeFile file: 'steps.sh', text: """#!/bin/sh
+{
 set -eux
 ulimit -f 20971520
 
@@ -337,13 +355,14 @@ if grep -q -F coverage-summary.txt tests/scripts/basic-build-test.sh; then
 ./tests/scripts/basic-build-test.sh
 else
 # Old basic-build-test, only prints the coverage summary to stdout
-{ stdbuf -oL ./tests/scripts/basic-build-test.sh 2>&1; echo $?; } |
+{ stdbuf -oL ./tests/scripts/basic-build-test.sh 2>&1; echo \$?; } |
   tee basic-build-test.log
-[ "$(tail -n1 basic-build-test.log)" -eq 0 ]
-sed -n '/^Test Report Summary/,$p' basic-build-test.log >coverage-summary.txt
+[ "\$(tail -n1 basic-build-test.log)" -eq 0 ]
+sed -n '/^Test Report Summary/,\$p' basic-build-test.log >coverage-summary.txt
 rm basic-build-test.log
 fi
-'''
+} >'tests/${job_name}.log' 2>&1
+"""
                 sh 'chmod +x steps.sh'
             }
             timeout(time: common.perJobTimeout.time,
