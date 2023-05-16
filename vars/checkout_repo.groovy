@@ -18,11 +18,16 @@
  */
 
 def checkout_repo() {
-    if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
-        checkout scm
-    } else {
-        checkout_parametrized_repo(MBED_TLS_REPO, MBED_TLS_BRANCH)
+    def git = null
+    def cache = "$env.WORKSPACE/../../mbedtls-git-cache/mbedtls"
+    dir(cache) {
+        if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
+            git = checkout scm
+        } else {
+            git = checkout_parametrized_repo(env.MBED_TLS_REPO, env.MBED_TLS_BRANCH)
+        }
     }
+    checkout_parametrized_repo(git.GIT_URL, git.GIT_BRANCH, cache)
 }
 
 def checkout_mbed_os_example_repo(repo, branch) {
@@ -33,8 +38,8 @@ def checkout_mbed_os_example_repo(repo, branch) {
     }
 }
 
-def checkout_parametrized_repo(repo, branch) {
-    checkout([
+Map<String, String> checkout_parametrized_repo(String repo, String branch, String reference=null) {
+    return checkout([
         scm: [
             $class: 'GitSCM',
             userRemoteConfigs: [[
@@ -45,7 +50,7 @@ def checkout_parametrized_repo(repo, branch) {
             ]],
             branches: [[name: branch]],
             extensions: [
-                [$class: 'CloneOption', timeout: 60, honorRefspec: true],
+                [$class: 'CloneOption', timeout: 60, honorRefspec: true, reference: reference],
                 [$class: 'SubmoduleOption', recursiveSubmodules: true],
                 [$class: 'LocalBranch', localBranch: '**'],
             ],
