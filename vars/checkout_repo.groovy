@@ -17,12 +17,29 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+import hudson.plugins.git.GitSCM
+
 def checkout_repo() {
-    if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
-        checkout scm
-    } else {
-        checkout parametrized_repo(MBED_TLS_REPO, MBED_TLS_BRANCH)
+    def git_scm = null
+    def cache = "$env.WORKSPACE/../../mbedtls-git-cache/mbedtls"
+    dir(cache) {
+        if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
+            git_scm = scm
+        } else {
+            git_scm = parametrized_repo(env.MBED_TLS_REPO, env.MBED_TLS_BRANCH)
+        }
+        checkout git_scm
     }
+    checkout([
+        $class: 'GitSCM',
+        userRemoteConfigs: [[
+            name: 'cache',
+            url: cache,
+            refspec: '+refs/remotes/origin/*:refs/remotes/cache/* +refs/pull/*:refs/pull/*'
+        ]] + git_scm.userRemoteConfigs,
+        branches: git_scm.branches,
+        extensions: git_scm.extensions
+    ])
 }
 
 def checkout_mbed_os_example_repo(repo, branch) {
