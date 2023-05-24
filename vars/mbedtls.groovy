@@ -17,12 +17,7 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
-import hudson.model.Item
 import hudson.triggers.TimerTrigger
-import jenkins.branch.BranchIndexingCause
-import jenkins.scm.api.SCMSource
-import org.jenkinsci.plugins.github_branch_source.Connector
-import org.jenkinsci.plugins.github_branch_source.GitHubSCMSource
 import org.jenkinsci.plugins.parameterizedscheduler.ParameterizedTimerTriggerCause
 
 def run_tls_tests(label_prefix='') {
@@ -84,61 +79,6 @@ def run_pr_job(is_production=true) {
                         )
                     )
                 ])
-            }
-
-            /* During the nightly branch indexing, if a target branch has been
-            * updated, new merge jobs are triggered for each PR to that branch.
-            * If a PR hasn't been updated recently enough, don't run the merge
-            * job for that PR.
-            */
-            if (env.BRANCH_NAME ==~ /PR-\d+-merge/) {
-                long upd_timestamp_ms = 0L
-                long now_timestamp_ms = currentBuild.startTimeInMillis
-                try {
-                    if (currentBuild.rawBuild.causes[0] instanceof BranchIndexingCause) {
-                        /* Try to retrieve the update timestamp from the previous run. */
-                        upd_timestamp_ms = (currentBuild.previousBuild?.buildVariables?.UPD_TIMESTAMP_MS ?: 0L) as long
-                        echo "Previous update timestamp: ${new Date(upd_timestamp_ms)}"
-
-                        /* current threshold is 2 days */
-                        long threshold_ms = 2L * 24L * 60L * 60L * 1000L
-
-                        if (now_timestamp_ms - upd_timestamp_ms > threshold_ms) {
-                            /* Check the time of the latest review */
-                            def src = (GitHubSCMSource) SCMSource.SourceByItem.findSource(currentBuild.rawBuild.parent)
-                            def cred = Connector.lookupScanCredentials((Item) src.owner, src.apiUri, src.credentialsId)
-
-                            def gh = Connector.connect(src.apiUri, cred)
-                            def pr = gh.getRepository("$src.repoOwner/$src.repository").getPullRequest(env.CHANGE_ID as int)
-
-                            try {
-                                long review_timestamp_ms = pr.listReviews().last().submittedAt.time
-                                echo "Latest review timestamp: ${new Date(review_timestamp_ms)}"
-                                upd_timestamp_ms = Math.max(review_timestamp_ms, upd_timestamp_ms)
-                            } catch (NoSuchElementException err) {
-                                /* No reviews */
-                            }
-
-                            if (upd_timestamp_ms == 0L) {
-                                /* Fall back to updatedAt */
-                                upd_timestamp_ms = pr.updatedAt.time
-                                echo "PR updatedAt timestamp: ${new Date(upd_timestamp_ms)}"
-                            }
-                        }
-
-                        if (now_timestamp_ms - upd_timestamp_ms > threshold_ms) {
-                            currentBuild.result = 'NOT_BUILT'
-                            error("Pre Test Checks did not run: PR was last updated on ${new Date(upd_timestamp_ms)}.")
-                        }
-                    } else {
-                        /* Job triggered manually, or by pushing the branch. Update the timestamp */
-                        upd_timestamp_ms = now_timestamp_ms
-                    }
-                } finally {
-                    /* Record the update timestamp in the environment, so it can be retrieved by the next run */
-                    env.UPD_TIMESTAMP_MS = upd_timestamp_ms
-                    echo "UPD_TIMESTAMP_MS=$env.UPD_TIMESTAMP_MS (${new Date(upd_timestamp_ms)})"
-                }
             }
 
             common.maybe_notify_github "Pre Test Checks", 'PENDING',
