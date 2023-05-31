@@ -45,7 +45,7 @@ Map<String, String> checkout_parametrized_repo(String repo, String branch, Strin
             userRemoteConfigs: [[
                 name: 'origin',
                 url: repo,
-                refspec: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*:refs/pull/*',
+                refspec: '+refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +refs/pull/*:refs/pull/*',
                 credentialsId: env.GIT_CREDENTIALS_ID
             ]],
             branches: [[name: branch]],
