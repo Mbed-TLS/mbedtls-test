@@ -42,7 +42,7 @@ RUN apt-get update -q && apt-get install -yq \
         # for Mbed TLS tests
         abi-compliance-checker \
         # Note that there is a known issue #5332 that stock abi tools
-        # in ubuntu20.04 do not fail as expected. 
+        # in ubuntu20.04 do not fail as expected.
         # https://github.com/ARMmbed/mbedtls/issues/5332
         # Do not activae 20.04 until that is resolved
         # to use with abi-compliance-tester
@@ -95,6 +95,8 @@ RUN apt-get update -q && apt-get install -yq \
         zlib1g \
         # to build Mbed TLS with MBEDTLS_ZILIB_SUPPORT (removed in 3.0)
         zlib1g-dev \
+        # to run tests in specific time.
+        faketime \
     && rm -rf /var/lib/apt/lists/
 
 # Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
