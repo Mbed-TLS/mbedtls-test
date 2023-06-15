@@ -19,7 +19,7 @@
 
 def checkout_repo() {
     def git = null
-    def cache = "$env.WORKSPACE/../../mbedtls-git-cache/mbedtls"
+    def cache = '/tmp/mbedtls-git-cache/mbedtls'
     dir(cache) {
         if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
             git = checkout scm
