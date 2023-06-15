@@ -33,7 +33,7 @@ WORKDIR /opt/src
 ENV HOME=/var/lib/builds
 
 # Support for i386, for 32-bit builds+tests of Mbed TLS
-RUN [ `uname -m` != x86_64 ] || dpkg --add-architecture i386
+RUN if [ "$(uname -m)" = x86_64 ]; then dpkg --add-architecture i386; fi
 
 # Main apt-get call with all packages except those that have conflicts,
 # handled below. One big alphabetised list, in order to avoid duplicates, with
@@ -88,14 +88,15 @@ RUN apt-get update -q && apt-get install -yq \
         # Install tools for apply debian patch
         debhelper  autotools-dev \
     # x86_64 only packages
-    && ( [ `uname -m` != x86_64 ] || apt-get install -yq \
+    && if [ "$(uname -m)" = x86_64 ]; then apt-get install -yq \
         # for 32-bit Mbed TLS testing
         libc6-i386 \
         # for 32-bit Mbed TLS testing
         libc6:i386 \
         # to test 32-bit C++ linkage (not done at the time of writing)
         libstdc++6:i386 \
-       ) \
+        ; \
+    fi \
     && rm -rf /var/lib/apt/lists/
 
 # Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
@@ -106,13 +107,13 @@ RUN apt-get update -q && apt-get install -yq \
 # (without that symlink, 32-bit builds won't find system headers). Note that
 # just installing the dependencies of gcc-multilib also brings in gcc-multilib
 # as a Recommends dependency.
-RUN [ `uname -m` != x86_64 ] || \
-    ( apt-get update -q && apt-get install -yq \
-        gcc-multilib \
-      && rm -rf /var/lib/apt/lists/ && \
-      dpkg -r gcc-multilib && \
-      ln -s x86_64-linux-gnu/asm /usr/include/asm \
-    )
+RUN if [ "$(uname -m)" = x86_64 ]; then \
+        apt-get update -q && apt-get install -yq \
+            gcc-multilib \
+        && rm -rf /var/lib/apt/lists/ && \
+        dpkg -r gcc-multilib && \
+        ln -s x86_64-linux-gnu/asm /usr/include/asm; \
+    fi
 
 # Install arm-linux-gnueabi-gcc - to cross-build Mbed TLS
 RUN apt-get update -q && apt-get install -yq \
@@ -121,11 +122,11 @@ RUN apt-get update -q && apt-get install -yq \
     && rm -rf /var/lib/apt/lists/
 
 # Install arm-none-eabi-gcc
-RUN [ `uname -m` != x86_64 ] || \
-    ( wget -q https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -O gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 && \
-      tar -xjf gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -C /opt && \
-      rm gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 \
-    )
+RUN if [ "$(uname -m)" = x86_64 ]; then \
+        wget -q https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -O gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 && \
+        tar -xjf gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -C /opt && \
+        rm gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2; \
+    fi
 
 ENV PATH=/opt/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH
 
@@ -193,12 +194,10 @@ ENV PATH=/usr/local/gnutls-3.4.10/bin:$PATH
 RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-2.7.1.tar.gz && \
     tar -zxf nettle-2.7.1.tar.gz && cd nettle-2.7.1 && \
     # Patch the source code on aarch64
-    ( [ `uname -m` != aarch64 ] || \
-         ( set -e ; \
-              wget https://launchpad.net/~ubuntu-security-proposed/+archive/ubuntu/ppa/+sourcefiles/nettle/2.7.1-1ubuntu0.2/nettle_2.7.1-1ubuntu0.2.debian.tar.gz -qO- | tar xz; \
-              dpkg-buildpackage -us -uc -b -Tconfig.status; \
-         ) \
-       ) && \
+    if [ "$(uname -m)" = aarch64 ]; then \
+        wget https://launchpad.net/~ubuntu-security-proposed/+archive/ubuntu/ppa/+sourcefiles/nettle/2.7.1-1ubuntu0.2/nettle_2.7.1-1ubuntu0.2.debian.tar.gz -qO- | tar xz && \
+        dpkg-buildpackage -us -uc -b -Tconfig.status; \
+    fi && \
     ./configure --prefix=/usr/local/libnettle-2.7.1 --exec_prefix=/usr/local/libnettle-2.7.1  --disable-shared --disable-openssl && \
     make && make install && cd .. && rm -rf nettle-2.7.1* && \
     export PKG_CONFIG_PATH=/usr/local/libnettle-2.7.1/lib/pkgconfig:/usr/local/libnettle-2.7.1/lib64/pkgconfig:/usr/local/lib/pkgconfig && \
