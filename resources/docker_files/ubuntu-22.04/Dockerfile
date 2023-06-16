@@ -47,6 +47,8 @@ RUN apt-get update -q && apt-get install -yq \
         # Do not activae 22.04 until that is resolved
         # to use with abi-compliance-tester
         abi-dumper \
+        # to update the autoconf files in nettle 2.7 with support for aarch64
+        autotools-dev \
         # to build Mbed TLS: gcc, binutils, make, etc.
         build-essential \
         # to build Mbed TLS
@@ -91,8 +93,6 @@ RUN apt-get update -q && apt-get install -yq \
         zlib1g \
         # to build Mbed TLS with MBEDTLS_ZILIB_SUPPORT (removed in 3.0)
         zlib1g-dev \
-        # Install tools for apply debian patch
-        debhelper  autotools-dev \
     # x86_64 only packages
     && if [ "$(uname -m)" = x86_64 ]; then apt-get install -yq \
         # for 32-bit Mbed TLS testing
@@ -198,11 +198,9 @@ ENV PATH=/usr/local/gnutls-3.4.10/bin:$PATH
 # Install Gnu TLS 3.3.8 (nettle 2.7) - "legacy" version
 RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-2.7.1.tar.gz && \
     tar -zxf nettle-2.7.1.tar.gz && cd nettle-2.7.1 && \
-    # Patch the source code on aarch64
-    if [ "$(uname -m)" = aarch64 ]; then \
-        wget https://launchpad.net/~ubuntu-security-proposed/+archive/ubuntu/ppa/+sourcefiles/nettle/2.7.1-1ubuntu0.2/nettle_2.7.1-1ubuntu0.2.debian.tar.gz -qO- | tar xz && \
-        dpkg-buildpackage -us -uc -b -Tconfig.status; \
-    fi && \
+    # Update autoconf to support building on aarch64
+    cp -f /usr/share/misc/config.sub . && \
+    cp -f /usr/share/misc/config.guess . && \
     ./configure --prefix=/usr/local/libnettle-2.7.1 --exec_prefix=/usr/local/libnettle-2.7.1  --disable-shared --disable-openssl && \
     make && make install && cd .. && rm -rf nettle-2.7.1* && \
     export PKG_CONFIG_PATH=/usr/local/libnettle-2.7.1/lib/pkgconfig:/usr/local/libnettle-2.7.1/lib64/pkgconfig:/usr/local/lib/pkgconfig && \
