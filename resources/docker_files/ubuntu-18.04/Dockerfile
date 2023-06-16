@@ -115,9 +115,10 @@ RUN if [ "$(uname -m)" = x86_64 ]; then \
         ln -s x86_64-linux-gnu/asm /usr/include/asm; \
     fi
 
-# Install arm-linux-gnueabi-gcc - to cross-build Mbed TLS
+# Install arm-linux-gnueabi-gcc and arm-none-eabi-gcc - to cross-build Mbed TLS
 RUN apt-get update -q && apt-get install -yq \
         gcc-arm-linux-gnueabi \
+        gcc-arm-none-eabi \
         libc6-dev-armel-cross \
     && rm -rf /var/lib/apt/lists/
 
@@ -127,15 +128,6 @@ RUN wget -q https://github.com/lvc/abi-compliance-checker/archive/2.3.tar.gz && 
     tar -zxf 2.3.tar.gz && cd abi-compliance-checker-2.3 && \
     make clean && make && make install prefix=/usr && cd .. && \
     rm -rf abi-compliance-checker* && rm 2.3.tar.gz
-
-# Install arm-none-eabi-gcc
-RUN if [ "$(uname -m)" = x86_64 ]; then \
-        wget -q https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -O gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 && \
-        tar -xjf gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -C /opt && \
-        rm gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2; \
-    fi
-
-ENV PATH=/opt/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH
 
 # Install exact upstream versions of OpenSSL and GnuTLS
 #
