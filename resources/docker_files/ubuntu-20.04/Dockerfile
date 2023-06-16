@@ -55,6 +55,8 @@ RUN apt-get update -q && apt-get install -yq \
         cmake \
         # to build Mbed TLS's documentation
         doxygen \
+        # to run tests in specific time.
+        faketime \
         # to cross-build Mbed TLS
         gcc-mingw-w64-i686 \
         # to check out Mbed TLS and others
@@ -95,8 +97,6 @@ RUN apt-get update -q && apt-get install -yq \
         zlib1g \
         # to build Mbed TLS with MBEDTLS_ZILIB_SUPPORT (removed in 3.0)
         zlib1g-dev \
-        # to run tests in specific time.
-        faketime \
     && rm -rf /var/lib/apt/lists/
 
 # Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
