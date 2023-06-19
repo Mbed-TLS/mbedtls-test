@@ -17,17 +17,37 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+import hudson.plugins.git.extensions.impl.CloneOption
+
+static Map<String, Object> bean_to_map(Object bean) {
+    def map = bean.properties
+    map['$class'] = ((Class) map.remove('class')).name
+    return map
+}
+
 def checkout_repo() {
-    def git = null
     def cache = '/tmp/mbedtls-git-cache/mbedtls'
-    dir(cache) {
-        if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
-            git = checkout scm
-        } else {
-            git = checkout_parametrized_repo(env.MBED_TLS_REPO, env.MBED_TLS_BRANCH)
+    if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
+        dir(cache) {
+            checkout scm
         }
+        def cache_scm = bean_to_map(scm)
+        cache_scm.extensions = cache_scm.extensions.collect { extension ->
+            if (extension instanceof CloneOption) {
+                def opt = bean_to_map(extension)
+                opt.reference = cache
+                return opt
+            } else {
+                return extension
+            }
+        }
+        checkout cache_scm
+    } else {
+        dir(cache) {
+            checkout_parametrized_repo(env.MBED_TLS_REPO, env.MBED_TLS_BRANCH)
+        }
+        checkout_parametrized_repo(env.MBED_TLS_REPO, env.MBED_TLS_BRANCH, cache)
     }
-    checkout_parametrized_repo(git.GIT_URL, git.GIT_BRANCH, cache)
 }
 
 def checkout_mbed_os_example_repo(repo, branch) {
