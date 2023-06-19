@@ -41,6 +41,7 @@ def checkout_repo() {
                 return extension
             }
         }
+        echo "$cache_scm"
         checkout cache_scm
     } else {
         dir(cache) {
