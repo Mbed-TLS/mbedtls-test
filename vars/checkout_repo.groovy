@@ -32,15 +32,7 @@ def checkout_repo() {
             checkout scm
         }
         def cache_scm = bean_to_map(scm)
-        cache_scm.extensions = cache_scm.extensions.collect { extension ->
-            if (extension instanceof CloneOption) {
-                def opt = bean_to_map(extension)
-                opt.reference = cache
-                return opt
-            } else {
-                return extension
-            }
-        }
+        cache_scm.extensions = cache_scm.extensions + [[$class: 'CloneOption', honorRefspec: true, reference: cache]]
         echo "$cache_scm"
         checkout cache_scm
     } else {
