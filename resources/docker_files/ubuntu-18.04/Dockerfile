@@ -33,7 +33,10 @@ WORKDIR /opt/src
 ENV HOME=/var/lib/builds
 
 # Support for i386, for 32-bit builds+tests of Mbed TLS
-RUN if [ "$(uname -m)" = x86_64 ]; then dpkg --add-architecture i386; fi
+RUN case "$(uname -m)" in \
+        x86_64)  dpkg --add-architecture i386;; \
+        aarch64) dpkg --add-architecture armhf;; \
+    esac
 
 # Main apt-get call with all packages except those that have conflicts,
 # handled below. One big alphabetised list, in order to avoid duplicates, with
@@ -87,17 +90,25 @@ RUN apt-get update -q && apt-get install -yq \
         zlib1g \
         # to build Mbed TLS with MBEDTLS_ZILIB_SUPPORT (removed in 3.0)
         zlib1g-dev \
-    # x86_64 only packages
-    && if [ "$(uname -m)" = x86_64 ]; then apt-get install -yq \
-        # for 32-bit Mbed TLS testing
-        libc6-i386 \
-        # for 32-bit Mbed TLS testing
-        libc6:i386 \
-        # to test 32-bit C++ linkage (not done at the time of writing)
-        libstdc++6:i386 \
-       ; \
-    fi \
-    && rm -rf /var/lib/apt/lists/
+    && case "$(uname -m)" in \
+        # x86_64 only packages
+        x86_64) apt-get install -yq \
+            # for 32-bit Mbed TLS testing
+            libc6-i386 \
+            # for 32-bit Mbed TLS testing
+            libc6:i386 \
+            # to test 32-bit C++ linkage (not done at the time of writing)
+            libstdc++6:i386 \
+            ;; \
+        # aarch64 only packages
+        aarch64) apt-get install -yq \
+            # for 32-bit Mbed TLS testing
+            libc6:armhf \
+            # to test 32-bit C++ linkage (not done at the time of writing)
+            libstdc++6:armhf \
+            ;; \
+    esac && \
+    rm -rf /var/lib/apt/lists/
 
 # Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
 # gcc-multilib conflicts with cross-compiler packages that we'll install later,
