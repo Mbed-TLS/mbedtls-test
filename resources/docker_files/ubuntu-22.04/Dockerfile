@@ -133,7 +133,16 @@ RUN if [ "$(uname -m)" = x86_64 ]; then \
     fi
 
 # Install arm-linux-gnueabi-gcc and arm-none-eabi-gcc - to cross-build Mbed TLS
-RUN apt-get update -q && apt-get install -yq \
+RUN if [ "$(uname -m)" = aarch64 ]; then \
+        # HACK: Ubuntu doesn't provide an armel port for Thumb-1 testing, so link
+        #       the cross-compiler's libraries into the standard multiarch location.
+        #       We need to create and link this directory first due to the /usr merge
+        #       from Ubuntu 19.04 onward.
+        mkdir -p /usr/arm-linux-gnueabi/lib && \
+        ln -s /usr/arm-linux-gnueabi/lib /lib/arm-linux-gnueabi && \
+        ln -s arm-linux-gnueabi/ld-linux.so.3 /lib/ld-linux.so.3; \
+    fi && \
+    apt-get update -q && apt-get install -yq \
         gcc-arm-linux-gnueabi \
         gcc-arm-none-eabi \
         libc6-dev-armel-cross \

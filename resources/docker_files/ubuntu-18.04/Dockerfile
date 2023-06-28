@@ -131,7 +131,13 @@ RUN apt-get update -q && apt-get install -yq \
         gcc-arm-linux-gnueabi \
         gcc-arm-none-eabi \
         libc6-dev-armel-cross \
-    && rm -rf /var/lib/apt/lists/
+    && rm -rf /var/lib/apt/lists/ && \
+    if [ "$(uname -m)" = aarch64 ]; then \
+        # HACK: Ubuntu doesn't provide an armel port for Thumb-1 testing, so link
+        #       the cross-compiler's libraries into the standard multiarch location.
+        ln -s /usr/arm-linux-gnueabi/lib /lib/arm-linux-gnueabi && \
+        ln -s arm-linux-gnueabi/ld-linux.so.3 /lib/ld-linux.so.3; \
+    fi
 
 # Install abi-compliance-checker
 # The version in Ubuntu 18.04 is too old, we want at least the version below
