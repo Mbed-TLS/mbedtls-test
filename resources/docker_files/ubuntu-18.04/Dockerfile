@@ -32,7 +32,7 @@ WORKDIR /opt/src
 # destination for installing python dependencies
 ENV HOME=/var/lib/builds
 
-# Support for i386, for 32-bit builds+tests of Mbed TLS
+# Support for 32-bit builds+tests of Mbed TLS
 RUN case "$(uname -m)" in \
         x86_64)  dpkg --add-architecture i386;; \
         aarch64) dpkg --add-architecture armhf;; \
