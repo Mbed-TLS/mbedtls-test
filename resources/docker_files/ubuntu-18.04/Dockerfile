@@ -87,6 +87,8 @@ RUN apt-get update -q && apt-get install -yq \
         valgrind \
         # to download things installed from other places
         wget \
+        # for data file generating
+        xxd \
         # to build Mbed TLS with MBEDTLS_ZILIB_SUPPORT (removed in 3.0)
         zlib1g \
         # to build Mbed TLS with MBEDTLS_ZILIB_SUPPORT (removed in 3.0)

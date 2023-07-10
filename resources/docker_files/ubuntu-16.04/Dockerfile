@@ -85,6 +85,8 @@ RUN apt-get update -q && apt-get install -yq \
         python3-pip \
         # for Mbed TLS tests
         valgrind \
+        # for data files generating. xxd is provide by vim
+        vim \
         # to download things installed from other places
         wget \
         # to build Mbed TLS with MBEDTLS_ZILIB_SUPPORT (removed in 3.0)
