@@ -165,7 +165,7 @@ set -eux
 ulimit -f 20971520
 export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv'
 ${extra_setup_code}
-./tests/scripts/all.sh --seed 4 --keep-going $component
+./tests/scripts/all.sh --seed 4 --keep-going ${env.ALL_SH_OPTIONS} $component
 """
                 sh 'chmod +x steps.sh'
             }

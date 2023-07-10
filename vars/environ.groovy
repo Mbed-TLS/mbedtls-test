@@ -24,6 +24,9 @@ def set_common_environment() {
      * avoid that. Do somewhat parallel builds, not just sequential builds,
      * so that the CI has a chance to detect related makefile bugs. */
     env.MAKEFLAGS = '-j2'
+    if (env.ECP_WITH_NEW_BIGNUM_INTERFACE) {
+        env.ALL_SH_OPTIONS = '--new-bignum-interface'
+    }
 }
 
 def set_tls_pr_environment(is_production) {
