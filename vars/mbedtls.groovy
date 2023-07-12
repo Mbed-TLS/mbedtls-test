@@ -36,8 +36,6 @@ def run_tls_tests(label_prefix='') {
         analysis.record_inner_timestamps('main', 'run_pr_job') {
             parallel jobs
         }
-        common.maybe_notify_github "TLS Testing", 'SUCCESS',
-                                   'All tests passed'
     } catch (err) {
         def failed_names = gen_jobs.failed_builds.keySet().sort().join(" ")
         echo "Caught: ${err}"
@@ -81,11 +79,7 @@ def run_pr_job(is_production=true) {
                 ])
             }
 
-            common.maybe_notify_github "Pre Test Checks", 'PENDING',
-                                       'Checking if all PR tests can be run'
             common.maybe_notify_github "TLS Testing", 'PENDING',
-                                       'In progress'
-            common.maybe_notify_github "Result analysis", 'PENDING',
                                        'In progress'
 
             common.init_docker_images()
@@ -94,19 +88,14 @@ def run_pr_job(is_production=true) {
                 environ.set_tls_pr_environment(is_production)
                 common.get_branch_information()
                 common.check_every_all_sh_component_will_be_run()
-                common.maybe_notify_github "Pre Test Checks", 'SUCCESS', 'OK'
             }
         } catch (err) {
             def description = 'Pre Test Checks failed.'
             if (err.message?.startsWith('Pre Test Checks')) {
                 description = err.message
             }
-            common.maybe_notify_github "Pre Test Checks", 'FAILURE',
-                                        description
             common.maybe_notify_github 'TLS Testing', 'FAILURE',
-                                       'Did not run'
-            common.maybe_notify_github 'Result analysis', 'FAILURE',
-                                       'Did not run'
+                                        description
             throw (err)
         }
 
@@ -119,6 +108,9 @@ def run_pr_job(is_production=true) {
                 analysis.analyze_results_and_notify_github()
             }
         }
+
+        common.maybe_notify_github 'TLS Testing', 'SUCCESS',
+                                   'All tests passed'
     }
 }
 

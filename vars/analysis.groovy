@@ -293,10 +293,9 @@ def analyze_results() {
 def analyze_results_and_notify_github() {
     try {
         analyze_results()
-        common.maybe_notify_github "Result analysis", 'SUCCESS', 'OK'
     } catch (err) {
-        common.maybe_notify_github "Result analysis", 'FAILURE',
-                                   'Analysis failed'
+        common.maybe_notify_github 'TLS Testing', 'FAILURE',
+                                   'Result analysis failed'
         throw (err)
     }
 }
