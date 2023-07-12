@@ -256,7 +256,7 @@ def check_every_all_sh_component_will_be_run() {
         {name, platform -> platform ? [] : [name]})
     if (untested_all_sh_components != []) {
         error(
-            "Pre Test Checks failed: Unable to run all.sh components: \
+            "Pre-test checks failed: Unable to run all.sh components: \
             ${untested_all_sh_components.join(",")}"
         )
     }

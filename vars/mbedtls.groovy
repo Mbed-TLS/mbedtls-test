@@ -88,8 +88,8 @@ def run_pr_job(is_production=true) {
                 common.check_every_all_sh_component_will_be_run()
             }
         } catch (err) {
-            def description = 'Pre Test Checks failed.'
-            if (err.message?.startsWith('Pre Test Checks')) {
+            def description = 'Pre-test checks failed.'
+            if (err.message?.startsWith('Pre-test checks')) {
                 description = err.message
             }
             common.maybe_notify_github('FAILURE', description)
