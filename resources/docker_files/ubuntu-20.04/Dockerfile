@@ -49,6 +49,8 @@ RUN apt-get update -q && apt-get install -yq \
         abi-dumper \
         # to build Mbed TLS: gcc, binutils, make, etc.
         build-essential \
+        # to generate malformed files
+        bsdmainutils \
         # to build Mbed TLS
         clang \
         # to build Mbed TLS
