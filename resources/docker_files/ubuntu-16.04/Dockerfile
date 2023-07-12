@@ -48,6 +48,8 @@ RUN apt-get update -q && apt-get install -yq \
         autotools-dev \
         # to build Mbed TLS: gcc, binutils, make, etc.
         build-essential \
+        # to generate malformed files
+        bsdmainutils \
         # to build Mbed TLS
         clang \
         # to build Mbed TLS
