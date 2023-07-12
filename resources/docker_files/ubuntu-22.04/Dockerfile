@@ -32,8 +32,11 @@ WORKDIR /opt/src
 # destination for installing python dependencies
 ENV HOME=/var/lib/builds
 
-# Support for i386, for 32-bit builds+tests of Mbed TLS
-RUN dpkg --add-architecture i386
+# Support for 32-bit builds+tests of Mbed TLS
+RUN case "$(uname -m)" in \
+        x86_64)  dpkg --add-architecture i386;; \
+        aarch64) dpkg --add-architecture armhf;; \
+    esac
 
 # Main apt-get call with all packages except those that have conflicts,
 # handled below. One big alphabetised list, in order to avoid duplicates, with
@@ -47,6 +50,8 @@ RUN apt-get update -q && apt-get install -yq \
         # Do not activae 22.04 until that is resolved
         # to use with abi-compliance-tester
         abi-dumper \
+        # to update the autoconf files in nettle 2.7 with support for aarch64
+        autotools-dev \
         # to build Mbed TLS: gcc, binutils, make, etc.
         build-essential \
         # to build Mbed TLS
@@ -65,16 +70,10 @@ RUN apt-get update -q && apt-get install -yq \
         graphviz \
         # to measure code coverage of Mbed TLS
         lcov \
-        # for 32-bit Mbed TLS testing
-        libc6-i386 \
-        # for 32-bit Mbed TLS testing
-        libc6:i386 \
         # to build GnuTLS (nettle with public key support aka hogweed)
         libgmp-dev \
         # to build GnuTLS >= 3.6 (could also use --with-included-unistring)
         libunistring-dev \
-        # to test 32-bit C++ linkage (not done at the time of writing)
-        libstdc++6:i386 \
         # to build GnuTLS
         libtasn1-6-dev \
         # to have a UTF-8 locale (see locale-gen below)
@@ -99,7 +98,25 @@ RUN apt-get update -q && apt-get install -yq \
         zlib1g \
         # to build Mbed TLS with MBEDTLS_ZILIB_SUPPORT (removed in 3.0)
         zlib1g-dev \
-    && rm -rf /var/lib/apt/lists/
+    && case "$(uname -m)" in \
+        # x86_64 only packages
+        x86_64) apt-get install -yq \
+            # for 32-bit Mbed TLS testing
+            libc6-i386 \
+            # for 32-bit Mbed TLS testing
+            libc6:i386 \
+            # to test 32-bit C++ linkage (not done at the time of writing)
+            libstdc++6:i386 \
+            ;; \
+        # aarch64 only packages
+        aarch64) apt-get install -yq \
+            # for 32-bit Mbed TLS testing
+            libc6:armhf \
+            # to test 32-bit C++ linkage (not done at the time of writing)
+            libstdc++6:armhf \
+            ;; \
+    esac && \
+    rm -rf /var/lib/apt/lists/
 
 # Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
 # gcc-multilib conflicts with cross-compiler packages that we'll install later,
@@ -109,24 +126,29 @@ RUN apt-get update -q && apt-get install -yq \
 # (without that symlink, 32-bit builds won't find system headers). Note that
 # just installing the dependencies of gcc-multilib also brings in gcc-multilib
 # as a Recommends dependency.
-RUN apt-get update -q && apt-get install -yq \
-        gcc-multilib \
-    && rm -rf /var/lib/apt/lists/ && \
-    dpkg -r gcc-multilib && \
-    ln -s x86_64-linux-gnu/asm /usr/include/asm
+RUN if [ "$(uname -m)" = x86_64 ]; then \
+        apt-get update -q && apt-get install -yq \
+            gcc-multilib \
+        && rm -rf /var/lib/apt/lists/ && \
+        dpkg -r gcc-multilib && \
+        ln -s x86_64-linux-gnu/asm /usr/include/asm; \
+    fi
 
-# Install arm-linux-gnueabi-gcc - to cross-build Mbed TLS
-RUN apt-get update -q && apt-get install -yq \
+# Install arm-linux-gnueabi-gcc and arm-none-eabi-gcc - to cross-build Mbed TLS
+RUN if [ "$(uname -m)" = aarch64 ]; then \
+        # HACK: Ubuntu doesn't provide an armel port for Thumb-1 testing, so link
+        #       the cross-compiler's libraries into the standard multiarch location.
+        #       We need to create and link this directory first due to the /usr merge
+        #       from Ubuntu 19.04 onward.
+        mkdir -p /usr/arm-linux-gnueabi/lib && \
+        ln -s /usr/arm-linux-gnueabi/lib /lib/arm-linux-gnueabi && \
+        ln -s arm-linux-gnueabi/ld-linux.so.3 /lib/ld-linux.so.3; \
+    fi && \
+    apt-get update -q && apt-get install -yq \
         gcc-arm-linux-gnueabi \
+        gcc-arm-none-eabi \
         libc6-dev-armel-cross \
     && rm -rf /var/lib/apt/lists/
-
-# Install arm-none-eabi-gcc
-RUN wget -q https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -O gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 && \
-    tar -xjf gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 -C /opt && \
-    rm gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2
-
-ENV PATH=/opt/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH
 
 # Install exact upstream versions of OpenSSL and GnuTLS
 #
@@ -190,6 +212,9 @@ ENV PATH=/usr/local/gnutls-3.4.10/bin:$PATH
 # Install Gnu TLS 3.3.8 (nettle 2.7) - "legacy" version
 RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-2.7.1.tar.gz && \
     tar -zxf nettle-2.7.1.tar.gz && cd nettle-2.7.1 && \
+    # Update autoconf to support building on aarch64
+    cp -f /usr/share/misc/config.sub . && \
+    cp -f /usr/share/misc/config.guess . && \
     ./configure --prefix=/usr/local/libnettle-2.7.1 --exec_prefix=/usr/local/libnettle-2.7.1  --disable-shared --disable-openssl && \
     make && make install && cd .. && rm -rf nettle-2.7.1* && \
     export PKG_CONFIG_PATH=/usr/local/libnettle-2.7.1/lib/pkgconfig:/usr/local/libnettle-2.7.1/lib64/pkgconfig:/usr/local/lib/pkgconfig && \
