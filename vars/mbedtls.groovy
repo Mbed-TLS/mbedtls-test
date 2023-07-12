@@ -102,7 +102,7 @@ def run_pr_job(is_production=true) {
             }
         } finally {
             stage('result-analysis') {
-                analysis.analyze_results_and_notify_github()
+                analysis.analyze_results()
             }
         }
 
