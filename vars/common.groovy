@@ -23,6 +23,7 @@ import groovy.transform.Field
 
 import com.cloudbees.groovy.cps.NonCPS
 import hudson.AbortException
+import hudson.plugins.git.GitSCM
 
 /* Indicates if CI is running on Open CI (hosted on https://ci.trustedfirmware.org/) */
 @Field is_open_ci_env = env.JENKINS_URL ==~ /\S+(trustedfirmware)\S+/
@@ -300,9 +301,16 @@ void maybe_notify_github(String context, String state, String description) {
         description = description.take(MAX_DESCRIPTION_LENGTH - 1) + '…'
     }
 
+    /* Set owner and repository explicitly in case the multibranch pipeline uses multiple repos
+     * Needed for testing Github merge queues */
+    def (account, repo) = ((GitSCM) scm).userRemoteConfigs[0].url.replaceFirst(/.*:/, '').split('/')[-2..-1]
+    repo = repo.replaceFirst(/\.git$/, '')
+
     githubNotify context: context,
                  status: state,
-                 description: description
+                 description: description,
+                 account: account,
+                 repo: repo
 }
 
 /* In the PR job (recognized because we set the BRANCH_NAME environment
