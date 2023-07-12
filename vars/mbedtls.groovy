@@ -40,8 +40,7 @@ def run_tls_tests(label_prefix='') {
         def failed_names = gen_jobs.failed_builds.keySet().sort().join(" ")
         echo "Caught: ${err}"
         echo "Failed jobs: ${failed_names}"
-        common.maybe_notify_github "TLS Testing", 'FAILURE',
-                                   "Failures: ${failed_names}"
+        common.maybe_notify_github('FAILURE', "Failures: ${failed_names}")
         throw err
     }
 }
@@ -79,8 +78,7 @@ def run_pr_job(is_production=true) {
                 ])
             }
 
-            common.maybe_notify_github "TLS Testing", 'PENDING',
-                                       'In progress'
+            common.maybe_notify_github('PENDING', 'In progress')
 
             common.init_docker_images()
 
@@ -94,8 +92,7 @@ def run_pr_job(is_production=true) {
             if (err.message?.startsWith('Pre Test Checks')) {
                 description = err.message
             }
-            common.maybe_notify_github 'TLS Testing', 'FAILURE',
-                                        description
+            common.maybe_notify_github('FAILURE', description)
             throw (err)
         }
 
@@ -109,8 +106,7 @@ def run_pr_job(is_production=true) {
             }
         }
 
-        common.maybe_notify_github 'TLS Testing', 'SUCCESS',
-                                   'All tests passed'
+        common.maybe_notify_github('SUCCESS', 'All tests passed')
     }
 }
 

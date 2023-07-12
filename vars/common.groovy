@@ -130,8 +130,7 @@ Caught: ${stack_trace_to_string(err)}
 """
                 if (!currentBuild.resultIsWorseOrEqualTo('FAILURE')) {
                     currentBuild.result = 'FAILURE'
-                    maybe_notify_github 'TLS Testing', 'FAILURE',
-                            "Failures: ${name}…"
+                    maybe_notify_github('FAILURE', "Failures: ${name}…")
                 }
                 throw err
             }
@@ -280,17 +279,15 @@ def get_supported_windows_builds() {
 /* In the PR job (recognized because we set the BRANCH_NAME environment
  * variable), report an additional context to GitHub.
  * Do nothing from a job that isn't triggered from GitHub.
+ * This method automatically determines the context from is_open_ci_env and BRANCH_NAME
  *
- * context: a short string identifying which part of the job this is a
- *          status for. GitHub only shows the latest state and description
- *          for a given context. This function prepends the BRANCH_NAME.
  * state: one of 'PENDING', 'SUCCESS' or 'FAILURE' (case-insensitive).
  *        Contexts used in a CI job should be marked as PENDING at the
  *        beginning of job and as SUCCESS or FAILURE once the outcome is known.
  * description: a free-form description shown next to the state. It is
  *              truncated to 140 characters (GitHub limitation).
  */
-def maybe_notify_github(context, state, description) {
+void maybe_notify_github(String state, String description) {
     if (!env.BRANCH_NAME) {
         return;
     }
@@ -301,7 +298,7 @@ def maybe_notify_github(context, state, description) {
         description = description.take(MAX_DESCRIPTION_LENGTH - 1) + '…'
     }
 
-    content = is_open_ci_env ? "TF OpenCI: ${env.BRANCH_NAME} ${context}" : "Internal CI: ${env.BRANCH_NAME} ${context}"
+    String content = "${is_open_ci_env ? 'TF OpenCI' : 'Internal CI'}: $env.BRANCH_NAME"
     githubNotify context: content,
                  status: state,
                  description: description
