@@ -298,7 +298,8 @@ void maybe_notify_github(String state, String description) {
         description = description.take(MAX_DESCRIPTION_LENGTH - 1) + '…'
     }
 
-    String content = "${is_open_ci_env ? 'TF OpenCI' : 'Internal CI'}: $env.BRANCH_NAME"
+    def job = env.BRANCH_NAME ==~ /PR-\d+-merge/ ? 'Interface stability tests' : 'PR tests'
+    String content = "${is_open_ci_env ? 'TF OpenCI' : 'Internal CI'}: $job"
     githubNotify context: content,
                  status: state,
                  description: description
