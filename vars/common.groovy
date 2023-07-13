@@ -264,12 +264,6 @@ def get_branch_information() {
                     info.python_requirements_override_file = 'override.requirements.txt'
                 }
             }
-
-            // Branches written in C89 (plus very minor extensions) have
-            // "-Wdeclaration-after-statement" in CMakeLists.txt, so look
-            // for that to determine whether the code is supposed to be C89.
-            String cmakelists_contents = readFile('CMakeLists.txt')
-            code_is_c89 = cmakelists_contents.contains('-Wdeclaration-after-statement')
         }
 
         // Log the environment for debugging purposes
@@ -344,9 +338,6 @@ def get_supported_windows_builds() {
         vs_builds = ['2013']
     } else {
         vs_builds = ['2013', '2015', '2017']
-    }
-    if (code_is_c89) {
-        vs_builds = ['2010'] + vs_builds
     }
     echo "vs_builds = ${vs_builds}"
     return ['mingw'] + vs_builds
