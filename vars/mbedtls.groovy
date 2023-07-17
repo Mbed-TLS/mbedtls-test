@@ -80,6 +80,18 @@ def run_pr_job(is_production=true) {
 
             common.maybe_notify_github('PENDING', 'In progress')
 
+            if (!common.is_open_ci_env && env.BRANCH_NAME ==~ /gh-readonly-queue\/.*/) {
+                // Fake required checks that don't run in the merge queue
+                def skipped_checks = [
+                    'DCO',
+                    'docs/readthedocs.org:mbedtls-versioned',
+                    'Travis CI - Pull Request',
+                ]
+                for (check in skipped_checks) {
+                    common.maybe_notify_github(check, 'SUCCESS', 'Check passed on PR-head')
+                }
+            }
+
             common.init_docker_images()
 
             stage('pre-test-checks') {

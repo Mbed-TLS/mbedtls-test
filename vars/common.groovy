@@ -279,15 +279,17 @@ def get_supported_windows_builds() {
 /* In the PR job (recognized because we set the BRANCH_NAME environment
  * variable), report an additional context to GitHub.
  * Do nothing from a job that isn't triggered from GitHub.
- * This method automatically determines the context from is_open_ci_env and BRANCH_NAME
  *
+ * context: a short string identifying which part of the job this is a
+ *          status for. GitHub only shows the latest state and description
+ *          for a given context.
  * state: one of 'PENDING', 'SUCCESS' or 'FAILURE' (case-insensitive).
  *        Contexts used in a CI job should be marked as PENDING at the
  *        beginning of job and as SUCCESS or FAILURE once the outcome is known.
  * description: a free-form description shown next to the state. It is
  *              truncated to 140 characters (GitHub limitation).
  */
-void maybe_notify_github(String state, String description) {
+void maybe_notify_github(String context, String state, String description) {
     if (!env.BRANCH_NAME) {
         return;
     }
@@ -298,11 +300,26 @@ void maybe_notify_github(String state, String description) {
         description = description.take(MAX_DESCRIPTION_LENGTH - 1) + '…'
     }
 
-    def job = env.BRANCH_NAME ==~ /PR-\d+-merge/ ? 'Interface stability tests' : 'PR tests'
-    String content = "${is_open_ci_env ? 'TF OpenCI' : 'Internal CI'}: $job"
-    githubNotify context: content,
+    githubNotify context: context,
                  status: state,
                  description: description
+}
+
+/* In the PR job (recognized because we set the BRANCH_NAME environment
+ * variable), report an additional context to GitHub.
+ * Do nothing from a job that isn't triggered from GitHub.
+ * This method automatically determines the context from is_open_ci_env and BRANCH_NAME
+ *
+ * state: one of 'PENDING', 'SUCCESS' or 'FAILURE' (case-insensitive).
+ *        Contexts used in a CI job should be marked as PENDING at the
+ *        beginning of job and as SUCCESS or FAILURE once the outcome is known.
+ * description: a free-form description shown next to the state. It is
+ *              truncated to 140 characters (GitHub limitation).
+ */
+void maybe_notify_github(String state, String description) {
+    def ci = is_open_ci_env ? 'TF OpenCI' : 'Internal CI'
+    def job = env.BRANCH_NAME ==~ /PR-\d+-merge/ ? 'Interface stability tests' : 'PR tests'
+    maybe_notify_github("$ci: $job", state, description)
 }
 
 def archive_zipped_log_files(job_name) {
