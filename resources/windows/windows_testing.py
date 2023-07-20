@@ -480,7 +480,11 @@ class MbedWindowsTesting(object):
             "msbuild /nodeReuse:false /t:Rebuild /p:Configuration={},Platform={},"
             "PlatformToolset={} /m \"{}\"\n".format(
                 test_run.configuration, test_run.architecture,
-                retarget, solution_file
+                retarget,
+                # The `for solution_file ...` loop has an else clause with
+                # an unconditional return, so solution_file is always defined
+                # by this point. Pylint doesn't realize that.
+                solution_file #pylint: disable=undefined-loop-variable
             )
         )
         msbuild_process.stdin.close()
