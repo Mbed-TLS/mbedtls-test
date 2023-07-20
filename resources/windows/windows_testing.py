@@ -218,7 +218,7 @@ class MbedWindowsTesting(object):
         except subprocess.CalledProcessError as error:
             self.set_return_code(2)
             logger.error(error.output)
-            raise Exception("Checking out worktree failed, aborting")
+            raise Exception("Checking out worktree failed, aborting") from error
 
     def cleanup_git_worktree(self, git_worktree_path, logger):
         shutil.rmtree(git_worktree_path)
@@ -235,7 +235,7 @@ class MbedWindowsTesting(object):
         except subprocess.CalledProcessError as error:
             self.set_return_code(2)
             logger.error(error.output)
-            raise Exception("Worktree cleanup failed, aborting")
+            raise Exception("Worktree cleanup failed, aborting") from error
 
     def set_config_on_code(self, git_worktree_path, logger):
         """Enables all config specified in config.pl, then disables config
@@ -267,7 +267,7 @@ class MbedWindowsTesting(object):
         except subprocess.CalledProcessError as error:
             self.set_return_code(2)
             logger.error(error.output)
-            raise Exception("Setting config failed, aborting")
+            raise Exception("Setting config failed, aborting") from error
 
     def generate_seedfile(self, filename):
         """This tests if a file exists, and if not, creates it with 64 bytes
@@ -524,7 +524,7 @@ class MbedWindowsTesting(object):
         except subprocess.CalledProcessError as error:
             self.set_return_code(2)
             logger.error(error.output)
-            raise Exception("Building solution using Cmake failed, aborting")
+            raise Exception("Building solution using Cmake failed, aborting") from error
 
     def generate_source_files(self, git_worktree_path, logger):
         """Generate configuration-independent source files if required."""
@@ -551,7 +551,7 @@ class MbedWindowsTesting(object):
         except subprocess.CalledProcessError as error:
             self.set_return_code(2)
             logger.error(error.output)
-            raise Exception("{} failed, aborting".format(batch_script))
+            raise Exception("{} failed, aborting".format(batch_script)) from error
 
     def test_visual_studio_built_code(self, test_run, solution_type):
         log_name = "VS{} {} {}{} {}".format(
