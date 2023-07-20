@@ -308,7 +308,7 @@ class MbedWindowsTesting(object):
             )
             if not self.mingw_result:
                 self.set_return_code(1)
-        except Exception as error:
+        except Exception as error: #pylint: disable=broad-except
             self.set_return_code(2)
             mingw_logger.error(error)
             traceback.print_exc()
@@ -617,7 +617,7 @@ class MbedWindowsTesting(object):
                     selftest_code_path, vs_logger
                 )
                 test_run.results[solution_type + " selftest"] = selftest_result
-        except Exception as error:
+        except Exception as error: #pylint: disable=broad-except
             vs_logger.error(error)
             traceback.print_exc()
             self.set_return_code(2)
@@ -701,7 +701,7 @@ class MbedWindowsTesting(object):
                         self.test_visual_studio_built_code(
                             vs_test_run, solution_type
                         )
-        except Exception:
+        except Exception: #pylint: disable=broad-except
             traceback.print_exc()
             self.set_return_code(2)
         finally:
