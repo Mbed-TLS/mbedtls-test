@@ -149,12 +149,12 @@ class MbedWindowsTesting(object):
         self.mingw_result = None
         self.solution_file_pattern = r"(?i)mbed *TLS\.sln\Z"
         self.visual_studio_build_success_patterns = [
-            "Build succeeded.", "\d+ Warning\(s\)", "0 Error\(s\)"
+            r"Build succeeded.", r"\d+ Warning\(s\)", r"0 Error\(s\)"
         ]
         self.visual_studio_build_zero_warnings_string = "0 Warning(s)"
-        self.selftest_success_pattern = "\[ All tests (PASS|passed) \]"
-        self.test_suites_success_pattern = "100% tests passed, 0 tests failed"
-        self.mingw_success_pattern = "PASSED \(\d+ suites, \d+ tests run\)"
+        self.selftest_success_pattern = r"\[ All tests (PASS|passed) \]"
+        self.test_suites_success_pattern = r"100% tests passed, 0 tests failed"
+        self.mingw_success_pattern = r"PASSED \(\d+ suites, \d+ tests run\)"
         self.config_pl_location = os.path.join("scripts", "config.pl")
         self.selftest_exe = "selftest.exe"
         self.mingw_command = "mingw32-make"
@@ -426,7 +426,7 @@ class MbedWindowsTesting(object):
 
     def get_environment_containing_VSCMD_START_DIR(self, solution_dir):
         """This is done to bypass a 'feature' added in Visual Studio 2017.
-         If the %USERPROFILE%\Source directory exists, then running
+         If the %USERPROFILE%\\Source directory exists, then running
          vcvarsall.bat will silently change the directory to that directory.
          Setting the VSCMD_START_DIR environment variable causes it to change
          to that directory instead"""
