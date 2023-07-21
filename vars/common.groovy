@@ -281,16 +281,18 @@ def get_supported_windows_builds() {
  * variable), report an additional context to GitHub.
  * Do nothing from a job that isn't triggered from GitHub.
  *
- * context: a short string identifying which part of the job this is a
- *          status for. GitHub only shows the latest state and description
- *          for a given context.
  * state: one of 'PENDING', 'SUCCESS' or 'FAILURE' (case-insensitive).
  *        Contexts used in a CI job should be marked as PENDING at the
  *        beginning of job and as SUCCESS or FAILURE once the outcome is known.
  * description: a free-form description shown next to the state. It is
  *              truncated to 140 characters (GitHub limitation).
+ * context (optional): a short string identifying which part of the job this is
+ *                     a status for. GitHub only shows the latest state and
+ *                     description for a given context. If it is omitted, this
+ *                     method determines the correct context from is_open_ci_env
+ *                     and BRANCH_NAME.
  */
-void maybe_notify_github(String context, String state, String description) {
+void maybe_notify_github(String state, String description, String context=null) {
     if (!env.BRANCH_NAME) {
         return;
     }
@@ -299,6 +301,12 @@ void maybe_notify_github(String context, String state, String description) {
     final MAX_DESCRIPTION_LENGTH = 140
     if (description.length() > MAX_DESCRIPTION_LENGTH) {
         description = description.take(MAX_DESCRIPTION_LENGTH - 1) + '…'
+    }
+
+    if (context == null) {
+        def ci = is_open_ci_env ? 'TF OpenCI' : 'Internal CI'
+        def job = env.BRANCH_NAME ==~ /PR-\d+-merge/ ? 'Interface stability tests' : 'PR tests'
+        context = "$ci: $job"
     }
 
     /* Set owner and repository explicitly in case the multibranch pipeline uses multiple repos
@@ -311,23 +319,6 @@ void maybe_notify_github(String context, String state, String description) {
                  description: description,
                  account: account,
                  repo: repo
-}
-
-/* In the PR job (recognized because we set the BRANCH_NAME environment
- * variable), report an additional context to GitHub.
- * Do nothing from a job that isn't triggered from GitHub.
- * This method automatically determines the context from is_open_ci_env and BRANCH_NAME
- *
- * state: one of 'PENDING', 'SUCCESS' or 'FAILURE' (case-insensitive).
- *        Contexts used in a CI job should be marked as PENDING at the
- *        beginning of job and as SUCCESS or FAILURE once the outcome is known.
- * description: a free-form description shown next to the state. It is
- *              truncated to 140 characters (GitHub limitation).
- */
-void maybe_notify_github(String state, String description) {
-    def ci = is_open_ci_env ? 'TF OpenCI' : 'Internal CI'
-    def job = env.BRANCH_NAME ==~ /PR-\d+-merge/ ? 'Interface stability tests' : 'PR tests'
-    maybe_notify_github("$ci: $job", state, description)
 }
 
 def archive_zipped_log_files(job_name) {

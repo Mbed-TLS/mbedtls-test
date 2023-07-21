@@ -88,7 +88,7 @@ def run_pr_job(is_production=true) {
                     'Travis CI - Pull Request',
                 ]
                 for (check in skipped_checks) {
-                    common.maybe_notify_github(check, 'SUCCESS', 'Check passed on PR-head')
+                    common.maybe_notify_github('SUCCESS', 'Check passed on PR-head', check)
                 }
             }
 
