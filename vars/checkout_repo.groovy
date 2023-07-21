@@ -17,9 +17,24 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+import hudson.model.Result
+import hudson.scm.NullSCM
+import jenkins.model.CauseOfInterruption
+import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
+
+void checkout_scm_not_null() {
+    if (scm instanceof NullSCM) {
+        echo 'scm is NullSCM - branch was deleted while being tested'
+        /* Color the stage yellow */
+        throw new FlowInterruptedException(Result.UNSTABLE, new CauseOfInterruption[0])
+    } else {
+        checkout scm
+    }
+}
+
 def checkout_repo() {
     if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
-        checkout scm
+        checkout_scm_not_null()
     } else {
         checkout_parametrized_repo(MBED_TLS_REPO, MBED_TLS_BRANCH)
     }
@@ -27,7 +42,7 @@ def checkout_repo() {
 
 def checkout_mbed_os_example_repo(repo, branch) {
     if (env.TARGET_REPO == 'example' && env.CHECKOUT_METHOD == 'scm') {
-        checkout scm
+        checkout_scm_not_null()
     } else {
         checkout_parametrized_repo(repo, branch)
     }
