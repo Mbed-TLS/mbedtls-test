@@ -23,6 +23,7 @@ import groovy.transform.Field
 
 import com.cloudbees.groovy.cps.NonCPS
 import hudson.AbortException
+import hudson.plugins.git.GitSCM
 
 /* Indicates if CI is running on Open CI (hosted on https://ci.trustedfirmware.org/) */
 @Field is_open_ci_env = env.JENKINS_URL ==~ /\S+(trustedfirmware)\S+/
@@ -130,8 +131,7 @@ Caught: ${stack_trace_to_string(err)}
 """
                 if (!currentBuild.resultIsWorseOrEqualTo('FAILURE')) {
                     currentBuild.result = 'FAILURE'
-                    maybe_notify_github 'TLS Testing', 'FAILURE',
-                            "Failures: ${name}…"
+                    maybe_notify_github('FAILURE', "Failures: ${name}…")
                 }
                 throw err
             }
@@ -257,7 +257,7 @@ def check_every_all_sh_component_will_be_run() {
         {name, platform -> platform ? [] : [name]})
     if (untested_all_sh_components != []) {
         error(
-            "Pre Test Checks failed: Unable to run all.sh components: \
+            "Pre-test checks failed: Unable to run all.sh components: \
             ${untested_all_sh_components.join(",")}"
         )
     }
@@ -281,16 +281,18 @@ def get_supported_windows_builds() {
  * variable), report an additional context to GitHub.
  * Do nothing from a job that isn't triggered from GitHub.
  *
- * context: a short string identifying which part of the job this is a
- *          status for. GitHub only shows the latest state and description
- *          for a given context. This function prepends the BRANCH_NAME.
  * state: one of 'PENDING', 'SUCCESS' or 'FAILURE' (case-insensitive).
  *        Contexts used in a CI job should be marked as PENDING at the
  *        beginning of job and as SUCCESS or FAILURE once the outcome is known.
  * description: a free-form description shown next to the state. It is
  *              truncated to 140 characters (GitHub limitation).
+ * context (optional): a short string identifying which part of the job this is
+ *                     a status for. GitHub only shows the latest state and
+ *                     description for a given context. If it is omitted, this
+ *                     method determines the correct context from is_open_ci_env
+ *                     and BRANCH_NAME.
  */
-def maybe_notify_github(context, state, description) {
+void maybe_notify_github(String state, String description, String context=null) {
     if (!env.BRANCH_NAME) {
         return;
     }
@@ -301,10 +303,22 @@ def maybe_notify_github(context, state, description) {
         description = description.take(MAX_DESCRIPTION_LENGTH - 1) + '…'
     }
 
-    content = is_open_ci_env ? "TF OpenCI: ${env.BRANCH_NAME} ${context}" : "Internal CI: ${env.BRANCH_NAME} ${context}"
-    githubNotify context: content,
+    if (context == null) {
+        def ci = is_open_ci_env ? 'TF OpenCI' : 'Internal CI'
+        def job = env.BRANCH_NAME ==~ /PR-\d+-merge/ ? 'Interface stability tests' : 'PR tests'
+        context = "$ci: $job"
+    }
+
+    /* Set owner and repository explicitly in case the multibranch pipeline uses multiple repos
+     * Needed for testing Github merge queues */
+    def (account, repo) = ((GitSCM) scm).userRemoteConfigs[0].url.replaceFirst(/.*:/, '').split('/')[-2..-1]
+    repo = repo.replaceFirst(/\.git$/, '')
+
+    githubNotify context: context,
                  status: state,
-                 description: description
+                 description: description,
+                 account: account,
+                 repo: repo
 }
 
 def archive_zipped_log_files(job_name) {

@@ -36,14 +36,11 @@ def run_tls_tests(label_prefix='') {
         analysis.record_inner_timestamps('main', 'run_pr_job') {
             parallel jobs
         }
-        common.maybe_notify_github "TLS Testing", 'SUCCESS',
-                                   'All tests passed'
     } catch (err) {
         def failed_names = gen_jobs.failed_builds.keySet().sort().join(" ")
         echo "Caught: ${err}"
         echo "Failed jobs: ${failed_names}"
-        common.maybe_notify_github "TLS Testing", 'FAILURE',
-                                   "Failures: ${failed_names}"
+        common.maybe_notify_github('FAILURE', "Failures: ${failed_names}")
         throw err
     }
 }
@@ -81,12 +78,19 @@ def run_pr_job(is_production=true) {
                 ])
             }
 
-            common.maybe_notify_github "Pre Test Checks", 'PENDING',
-                                       'Checking if all PR tests can be run'
-            common.maybe_notify_github "TLS Testing", 'PENDING',
-                                       'In progress'
-            common.maybe_notify_github "Result analysis", 'PENDING',
-                                       'In progress'
+            common.maybe_notify_github('PENDING', 'In progress')
+
+            if (!common.is_open_ci_env && env.BRANCH_NAME ==~ /gh-readonly-queue\/.*/) {
+                // Fake required checks that don't run in the merge queue
+                def skipped_checks = [
+                    'DCO',
+                    'docs/readthedocs.org:mbedtls-versioned',
+                    'Travis CI - Pull Request',
+                ]
+                for (check in skipped_checks) {
+                    common.maybe_notify_github('SUCCESS', 'Check passed on PR-head', check)
+                }
+            }
 
             common.init_docker_images()
 
@@ -94,19 +98,13 @@ def run_pr_job(is_production=true) {
                 environ.set_tls_pr_environment(is_production)
                 common.get_branch_information()
                 common.check_every_all_sh_component_will_be_run()
-                common.maybe_notify_github "Pre Test Checks", 'SUCCESS', 'OK'
             }
         } catch (err) {
-            def description = 'Pre Test Checks failed.'
-            if (err.message?.startsWith('Pre Test Checks')) {
+            def description = 'Pre-test checks failed.'
+            if (err.message?.startsWith('Pre-test checks')) {
                 description = err.message
             }
-            common.maybe_notify_github "Pre Test Checks", 'FAILURE',
-                                        description
-            common.maybe_notify_github 'TLS Testing', 'FAILURE',
-                                       'Did not run'
-            common.maybe_notify_github 'Result analysis', 'FAILURE',
-                                       'Did not run'
+            common.maybe_notify_github('FAILURE', description)
             throw (err)
         }
 
@@ -116,9 +114,11 @@ def run_pr_job(is_production=true) {
             }
         } finally {
             stage('result-analysis') {
-                analysis.analyze_results_and_notify_github()
+                analysis.analyze_results()
             }
         }
+
+        common.maybe_notify_github('SUCCESS', 'All tests passed')
     }
 }
 

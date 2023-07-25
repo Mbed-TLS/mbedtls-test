@@ -41,12 +41,12 @@ def set_tls_pr_environment(is_production) {
 
 def set_common_pr_production_environment() {
     env.CHECKOUT_METHOD = 'scm'
-    if (env.BRANCH_NAME.contains('-head')) {
+    if (env.BRANCH_NAME ==~ /PR-\d+-merge/) {
+        env.RUN_ABI_CHECK = 'true'
+    } else {
         env.RUN_FREEBSD = 'true'
         env.RUN_WINDOWS_TEST = 'true'
         env.RUN_ALL_SH = 'true'
-    } else {
-        env.RUN_ABI_CHECK = 'true'
     }
 }
 

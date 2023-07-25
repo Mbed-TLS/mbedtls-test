@@ -286,17 +286,11 @@ def gather_outcomes() {
     }
 }
 
-def analyze_results() {
-    gather_outcomes()
-}
-
-def analyze_results_and_notify_github() {
+void analyze_results() {
     try {
-        analyze_results()
-        common.maybe_notify_github "Result analysis", 'SUCCESS', 'OK'
+        gather_outcomes()
     } catch (err) {
-        common.maybe_notify_github "Result analysis", 'FAILURE',
-                                   'Analysis failed'
+        common.maybe_notify_github('FAILURE', 'Result analysis failed')
         throw (err)
     }
 }
