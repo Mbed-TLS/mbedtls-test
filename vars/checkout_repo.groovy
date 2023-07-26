@@ -17,39 +17,55 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+import hudson.plugins.git.GitSCM
+
 def checkout_repo() {
-    if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
-        checkout scm
-    } else {
-        checkout_parametrized_repo(MBED_TLS_REPO, MBED_TLS_BRANCH)
+    def git_scm = null
+    def cache = "$env.WORKSPACE/../../mbedtls-git-cache/mbedtls"
+    dir(cache) {
+        if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
+            git_scm = scm
+        } else {
+            git_scm = parametrized_repo(env.MBED_TLS_REPO, env.MBED_TLS_BRANCH)
+        }
+        checkout git_scm
     }
+    checkout([
+        $class: 'GitSCM',
+        userRemoteConfigs: [[
+            name: 'cache',
+            url: cache,
+            refspec: '+refs/remotes/origin/*:refs/remotes/cache/* +refs/pull/*:refs/pull/*'
+        ]] + git_scm.userRemoteConfigs,
+        branches: git_scm.branches,
+        extensions: git_scm.extensions
+    ])
 }
 
 def checkout_mbed_os_example_repo(repo, branch) {
     if (env.TARGET_REPO == 'example' && env.CHECKOUT_METHOD == 'scm') {
         checkout scm
     } else {
-        checkout_parametrized_repo(repo, branch)
+        checkout parametrized_repo(repo, branch)
     }
 }
 
-def checkout_parametrized_repo(repo, branch) {
-    checkout([
-        scm: [
-            $class: 'GitSCM',
-            userRemoteConfigs: [[
-                url: repo,
-                refspec: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*:refs/pull/*',
-                credentialsId: env.GIT_CREDENTIALS_ID
-            ]],
-            branches: [[name: branch]],
-            extensions: [
-                [$class: 'CloneOption', timeout: 60],
-                [$class: 'SubmoduleOption', recursiveSubmodules: true],
-                [$class: 'LocalBranch', localBranch: branch],
-            ],
-        ]
-    ])
+Map<String, Object> parametrized_repo(String repo, String branch) {
+    return [
+        $class: 'GitSCM',
+        userRemoteConfigs: [[
+            name: 'origin',
+            url: repo,
+            refspec: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*:refs/pull/*',
+            credentialsId: env.GIT_CREDENTIALS_ID
+        ]],
+        branches: [[name: branch]],
+        extensions: [
+            [$class: 'CloneOption', timeout: 60, honorRefspec: true],
+            [$class: 'SubmoduleOption', recursiveSubmodules: true],
+            [$class: 'LocalBranch', localBranch: '**'],
+        ],
+    ]
 }
 
 def checkout_mbed_os() {
