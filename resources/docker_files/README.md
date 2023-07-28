@@ -17,7 +17,7 @@ See the [Quick Start section of the top-level README](../../README.md#quick-star
 
 A docker image can be built with following command:
 ```sh
-cd mbedtls-test/dev_envs/docker_files
+cd mbedtls-test/resources/docker_files
 sudo docker build --network=host -t ubuntu-18.04 -f ubuntu-18.04/Dockerfile .
 ```
 This creates an image from the specified file. The built image is maintained by docker in its own workspace on the host. Don't worry where the built image is gone! From this point the built image is referred by its tag name. For example `ubuntu-18.04`. See [Listing images](#listing-images) below.

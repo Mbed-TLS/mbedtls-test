@@ -66,6 +66,8 @@ RUN apt-get update -q && apt-get install -yq \
         faketime \
         # to cross-build Mbed TLS
         gcc-mingw-w64-i686 \
+        # to build Mbed TLS using latest gcc version available from Ubuntu
+        gcc-12 \
         # to check out Mbed TLS and others
         git \
         # to build Mbed TLS's documentation
@@ -90,6 +92,8 @@ RUN apt-get update -q && apt-get install -yq \
         pkg-config \
         # to install Python packages
         python3-pip \
+        # provides some useful scripts for adding and removing repositories
+        software-properties-common \
         # for Mbed TLS tests
         valgrind \
         # to download things installed from other places
@@ -118,7 +122,18 @@ RUN apt-get update -q && apt-get install -yq \
             libstdc++6:armhf \
             ;; \
     esac && \
-    rm -rf /var/lib/apt/lists/
+    rm -rf /var/lib/apt/lists/ 
+
+# For installing clang-16, we add the llvm package source and add corresponding key 
+RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 15CF4D18AF4F7421 && \
+    # add an apt package source from https://apt.llvm.org/ 
+    add-apt-repository 'deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main' -y && \
+    apt-get install -yq \
+        # to build Mbed TLS using latest clang version at the time of writing
+        clang-16 && \
+    # create symbolic links for latest gcc and clang versions
+    ln -s /usr/bin/clang-16 /usr/local/bin/clang-latest && \
+    ln -s /usr/bin/gcc-12 /usr/local/bin/gcc-latest
 
 # Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
 # gcc-multilib conflicts with cross-compiler packages that we'll install later,

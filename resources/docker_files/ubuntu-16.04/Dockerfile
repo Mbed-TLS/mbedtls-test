@@ -48,10 +48,14 @@ RUN apt-get update -q && apt-get install -yq \
         autotools-dev \
         # to build Mbed TLS: gcc, binutils, make, etc.
         build-essential \
+        # to build Mbed TLS using earliest gcc version
+        gcc-4.7 \
         # to generate malformed files
         bsdmainutils \
         # to build Mbed TLS
         clang \
+        # to build Mbed TLS using earliest clang version
+        clang-3.5 \
         # to build Mbed TLS
         cmake \
         # to build Mbed TLS's documentation
@@ -112,7 +116,10 @@ RUN apt-get update -q && apt-get install -yq \
             libstdc++6:armhf \
             ;; \
     esac && \
-    rm -rf /var/lib/apt/lists/
+    rm -rf /var/lib/apt/lists/ && \
+    # create symbolic links for earliest gcc and clang versions
+    ln -s /usr/bin/gcc-4.7 /usr/local/bin/gcc-earliest && \
+    ln -s /usr/bin/clang-3.5 /usr/local/bin/clang-earliest 
 
 # Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
 # gcc-multilib conflicts with cross-compiler packages that we'll install later,
