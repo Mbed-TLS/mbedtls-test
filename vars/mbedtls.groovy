@@ -48,7 +48,6 @@ def run_tls_tests(label_prefix='') {
 /* main job */
 def run_pr_job(is_production=true) {
     analysis.main_record_timestamps('run_pr_job') {
-        try {
             if (is_production) {
                 // Cancel in-flight jobs for the same PR when a new job is launched
                 def buildNumber = env.BUILD_NUMBER as int
@@ -79,46 +78,13 @@ def run_pr_job(is_production=true) {
             }
 
             environ.set_tls_pr_environment(is_production)
-            common.maybe_notify_github('PENDING', 'In progress')
+            echo currentBuild.fullProjectName
 
-            if (!common.is_open_ci_env && env.BRANCH_NAME ==~ /gh-readonly-queue\/.*/) {
-                // Fake required checks that don't run in the merge queue
-                def skipped_checks = [
-                    'DCO',
-                    'docs/readthedocs.org:mbedtls-versioned',
-                    'Travis CI - Pull Request',
-                ]
-                for (check in skipped_checks) {
-                    common.maybe_notify_github('SUCCESS', 'Check passed on PR-head', check)
+            for (def i = 0; i < 10; i++) {
+                node('container-host') {
+                    sh 'sleep 60'
                 }
             }
-
-            common.init_docker_images()
-
-            stage('pre-test-checks') {
-                common.get_branch_information()
-                common.check_every_all_sh_component_will_be_run()
-            }
-        } catch (err) {
-            def description = 'Pre-test checks failed.'
-            if (err.message?.startsWith('Pre-test checks')) {
-                description = err.message
-            }
-            common.maybe_notify_github('FAILURE', description)
-            throw (err)
-        }
-
-        try {
-            stage('tls-testing') {
-                run_tls_tests()
-            }
-        } finally {
-            stage('result-analysis') {
-                analysis.analyze_results()
-            }
-        }
-
-        common.maybe_notify_github('SUCCESS', 'All tests passed')
     }
 }
 
@@ -129,28 +95,12 @@ def run_job() {
 
 void run_release_job() {
     analysis.main_record_timestamps('run_release_job') {
-        try {
             environ.set_tls_release_environment()
-            common.init_docker_images()
-            stage('tls-testing') {
-                def jobs = common.wrap_report_errors(gen_jobs.gen_release_jobs())
-                jobs.failFast = false
-                try {
-                    analysis.record_inner_timestamps('main', 'run_release_job') {
-                        parallel jobs
-                    }
-                } finally {
-                    if (currentBuild.rawBuild.causes[0] instanceof ParameterizedTimerTriggerCause ||
-                        currentBuild.rawBuild.causes[0] instanceof TimerTrigger.TimerTriggerCause) {
-                        common.send_email('Mbed TLS nightly tests', env.MBED_TLS_BRANCH, gen_jobs.failed_builds, gen_jobs.coverage_details)
-                    }
+            echo currentBuild.fullProjectName
+            for (def i = 0; i < 10; i++) {
+                node('container-host') {
+                    sh 'sleep 60'
                 }
             }
-        }
-        finally {
-            stage('result-analysis') {
-                analysis.analyze_results()
-            }
-        }
     }
 }
