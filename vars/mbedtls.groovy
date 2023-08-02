@@ -80,11 +80,13 @@ def run_pr_job(is_production=true) {
             environ.set_tls_pr_environment(is_production)
             echo currentBuild.fullProjectName
 
-            for (def i = 0; i < 10; i++) {
-                node('container-host') {
-                    sh 'sleep 60'
-                }
-            }
+            parallel((1..10).collectEntries {
+                i -> [("task-$i" as String): {
+                    node('container-host') {
+                        sh 'sleep 60'
+                    }
+                }]
+            })
     }
 }
 
