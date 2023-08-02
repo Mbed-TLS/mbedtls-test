@@ -165,7 +165,7 @@ set -eux
 ulimit -f 20971520
 export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv'
 ${extra_setup_code}
-./tests/scripts/all.sh --seed 4 --keep-going $component
+${common.all_sh_precommand} ./tests/scripts/all.sh --seed 4 --keep-going $component
 """
                 sh 'chmod +x steps.sh'
             }
@@ -527,10 +527,36 @@ def gen_coverity_push_jobs() {
     return jobs
 }
 
+def inject_faketime() {
+    /* Hard-code a fake date to run the jobs.
+     * Make the fake date be a different day, but the same time of day,
+     * to reduce confusion in the logs.
+     * At the time of writing, we have test certificates that expire on
+     * 2024-01-18. Run two days before, to make sure that time-of-day plus
+     * timezones plus the time it takes to run the tests don't get us after
+     * the cutoff.
+     */
+    boolean can_use_date_in_sandbox = false
+    int days_ahead = 0
+    if (can_use_date_in_sandbox) {
+        def fake_date = Date.parse('yyyy-MM-dd', '2024-01-16')
+        def today = new Date()
+        days_ahead = fake_date.minus(today)
+    } else {
+        def target_millis = 1000.0 * 1705363200 // 2024-01-16T00:00:00Z
+        def now_millis = currentBuild.getTimeInMillis()
+        days_ahead = (target_millis - now_millis) / 1000 / 86400
+    }
+    common.all_sh_precommand += "faketime -f +${days_ahead}d "
+
+    echo "all_sh_precommand = ${common.all_sh_precommand}"
+}
+
 def gen_release_jobs(label_prefix='', run_examples=true) {
     def jobs = [:]
 
     common.get_branch_information()
+    inject_faketime()
 
     if (env.RUN_BASIC_BUILD_TEST == "true") {
         jobs = jobs + gen_code_coverage_job('ubuntu-16.04');

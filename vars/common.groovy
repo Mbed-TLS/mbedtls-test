@@ -75,6 +75,10 @@ import hudson.plugins.git.GitSCM
  * of Visual Studio to test with: older versions lack C99 support. */
 @Field code_is_c99 = null
 
+/* Prefix inserted into the shell command to run all.sh, immediately
+ * before " tests/scripts/all.sh" on the same line. */
+@Field all_sh_precommand = ''
+
 @Field freebsd_all_sh_components = [
     /* Do not include any components that do TLS system testing, because
      * we don't maintain suitable versions of OpenSSL and GnuTLS on
