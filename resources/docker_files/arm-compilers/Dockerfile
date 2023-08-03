@@ -153,6 +153,10 @@ RUN wget -q https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/
 
 ENV PATH=/opt/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH
 
+RUN apt-get update -q && apt-get install -yq \
+        faketime \
+    && rm -rf /var/lib/apt/lists/
+
 # Install Python pip packages
 #
 # The pip wrapper scripts can get out of sync with pip due to upgrading it

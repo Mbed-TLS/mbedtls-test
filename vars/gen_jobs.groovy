@@ -536,18 +536,10 @@ def inject_faketime() {
      * timezones plus the time it takes to run the tests don't get us after
      * the cutoff.
      */
-    boolean can_use_date_in_sandbox = false
-    int days_ahead = 0
-    if (can_use_date_in_sandbox) {
-        def fake_date = Date.parse('yyyy-MM-dd', '2024-01-16')
-        def today = new Date()
-        days_ahead = fake_date.minus(today)
-    } else {
-        def target_millis = 1000.0 * 1705363200 // 2024-01-16T00:00:00Z
-        def now_millis = currentBuild.getTimeInMillis()
-        days_ahead = (target_millis - now_millis) / 1000 / 86400
-    }
-    common.all_sh_precommand += "faketime -f +${days_ahead}d "
+    long target_millis = 1000 * 1705363200 // 2024-01-16T00:00:00Z
+    long now_millis = currentBuild.timeInMillis
+    int days_ahead = (target_millis - now_millis) / 1000 / 86400
+    common.all_sh_precommand += "LD_PRELOAD='/usr/\$LIB/faketime/libfaketimeMT.so.1' FAKETIME_SKIP_CMDS=make FAKETIME='+${days_ahead}d'"
 
     echo "all_sh_precommand = ${common.all_sh_precommand}"
 }
