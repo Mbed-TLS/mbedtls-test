@@ -149,7 +149,7 @@ class MbedWindowsTesting(object):
         self.mingw_result = None
         self.solution_file_pattern = r"(?i)mbed *TLS\.sln\Z"
         self.visual_studio_build_success_patterns = [
-            r"Build succeeded.", r"\d+ Warning\(s\)", r"0 Error\(s\)"
+            r"Build succeeded\.", r"\d+ Warning\(s\)", r"0 Error\(s\)"
         ]
         self.visual_studio_build_zero_warnings_string = "0 Warning(s)"
         self.selftest_success_pattern = r"\[ All tests (PASS|passed) \]"
