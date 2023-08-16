@@ -184,14 +184,14 @@ RUN wget -q https://www.openssl.org/source/old/1.0.1/openssl-1.0.1j.tar.gz && \
 
 ENV OPENSSL_LEGACY=/usr/local/openssl-1.0.1j/bin/openssl
 
-# Install openssl 1.1.1a - "next" version
-RUN wget -q https://www.openssl.org/source/openssl-1.1.1a.tar.gz && \
-    tar -zxf openssl-1.1.1a.tar.gz && cd openssl-1.1.1a && \
-    ./config --prefix=/usr/local/openssl-1.1.1a -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' enable-ssl-trace && \
+# Install openssl 3.1.2 - "next" version
+RUN wget -q https://www.openssl.org/source/openssl-3.1.2.tar.gz && \
+    tar -zxf openssl-3.1.2.tar.gz && cd openssl-3.1.2 && \
+    ./config --prefix=/usr/local/openssl-3.1.2 -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' enable-ssl-trace && \
     make clean && make && make install && cd .. && \
-    rm -rf openssl-1.1.1a*
+    rm -rf openssl-3.1.2*
 
-ENV OPENSSL_NEXT=/usr/local/openssl-1.1.1a/bin/openssl
+ENV OPENSSL_NEXT=/usr/local/openssl-3.1.2/bin/openssl
 
 # Install Gnu TLS 3.4.10 (nettle 3.1) - main version, in the PATH
 RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.1.tar.gz && \
