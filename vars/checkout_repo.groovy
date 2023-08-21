@@ -22,6 +22,9 @@ import hudson.scm.NullSCM
 import jenkins.model.CauseOfInterruption
 import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
+import org.mbed.tls.jenkins.NeedsNode
+
+@NeedsNode
 Map<String, String> checkout_report_errors(scm_config) {
     if (scm_config instanceof NullSCM) {
         echo 'scm is NullSCM - branch was deleted while being tested'
@@ -74,6 +77,7 @@ Map<String, Object> parametrized_repo(String repo, String branch) {
     ]
 }
 
+@NeedsNode
 def checkout_mbed_os() {
     checkout_report_errors([
         scm: [
