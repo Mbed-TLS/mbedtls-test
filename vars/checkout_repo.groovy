@@ -22,53 +22,60 @@ import hudson.scm.NullSCM
 import jenkins.model.CauseOfInterruption
 import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
-void checkout_scm_not_null() {
-    if (scm instanceof NullSCM) {
+Map<String, String> checkout_report_errors(scm_config) {
+    if (scm_config instanceof NullSCM) {
         echo 'scm is NullSCM - branch was deleted while being tested'
         /* Color the stage yellow */
         throw new FlowInterruptedException(Result.UNSTABLE, new CauseOfInterruption[0])
     } else {
-        checkout scm
+        try {
+            checkout scm_config
+        } catch (exception) {
+            echo "Git checkout failed (branch deleted / network error?): ${common.stack_trace_to_string(exception)}"
+            throw new FlowInterruptedException(Result.UNSTABLE, new CauseOfInterruption[0])
+        }
     }
 }
 
-def checkout_repo() {
+Map<String, String> checkout_repo() {
+    def scm_config
     if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
-        checkout_scm_not_null()
+        scm_config = scm
     } else {
-        checkout_parametrized_repo(MBED_TLS_REPO, MBED_TLS_BRANCH)
+        scm_config = parametrized_repo(env.MBED_TLS_REPO, env.MBED_TLS_BRANCH)
     }
+    return checkout_report_errors(scm_config)
 }
 
-def checkout_mbed_os_example_repo(repo, branch) {
+Map<String, String> checkout_mbed_os_example_repo(String repo, String branch) {
+    def scm_config
     if (env.TARGET_REPO == 'example' && env.CHECKOUT_METHOD == 'scm') {
-        checkout_scm_not_null()
+        scm_config = scm
     } else {
-        checkout_parametrized_repo(repo, branch)
+        scm_config = parametrized_repo(repo, branch)
     }
+    return checkout_report_errors(scm_config)
 }
 
-def checkout_parametrized_repo(repo, branch) {
-    checkout([
-        scm: [
-            $class: 'GitSCM',
-            userRemoteConfigs: [[
-                url: repo,
-                refspec: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*:refs/pull/*',
-                credentialsId: env.GIT_CREDENTIALS_ID
-            ]],
-            branches: [[name: branch]],
-            extensions: [
-                [$class: 'CloneOption', timeout: 60],
-                [$class: 'SubmoduleOption', recursiveSubmodules: true],
-                [$class: 'LocalBranch', localBranch: branch],
-            ],
-        ]
-    ])
+Map<String, Object> parametrized_repo(String repo, String branch) {
+    return [
+        $class: 'GitSCM',
+        userRemoteConfigs: [[
+            url: repo,
+            refspec: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*:refs/pull/*',
+            credentialsId: env.GIT_CREDENTIALS_ID
+        ]],
+        branches: [[name: branch]],
+        extensions: [
+            [$class: 'CloneOption', timeout: 60],
+            [$class: 'SubmoduleOption', recursiveSubmodules: true],
+            [$class: 'LocalBranch', localBranch: '**'],
+        ],
+    ]
 }
 
 def checkout_mbed_os() {
-    checkout([
+    checkout_report_errors([
         scm: [
             $class: 'GitSCM',
             userRemoteConfigs: [
@@ -85,7 +92,7 @@ def checkout_mbed_os() {
             dir('TARGET_IGNORE/mbedtls')
             {
                 deleteDir()
-                checkout_mbedtls_repo()
+                checkout_repo()
             }
             sh """\
 ulimit -f 20971520
