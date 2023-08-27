@@ -155,7 +155,32 @@ RUN apt-get update -q && apt-get install -yq \
 # Distro packages tend to include patches that disrupt our testing scripts,
 # and such patches may be added at any time. Avoid surprises by using fixed
 # versions.
-#
+
+# Install openssl 1.0.1j - "legacy" version
+RUN wget -q https://www.openssl.org/source/old/1.0.1/openssl-1.0.1j.tar.gz && \
+    tar -zxf openssl-1.0.1j.tar.gz && cd openssl-1.0.1j && \
+    ./config --openssldir=/usr/local/openssl-1.0.1j && \
+    make clean && make && make install && cd .. && \
+    rm -rf openssl-1.0.1j*
+ENV OPENSSL_LEGACY=/usr/local/openssl-1.0.1j/bin/openssl
+
+# Install openssl 1.0.2g - main version, in the PATH
+RUN wget -q https://www.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz && \
+    tar -zxf openssl-1.0.2g.tar.gz && cd openssl-1.0.2g && \
+    ./config --openssldir=/usr/local/openssl-1.0.2g enable-ssl-trace && \
+    make clean && make && make install && cd .. && \
+    rm -rf openssl-1.0.2g*
+ENV OPENSSL=/usr/local/openssl-1.0.2g/bin/openssl
+ENV PATH=/usr/local/openssl-1.0.2g/bin:$PATH
+
+# Install openssl 1.1.1a - "next" version
+RUN wget -q https://www.openssl.org/source/openssl-1.1.1a.tar.gz && \
+    tar -zxf openssl-1.1.1a.tar.gz && cd openssl-1.1.1a && \
+    ./config --prefix=/usr/local/openssl-1.1.1a -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' enable-ssl-trace && \
+    make clean && make && make install && cd .. && \
+    rm -rf openssl-1.1.1a*
+ENV OPENSSL_NEXT=/usr/local/openssl-1.1.1a/bin/openssl
+
 # GnuTLS has a number of (optional) dependencies:
 # - nettle (crypto library): quite tighly coupled, so build one for each
 # version of GnuTLS that we want.
@@ -165,34 +190,6 @@ RUN apt-get update -q && apt-get install -yq \
 # - p11-kit: optional, for smart-card support - configure it out
 # - libunistring: since 3.6 - the Ubuntu package works; if it didn't a config
 # option --with-included-libunistring is available.
-
-# Install openssl 1.0.2g - main version, in the PATH
-RUN wget -q https://www.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz && \
-    tar -zxf openssl-1.0.2g.tar.gz && cd openssl-1.0.2g && \
-    ./config --openssldir=/usr/local/openssl-1.0.2g enable-ssl-trace && \
-    make clean && make && make install && cd .. && \
-    rm -rf openssl-1.0.2g*
-
-ENV OPENSSL=/usr/local/openssl-1.0.2g/bin/openssl
-ENV PATH=/usr/local/openssl-1.0.2g/bin:$PATH
-
-# Install openssl 1.0.1j - "legacy" version
-RUN wget -q https://www.openssl.org/source/old/1.0.1/openssl-1.0.1j.tar.gz && \
-    tar -zxf openssl-1.0.1j.tar.gz && cd openssl-1.0.1j && \
-    ./config --openssldir=/usr/local/openssl-1.0.1j && \
-    make clean && make && make install && cd .. && \
-    rm -rf openssl-1.0.1j*
-
-ENV OPENSSL_LEGACY=/usr/local/openssl-1.0.1j/bin/openssl
-
-# Install openssl 1.1.1a - "next" version
-RUN wget -q https://www.openssl.org/source/openssl-1.1.1a.tar.gz && \
-    tar -zxf openssl-1.1.1a.tar.gz && cd openssl-1.1.1a && \
-    ./config --prefix=/usr/local/openssl-1.1.1a -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' enable-ssl-trace && \
-    make clean && make && make install && cd .. && \
-    rm -rf openssl-1.1.1a*
-
-ENV OPENSSL_NEXT=/usr/local/openssl-1.1.1a/bin/openssl
 
 # Install Gnu TLS 3.4.10 (nettle 3.1) - main version, in the PATH
 RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.1.tar.gz && \
@@ -205,7 +202,6 @@ RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.1.tar.gz && \
     ./configure --prefix=/usr/local/gnutls-3.4.10 --exec_prefix=/usr/local/gnutls-3.4.10 --disable-shared --without-p11-kit && \
     make && make install && cat config.log && cd .. && \
     rm -rf gnutls-3.4.10*
-
 ENV GNUTLS_CLI=/usr/local/gnutls-3.4.10/bin/gnutls-cli
 ENV GNUTLS_SERV=/usr/local/gnutls-3.4.10/bin/gnutls-serv
 ENV PATH=/usr/local/gnutls-3.4.10/bin:$PATH
@@ -227,7 +223,6 @@ RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.7.3.tar.gz && \
     ./configure --prefix=/usr/local/gnutls-3.7.2 --exec_prefix=/usr/local/gnutls-3.7.2 --disable-shared --with-included-libtasn1 --without-p11-kit && \
     make && make install && cat config.log && cd .. && \
     rm -rf gnutls-3.7.2*
-
 ENV GNUTLS_NEXT_CLI=/usr/local/gnutls-3.7.2/bin/gnutls-cli
 ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.7.2/bin/gnutls-serv
 
