@@ -187,6 +187,23 @@ ENV OPENSSL_1=/usr/local/openssl-1.1.1a/bin/openssl
 # Up to at least 2023, the test scripts expect that $OPENSSL_NEXT is 1.1.1a.
 ENV OPENSSL_NEXT=/usr/local/openssl-1.1.1a/bin/openssl
 
+RUN wget -q https://www.openssl.org/source/openssl-3.0.10.tar.gz && \
+    tar -zxf openssl-3.0.10.tar.gz && cd openssl-3.0.10 && \
+    ./config --prefix=/usr/local/openssl-3.0.10 -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' enable-ssl-trace && \
+    make clean && make && make install && cd .. && \
+    rm -rf openssl-3.0.10*
+ENV OPENSSL_3_0_10=/usr/local/openssl-3.0.10/bin/openssl
+ENV OPENSSL_3_0=/usr/local/openssl-3.0.10/bin/openssl
+
+RUN wget -q https://www.openssl.org/source/openssl-3.1.2.tar.gz && \
+    tar -zxf openssl-3.1.2.tar.gz && cd openssl-3.1.2 && \
+    ./config --prefix=/usr/local/openssl-3.1.2 -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' enable-ssl-trace && \
+    make clean && make && make install && cd .. && \
+    rm -rf openssl-3.1.2*
+ENV OPENSSL_3_1_2=/usr/local/openssl-3.1.2/bin/openssl
+ENV OPENSSL_3_1=/usr/local/openssl-3.1.2/bin/openssl
+ENV OPENSSL_3=/usr/local/openssl-3.1.2/bin/openssl
+
 # GnuTLS has a number of (optional) dependencies:
 # - nettle (crypto library): quite tighly coupled, so build one for each
 # version of GnuTLS that we want.
