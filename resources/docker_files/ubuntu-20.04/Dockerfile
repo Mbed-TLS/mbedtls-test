@@ -211,23 +211,11 @@ ENV GNUTLS_CLI=/usr/local/gnutls-3.4.10/bin/gnutls-cli
 ENV GNUTLS_SERV=/usr/local/gnutls-3.4.10/bin/gnutls-serv
 ENV PATH=/usr/local/gnutls-3.4.10/bin:$PATH
 
-# Install Gnu TLS 3.3.8 (nettle 2.7) - "legacy" version
-RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-2.7.1.tar.gz && \
-    tar -zxf nettle-2.7.1.tar.gz && cd nettle-2.7.1 && \
-    # Update autoconf to support building on aarch64
-    cp -f /usr/share/misc/config.sub . && \
-    cp -f /usr/share/misc/config.guess . && \
-    ./configure --prefix=/usr/local/libnettle-2.7.1 --exec_prefix=/usr/local/libnettle-2.7.1  --disable-shared --disable-openssl && \
-    make && make install && cd .. && rm -rf nettle-2.7.1* && \
-    export PKG_CONFIG_PATH=/usr/local/libnettle-2.7.1/lib/pkgconfig:/usr/local/libnettle-2.7.1/lib64/pkgconfig:/usr/local/lib/pkgconfig && \
-    wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.3/gnutls-3.3.8.tar.xz && \
-    tar -xJf gnutls-3.3.8.tar.xz && cd gnutls-3.3.8 && \
-    ./configure --prefix=/usr/local/gnutls-3.3.8 --exec_prefix=/usr/local/gnutls-3.3.8 --disable-shared --without-p11-kit && \
-    make && make install && cat config.log && cd .. && \
-    rm -rf gnutls-3.3.8*
-
-ENV GNUTLS_LEGACY_CLI=/usr/local/gnutls-3.3.8/bin/gnutls-cli
-ENV GNUTLS_LEGACY_SERV=/usr/local/gnutls-3.3.8/bin/gnutls-serv
+# For backward compatibility with older all.sh. At the time of writing,
+# GnuTLS 3.4.10 works fine as the "legacy" version, and newer all.sh will
+# stop using a separate GNUTLS_LEGACY_xxx pair of programs.
+ENV GNUTLS_LEGACY_CLI=$GNUTLS_CLI
+ENV GNUTLS_LEGACY_SERV=$GNUTLS_SERV
 
 # Instal GNU TLS 3.7.2 (nettle 3.7) - "next" version
 RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.7.3.tar.gz && \
