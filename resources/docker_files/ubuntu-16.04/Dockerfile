@@ -212,27 +212,27 @@ ENV OPENSSL_3=/usr/local/openssl-3.1.2/bin/openssl
 # - libunistring: since 3.6 - the Ubuntu package works; if it didn't a config
 # option --with-included-libunistring is available.
 
-# Install Gnu TLS 3.4.10 (nettle 3.1) - main version, in the PATH
+# Install Gnu TLS 3.4.6 (nettle 3.1) - main version, in the PATH
 RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.1.tar.gz && \
     tar -zxf nettle-3.1.tar.gz && cd nettle-3.1 && \
     ./configure --prefix=/usr/local/libnettle-3.1 --exec_prefix=/usr/local/libnettle-3.1  --disable-shared --disable-openssl && \
     make && make install && cd .. && rm -rf nettle-3.1* && \
     export PKG_CONFIG_PATH=/usr/local/libnettle-3.1/lib/pkgconfig:/usr/local/libnettle-3.1/lib64/pkgconfig:/usr/local/lib/pkgconfig && \
-    wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.4/gnutls-3.4.10.tar.xz && \
-    tar -xJf gnutls-3.4.10.tar.xz && cd gnutls-3.4.10 && \
-    ./configure --prefix=/usr/local/gnutls-3.4.10 --exec_prefix=/usr/local/gnutls-3.4.10 --disable-shared --without-p11-kit && \
+    wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.4/gnutls-3.4.6.tar.xz && \
+    tar -xJf gnutls-3.4.6.tar.xz && cd gnutls-3.4.6 && \
+    ./configure --prefix=/usr/local/gnutls-3.4.6 --exec_prefix=/usr/local/gnutls-3.4.6 --disable-shared --without-p11-kit && \
     make && make install && cat config.log && cd .. && \
-    rm -rf gnutls-3.4.10*
-ENV GNUTLS_3_4_10_CLI=/usr/local/gnutls-3.4.10/bin/gnutls-cli
-ENV GNUTLS_3_4_10_SERV=/usr/local/gnutls-3.4.10/bin/gnutls-serv
-ENV GNUTLS_3_4_CLI=/usr/local/gnutls-3.4.10/bin/gnutls-cli
-ENV GNUTLS_3_4_SERV=/usr/local/gnutls-3.4.10/bin/gnutls-serv
-# Up to at least 2023, the test scripts expect that $GNUTLS_xxx is 3.4.10.
-ENV GNUTLS_CLI=/usr/local/gnutls-3.4.10/bin/gnutls-cli
-ENV GNUTLS_SERV=/usr/local/gnutls-3.4.10/bin/gnutls-serv
+    rm -rf gnutls-3.4.6*
+ENV GNUTLS_3_4_10_CLI=/usr/local/gnutls-3.4.6/bin/gnutls-cli
+ENV GNUTLS_3_4_10_SERV=/usr/local/gnutls-3.4.6/bin/gnutls-serv
+ENV GNUTLS_3_4_CLI=/usr/local/gnutls-3.4.6/bin/gnutls-cli
+ENV GNUTLS_3_4_SERV=/usr/local/gnutls-3.4.6/bin/gnutls-serv
+# Up to at least 2023, the test scripts expect that $GNUTLS_xxx is 3.4.6.
+ENV GNUTLS_CLI=/usr/local/gnutls-3.4.6/bin/gnutls-cli
+ENV GNUTLS_SERV=/usr/local/gnutls-3.4.6/bin/gnutls-serv
 
 # For backward compatibility with older all.sh. At the time of writing,
-# GnuTLS 3.4.10 works fine as the "legacy" version, and newer all.sh will
+# GnuTLS 3.4.6 works fine as the "legacy" version, and newer all.sh will
 # stop using a separate GNUTLS_LEGACY_xxx pair of programs.
 ENV GNUTLS_LEGACY_CLI=$GNUTLS_CLI
 ENV GNUTLS_LEGACY_SERV=$GNUTLS_SERV
