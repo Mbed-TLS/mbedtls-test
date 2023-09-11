@@ -78,6 +78,7 @@ def run_pr_job(is_production=true) {
                 ])
             }
 
+            environ.set_tls_pr_environment(is_production)
             common.maybe_notify_github('PENDING', 'In progress')
 
             if (!common.is_open_ci_env && env.BRANCH_NAME ==~ /gh-readonly-queue\/.*/) {
@@ -95,7 +96,6 @@ def run_pr_job(is_production=true) {
             common.init_docker_images()
 
             stage('pre-test-checks') {
-                environ.set_tls_pr_environment(is_production)
                 common.get_branch_information()
                 common.check_every_all_sh_component_will_be_run()
             }
