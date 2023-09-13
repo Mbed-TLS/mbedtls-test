@@ -222,8 +222,8 @@ RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.1.tar.gz && \
     ./configure --prefix=/usr/local/gnutls-3.4.6 --exec_prefix=/usr/local/gnutls-3.4.6 --disable-shared --without-p11-kit && \
     make && make install && cat config.log && cd .. && \
     rm -rf gnutls-3.4.6*
-ENV GNUTLS_3_4_10_CLI=/usr/local/gnutls-3.4.6/bin/gnutls-cli
-ENV GNUTLS_3_4_10_SERV=/usr/local/gnutls-3.4.6/bin/gnutls-serv
+ENV GNUTLS_3_4_6_CLI=/usr/local/gnutls-3.4.6/bin/gnutls-cli
+ENV GNUTLS_3_4_6_SERV=/usr/local/gnutls-3.4.6/bin/gnutls-serv
 ENV GNUTLS_3_4_CLI=/usr/local/gnutls-3.4.6/bin/gnutls-cli
 ENV GNUTLS_3_4_SERV=/usr/local/gnutls-3.4.6/bin/gnutls-serv
 # Up to at least 2023, the test scripts expect that $GNUTLS_xxx is 3.4.6.
