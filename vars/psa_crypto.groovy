@@ -17,6 +17,14 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+import hudson.model.Result
+import jenkins.model.CauseOfInterruption
+import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
+
 void run_pr_job() {
+    if (env.TARGET_BRANCH != 'main') {
+        echo 'PR target is not "main" branch - not building.'
+        throw new FlowInterruptedException(Result.NOT_BUILT, new CauseOfInterruption[0])
+    }
     mbedtls.run_pr_job(true, 'psa-crypto')
 }
