@@ -18,5 +18,5 @@
  */
 
 void run_pr_job() {
-    mbedtls.run_pr_job(true, 'crypto')
+    mbedtls.run_pr_job(true, 'psa-crypto')
 }
