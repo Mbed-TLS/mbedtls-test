@@ -82,7 +82,7 @@ void run_pr_job(boolean is_production=true, String repo='tls') {
             ])
         }
 
-        environ.set_tls_pr_environment(is_production, repo)
+        environ.set_pr_environment(is_production, repo)
         boolean is_merge_queue = env.BRANCH_NAME ==~ /gh-readonly-queue\/.*/
 
         if (!is_merge_queue && currentBuild.rawBuild.getCause(Cause.UserIdCause) == null) {

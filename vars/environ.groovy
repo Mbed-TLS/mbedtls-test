@@ -28,7 +28,7 @@ def set_common_environment() {
     env.MAKEFLAGS = '-j2'
 }
 
-void set_tls_pr_environment(boolean is_production, String repo='tls') {
+void set_pr_environment(boolean is_production, String repo='tls') {
     set_common_environment()
     env.JOB_TYPE = 'PR'
     env.TARGET_REPO = repo
