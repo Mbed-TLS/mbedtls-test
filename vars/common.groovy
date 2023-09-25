@@ -70,10 +70,6 @@ import hudson.AbortException
  * and bare python on other platforms. */
 @Field has_min_requirements = null
 
-/* We need to know whether the code is C99 in order to decide which versions
- * of Visual Studio to test with: older versions lack C99 support. */
-@Field code_is_c99 = null
-
 @Field freebsd_all_sh_components = [
     /* Do not include any components that do TLS system testing, because
      * we don't maintain suitable versions of OpenSSL and GnuTLS on
