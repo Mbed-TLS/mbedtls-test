@@ -40,7 +40,7 @@ private Map<String, Callable<Void>> instrumented_node_job(String node_label, Str
     }
 }
 
-Map<String, Callable<Void>> gen_simple_windows_jobs(String label, String script) {
+Map<String, Callable<Void>> gen_simple_windows_jobs(BranchInfo info, String label, String script) {
     return instrumented_node_job('windows', label) {
         try {
             dir('src') {
@@ -88,7 +88,7 @@ def platform_lacks_tls_tools(platform) {
     return ['freebsd'].contains(os)
 }
 
-def gen_all_sh_jobs(platform, component, label_prefix='') {
+def gen_all_sh_jobs(BranchInfo info, platform, component, label_prefix='') {
     def shorthands = [
         "arm-compilers": "armcc",
         "ubuntu-16.04": "u16",
@@ -145,7 +145,7 @@ echo >&2 'Note: "clang" will run /usr/bin/clang -Wno-error=c11-extensions'
 '''
     }
 
-    if (common.has_min_requirements) {
+    if (info.has_min_requirements) {
         extra_setup_code += '''
 scripts/min_requirements.py --user
 '''
@@ -203,7 +203,7 @@ ${extra_setup_code}
     }
 }
 
-def gen_windows_testing_job(build, label_prefix='') {
+def gen_windows_testing_job(BranchInfo info, build, label_prefix='') {
     def job_name = "${label_prefix}Windows-${build}"
 
     return instrumented_node_job('windows', job_name) {
@@ -224,7 +224,7 @@ def gen_windows_testing_job(build, label_prefix='') {
                 writeFile file:'_do_not_delete_this_directory.txt', text:''
             }
 
-            if (common.has_min_requirements) {
+            if (info.has_min_requirements) {
                 dir("src") {
                     timeout(time: common.perJobTimeout.time,
                             unit: common.perJobTimeout.unit) {
@@ -253,7 +253,7 @@ def gen_windows_testing_job(build, label_prefix='') {
     }
 }
 
-def gen_windows_jobs(String label_prefix='') {
+def gen_windows_jobs(BranchInfo info, String label_prefix='') {
     def jobs = [:]
     jobs = jobs + gen_simple_windows_jobs(
         label_prefix + 'win32-mingw', scripts.win32_mingw_test_bat
@@ -316,7 +316,7 @@ scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
     }
 }
 
-def gen_code_coverage_job(platform) {
+def gen_code_coverage_job(BranchInfo info, platform) {
     def job_name = 'code-coverage'
     return instrumented_node_job('container-host', job_name) {
         try {
@@ -529,16 +529,15 @@ def gen_coverity_push_jobs() {
 
 def gen_release_jobs(label_prefix='', run_examples=true) {
     def jobs = [:]
-
-    common.get_branch_information()
+    BranchInfo info = common.get_branch_information()
 
     if (env.RUN_BASIC_BUILD_TEST == "true") {
         jobs = jobs + gen_code_coverage_job('ubuntu-16.04');
     }
 
     if (env.RUN_ALL_SH == "true") {
-        common.all_all_sh_components.each({component, platform ->
-            jobs = jobs + gen_all_sh_jobs(platform, component, label_prefix)
+        info.all_all_sh_components.each({component, platform ->
+            jobs = jobs + gen_all_sh_jobs(info, platform, component, label_prefix)
         })
     }
 
@@ -546,13 +545,13 @@ def gen_release_jobs(label_prefix='', run_examples=true) {
     if (env.RUN_FREEBSD == "true") {
         for (platform in common.bsd_platforms) {
             for (component in common.freebsd_all_sh_components) {
-                jobs = jobs + gen_all_sh_jobs(platform, component, label_prefix)
+                jobs = jobs + gen_all_sh_jobs(info, platform, component, label_prefix)
             }
         }
     }
 
     if (env.RUN_WINDOWS_TEST == "true") {
-        jobs = jobs + gen_windows_jobs(label_prefix)
+        jobs = jobs + gen_windows_jobs(info, label_prefix)
     }
 
     if (run_examples) {

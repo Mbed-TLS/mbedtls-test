@@ -1,3 +1,13 @@
+/* Miscellaneous constants and helper functions
+ *
+ * Do not define mutable variables as fields! A Groovy module can be
+ * instantiated more than once and each instance has its own copy of
+ * the file-scope variables. It's ok to have variables that are
+ * initialized dynamically (for example, from environment variables)
+ * but you need to make sure that the variable will always end up with
+ * the same value in a given run.
+ */
+
 /*
  *  Copyright (c) 2019-2022, Arm Limited, All Rights Reserved
  *  SPDX-License-Identifier: Apache-2.0
@@ -61,15 +71,6 @@ import hudson.AbortException
 /* List of BSD platforms. They all run freebsd_all_sh_components. */
 @Field bsd_platforms = ["freebsd"]
 
-/* Map from component name to chosen platform to run it, or to null
- * if no platform has been chosen yet. */
-@Field all_all_sh_components = [:]
-
-/* Whether scripts/min_requirements.py is available. Older branches don't
- * have it, so they only get what's hard-coded in the docker files on Linux,
- * and bare python on other platforms. */
-@Field has_min_requirements = null
-
 @Field freebsd_all_sh_components = [
     /* Do not include any components that do TLS system testing, because
      * we don't maintain suitable versions of OpenSSL and GnuTLS on
@@ -85,6 +86,23 @@ import hudson.AbortException
 /* Maps platform names to the tag of the docker image used to test that platform.
  * Populated by init_docker_images() / gen_jobs.gen_dockerfile_builder_job(platform). */
 @Field static docker_tags = [:]
+
+
+class BranchInfo {
+    /* Map from component name to chosen platform to run it, or to null
+     * if no platform has been chosen yet. */
+    public Map<String, String> all_all_sh_components
+
+    /* Whether scripts/min_requirements.py is available. Older branches don't
+     * have it, so they only get what's hard-coded in the docker files on Linux,
+     * and bare python on other platforms. */
+    public boolean has_min_requirements
+
+    BranchInfo() {
+        this.all_all_sh_components = [:]
+        this.has_min_requirements = false
+    }
+}
 
 /* Compute the git object ID of the Dockerfile.
 * Equivalent to the `git hash-object <file>` command. */
@@ -174,18 +192,18 @@ docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS --rm --entrypoint $entrypoint \
 """
 }
 
-/* Get components of all.sh for a list of platforms*/
+/* Gather information about the branch that determines how to set up the
+ * test environment.
+ * In particular, get components of all.sh for Linux platforms. */
 def get_branch_information() {
-    if (all_all_sh_components) {
-        return
-    }
-
     node('container-host') {
+        BranchInfo info = new BranchInfo()
+
         dir('src') {
             deleteDir()
             checkout_repo.checkout_repo()
 
-            has_min_requirements = fileExists('scripts/min_requirements.py')
+            info.has_min_requirements = fileExists('scripts/min_requirements.py')
 
             // Branches written in C89 (plus very minor extensions) have
             // "-Wdeclaration-after-statement" in CMakeLists.txt, so look
@@ -206,7 +224,7 @@ def get_branch_information() {
                 returnStdout: true
             )
             if (all_sh_help.contains('list-components')) {
-                if (!all_all_sh_components) {
+                if (!info.all_all_sh_components) {
                     def all = sh(
                         script: docker_script(
                             platform, "./tests/scripts/all.sh",
@@ -215,7 +233,7 @@ def get_branch_information() {
                         returnStdout: true
                     ).trim().split('\n')
                     for (element in all) {
-                        all_all_sh_components[element] = null
+                        info.all_all_sh_components[element] = null
                     }
                 }
                 def available = sh(
@@ -226,8 +244,8 @@ def get_branch_information() {
                 ).trim().split('\n')
                 echo "Available all.sh components on ${platform}: ${available.join(" ")}"
                 for (element in available) {
-                    if (!all_all_sh_components[element]) {
-                        all_all_sh_components[element] = platform
+                    if (!info.all_all_sh_components[element]) {
+                        info.all_all_sh_components[element] = platform
                     }
                 }
             } else {
@@ -242,13 +260,15 @@ def get_branch_information() {
          * and we no longer care about older pull requests, choose
          * its dispatch manually.
          */
-        all_all_sh_components['build_armcc'] = 'arm-compilers'
+        info.all_all_sh_components['build_armcc'] = 'arm-compilers'
         echo "Overriding all_all_sh_components['build_armcc'] = 'arm-compilers'"
+
+        return info
     }
 }
 
-def check_every_all_sh_component_will_be_run() {
-    def untested_all_sh_components = all_all_sh_components.collectMany(
+def check_every_all_sh_component_will_be_run(BranchInfo info) {
+    def untested_all_sh_components = info.all_all_sh_components.collectMany(
         {name, platform -> platform ? [] : [name]})
     if (untested_all_sh_components != []) {
         error(

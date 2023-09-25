@@ -96,8 +96,8 @@ def run_pr_job(is_production=true) {
             common.init_docker_images()
 
             stage('pre-test-checks') {
-                common.get_branch_information()
-                common.check_every_all_sh_component_will_be_run()
+                info = common.get_branch_information()
+                common.check_every_all_sh_component_will_be_run(info)
             }
         } catch (err) {
             def description = 'Pre-test checks failed.'
