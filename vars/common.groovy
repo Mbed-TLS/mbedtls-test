@@ -172,6 +172,28 @@ Caught: ${stack_trace_to_string(err)}
 String construct_python_requirements_override() {
     List<String> overrides = []
 
+    /* Workaround for https://github.com/Mbed-TLS/mbedtls/issues/8250
+     * Affects 3.x branches older than 2023-09-25.
+     *
+     * The release of `types-jsonschema 4.19.0.0 broke our CI for two reasons:
+     * - It drops compatibility with Python 3.5 (which is fair, that's long
+     *   out of support), but fails to declare it. As a result,
+     *   check_python_files breaks.
+     * - Its prebuilt wheels require a recent enough version of pip. Our
+     *   FreeBSD instances on OpenCI have a version of pip that's too old.
+     *
+     * Workaround from https://github.com/Mbed-TLS/mbedtls/pull/8249:
+     * Pin an older types-jsonschema.
+     */
+    if (fileExists('scripts/driver.requirements.txt')) {
+        String contents = readFile('scripts/driver.requirements.txt')
+        if (contents.contains("\ntypes-jsonschema\n")) {
+            /* Use a >= requirement, which min_requirements.py will
+             * convert to an == requirement. */
+            overrides.add('types-jsonschema >= 3.2.0')
+        }
+    }
+
     if (overrides) {
         List<String> header = ['-r scripts/ci.requirements.txt']
         List<String> footer = [''] // to get a trailing newline
