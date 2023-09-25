@@ -45,7 +45,7 @@ Map<String, Callable<Void>> gen_simple_windows_jobs(BranchInfo info, String labe
         try {
             dir('src') {
                 deleteDir()
-                checkout_repo.checkout_repo()
+                checkout_repo.checkout_repo(info)
                 timeout(time: common.perJobTimeout.time,
                         unit: common.perJobTimeout.unit) {
                     analysis.record_inner_timestamps('windows', label) {
@@ -146,9 +146,9 @@ echo >&2 'Note: "clang" will run /usr/bin/clang -Wno-error=c11-extensions'
     }
 
     if (info.has_min_requirements) {
-        extra_setup_code += '''
-scripts/min_requirements.py --user
-'''
+        extra_setup_code += """
+scripts/min_requirements.py --user ${info.python_requirements_override_file}
+"""
     }
 
     return instrumented_node_job(node_label, job_name) {
@@ -158,7 +158,7 @@ scripts/min_requirements.py --user
                 common.get_docker_image(platform)
             }
             dir('src') {
-                checkout_repo.checkout_repo()
+                checkout_repo.checkout_repo(info)
                 writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
@@ -210,7 +210,7 @@ def gen_windows_testing_job(BranchInfo info, build, label_prefix='') {
         try {
             dir("src") {
                 deleteDir()
-                checkout_repo.checkout_repo()
+                checkout_repo.checkout_repo(info)
             }
             /* The empty files are created to re-create the directory after it
              * and its contents have been removed by deleteDir. */
@@ -228,7 +228,7 @@ def gen_windows_testing_job(BranchInfo info, build, label_prefix='') {
                 dir("src") {
                     timeout(time: common.perJobTimeout.time,
                             unit: common.perJobTimeout.unit) {
-                        bat "python scripts\\min_requirements.py"
+                        bat "python scripts\\min_requirements.py ${info.python_requirements_override_file}"
                     }
                 }
             }
@@ -254,18 +254,26 @@ def gen_windows_testing_job(BranchInfo info, build, label_prefix='') {
 }
 
 def gen_windows_jobs(BranchInfo info, String label_prefix='') {
+    String preamble = ''
+    if (info.has_min_requirements) {
+        preamble += "python scripts\\min_requirements.py ${info.python_requirements_override_file} || exit\r\n"
+    }
+
     def jobs = [:]
     jobs = jobs + gen_simple_windows_jobs(
-        label_prefix + 'win32-mingw', scripts.win32_mingw_test_bat
+        info, label_prefix + 'win32-mingw',
+        preamble + scripts.win32_mingw_test_bat
     )
     jobs = jobs + gen_simple_windows_jobs(
-        label_prefix + 'win32_msvc12_32', scripts.win32_msvc12_32_test_bat
+        info, label_prefix + 'win32_msvc12_32',
+        preamble + scripts.win32_msvc12_32_test_bat
     )
     jobs = jobs + gen_simple_windows_jobs(
-        label_prefix + 'win32-msvc12_64', scripts.win32_msvc12_64_test_bat
+        info, label_prefix + 'win32-msvc12_64',
+        preamble + scripts.win32_msvc12_64_test_bat
     )
     for (build in common.get_supported_windows_builds()) {
-        jobs = jobs + gen_windows_testing_job(build, label_prefix)
+        jobs = jobs + gen_windows_testing_job(info, build, label_prefix)
     }
     return jobs
 }
@@ -291,7 +299,7 @@ set -eux
 ulimit -f 20971520
 
 if [ -e scripts/min_requirements.py ]; then
-scripts/min_requirements.py --user
+scripts/min_requirements.py --user ${info.python_requirements_override_file}
 fi
 
 tests/scripts/list-identifiers.sh --internal
@@ -323,13 +331,13 @@ def gen_code_coverage_job(BranchInfo info, platform) {
             deleteDir()
             common.get_docker_image(platform)
             dir('src') {
-                checkout_repo.checkout_repo()
+                checkout_repo.checkout_repo(info)
                 writeFile file: 'steps.sh', text: '''#!/bin/sh
 set -eux
 ulimit -f 20971520
 
 if [ -e scripts/min_requirements.py ]; then
-scripts/min_requirements.py --user
+scripts/min_requirements.py --user ''' + info.python_requirements_override_file + '''
 fi
 
 if grep -q -F coverage-summary.txt tests/scripts/basic-build-test.sh; then
@@ -532,7 +540,7 @@ def gen_release_jobs(label_prefix='', run_examples=true) {
     BranchInfo info = common.get_branch_information()
 
     if (env.RUN_BASIC_BUILD_TEST == "true") {
-        jobs = jobs + gen_code_coverage_job('ubuntu-16.04');
+        jobs = jobs + gen_code_coverage_job(info, 'ubuntu-16.04');
     }
 
     if (env.RUN_ALL_SH == "true") {

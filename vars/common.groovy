@@ -98,9 +98,25 @@ class BranchInfo {
      * and bare python on other platforms. */
     public boolean has_min_requirements
 
+    /* Ad hoc overrides for scripts/ci.requirements.txt, used to adjust
+     * requirements on older branches that broke due to updates of the
+     * required packages.
+     * Only used if has_min_requirements is true. */
+    public String python_requirements_override_content
+
+    /* Name of the file containing python_requirements_override_content.
+     * The string is injected into Unix sh and Windows cmd command lines,
+     * so it must not contain any shell escapes or directory separators.
+     * Only used if has_min_requirements is true.
+     * Set to an empty string for convenience if no override is to be
+     * done. */
+    public String python_requirements_override_file
+
     BranchInfo() {
         this.all_all_sh_components = [:]
         this.has_min_requirements = false
+        this.python_requirements_override_content = ''
+        this.python_requirements_override_file = ''
     }
 }
 
@@ -149,6 +165,19 @@ Caught: ${stack_trace_to_string(err)}
                 throw err
             }
         }]
+    }
+}
+
+
+String construct_python_requirements_override() {
+    List<String> overrides = []
+
+    if (overrides) {
+        List<String> header = ['-r scripts/ci.requirements.txt']
+        List<String> footer = [''] // to get a trailing newline
+        return (header + overrides + footer).join('\n')
+    } else {
+        return ''
     }
 }
 
@@ -204,6 +233,13 @@ def get_branch_information() {
             checkout_repo.checkout_repo()
 
             info.has_min_requirements = fileExists('scripts/min_requirements.py')
+
+            if (info.has_min_requirements) {
+                info.python_requirements_override_content = construct_python_requirements_override()
+                if (info.python_requirements_override_content) {
+                    info.python_requirements_override_file = 'override.requirements.txt'
+                }
+            }
 
             // Branches written in C89 (plus very minor extensions) have
             // "-Wdeclaration-after-statement" in CMakeLists.txt, so look
