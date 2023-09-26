@@ -74,16 +74,6 @@ RUN apt-get update -q && apt-get install -yq \
         zlib1g-dev \
     && rm -rf /var/lib/apt/lists/
 
-# Install ARM Compiler 5.06 and 6.6
-COPY --link --from=arm-compiler-binaries /usr/local/ARM_Compiler_5.06u3 /usr/local/ARM_Compiler_5.06u3
-COPY --link --from=arm-compiler-binaries /usr/local/ARM_Compiler_6.6 /usr/local/ARM_Compiler_6.6
-
-ENV ARMC5_BIN_DIR=/usr/local/ARM_Compiler_5.06u3/bin/
-ENV ARMC6_BIN_DIR=/usr/local/ARM_Compiler_6.6/bin/
-ENV PATH=$PATH:/usr/local/ARM_Compiler_5.06u3/bin
-ARG ARMLMD_LICENSE_FILE=7010@10.6.26.52:7010@10.6.26.53:7010@10.6.26.54:7010@10.6.26.56
-ENV ARMLMD_LICENSE_FILE=${ARMLMD_LICENSE_FILE}
-
 # Install Python pip packages
 #
 # The pip wrapper scripts can get out of sync with pip due to upgrading it
@@ -96,6 +86,16 @@ RUN python3 -m pip config set global.progress_bar off && \
 RUN locale && \
     locale-gen "en_US.UTF-8" && \
     dpkg-reconfigure locales
+
+# Install ARM Compiler 5.06 and 6.6
+COPY --link --from=arm-compiler-binaries /usr/local/ARM_Compiler_5.06u3 /usr/local/ARM_Compiler_5.06u3
+COPY --link --from=arm-compiler-binaries /usr/local/ARM_Compiler_6.6 /usr/local/ARM_Compiler_6.6
+
+ENV ARMC5_BIN_DIR=/usr/local/ARM_Compiler_5.06u3/bin/
+ENV ARMC6_BIN_DIR=/usr/local/ARM_Compiler_6.6/bin/
+ENV PATH=$PATH:/usr/local/ARM_Compiler_5.06u3/bin
+ARG ARMLMD_LICENSE_FILE=7010@10.6.26.52:7010@10.6.26.53:7010@10.6.26.54:7010@10.6.26.56
+ENV ARMLMD_LICENSE_FILE=${ARMLMD_LICENSE_FILE}
 
 # Add user
 RUN useradd -m user
