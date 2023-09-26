@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1
+#
 # arm-compilers/Dockerfile
 #
 #  Copyright (c) 2018-2022, ARM Limited, All Rights Reserved
