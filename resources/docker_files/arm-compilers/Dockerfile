@@ -32,7 +32,8 @@
 # For now, copy the ARM compilers from a fixed image which is present in our caches.
 # This avoids the problem that the download URLs for Arm compilers are
 # not longer valid.
-FROM trustedfirmware/ci-amd64-mbed-tls-ubuntu:arm-compilers-c568d022eecd6e6263f7bc0f8e94e003dd652160 AS arm-compiler-binaries
+ARG DOCKER_REPO
+FROM $DOCKER_REPO:arm-compilers-c568d022eecd6e6263f7bc0f8e94e003dd652160 AS arm-compiler-binaries
 
 FROM ubuntu:20.04
 

@@ -623,6 +623,7 @@ aws ecr get-login-password | docker login --username AWS --password-stdin $commo
 # from the last successful build for this platform
 DOCKER_BUILDKIT=1 docker build \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
+    --build-arg DOCKER_REPO=$common.docker_repo \
     $extra_build_args \
     --cache-from $common.docker_repo:$platform-cache \
     -t $common.docker_repo:$tag \
