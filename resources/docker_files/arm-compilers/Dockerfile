@@ -76,6 +76,13 @@ RUN apt-get update -q && apt-get install -yq \
 # The pip wrapper scripts can get out of sync with pip due to upgrading it
 # outside the package manager, so invoke the module directly.
 RUN python3 -m pip config set global.progress_bar off && \
+    # Ubuntu 20.04 ships pip 20.0.2. We want the ability to specify both
+    # a versioned requirement and an unversioned requirement for the
+    # same package (e.g. `pip install foo bar foo==42`), and this is
+    # only possible since pip 20.3. So upgrade pip to the latest
+    # release at the time of writing (use a fixed version to avoid
+    # surprises when rebuilding the image).
+    python3 -m pip install 'pip==23.2.1' && \
     python3 -m pip install setuptools --upgrade && \
     true
 
