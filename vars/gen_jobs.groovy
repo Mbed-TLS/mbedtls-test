@@ -287,7 +287,8 @@ def gen_abi_api_checking_job(platform) {
             deleteDir()
             common.get_docker_image(platform)
             dir('src') {
-                checkout_repo.checkout_repo()
+                BranchInfo info = common.get_branch_information()
+                checkout_repo.checkout_repo(info)
                 /* The credentials here are the SSH credentials for accessing the repositories.
                    They are defined at {JENKINS_URL}/credentials */
                 withCredentials([sshUserPrivateKey(credentialsId: credentials_id, keyFileVariable: 'keyfile')]) {
