@@ -3,18 +3,13 @@
 
 """PR data an misc common functions."""
 
+import pickle
 import datetime
 import os
-from github import Github
 
-prs = []
 with open("pr-data.p", "rb") as f:
-    g = Github()
-    try:
-        while True:
-            prs.append(g.load(f))
-    except EOFError:
-        pass
+    prs = pickle.load(f)
+
 
 # Current and past core contributors, alphabetical order (sort -f).
 #
