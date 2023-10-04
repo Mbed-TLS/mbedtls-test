@@ -18,6 +18,8 @@ r = g.get_repo("ARMMbed/mbedtls")
 
 prs = list()
 for p in r.get_pulls(state="all"):
+    if p.draft:
+        continue
     print(p.number)
     # Accessing p.mergeable forces completion of PR data (by default, only
     # basic info such as status and dates is available) but makes things

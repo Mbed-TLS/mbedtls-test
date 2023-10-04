@@ -11,12 +11,10 @@ from itertools import chain
 
 import matplotlib.pyplot as plt
 
-new_days = 90
-old_days = 365
+# Group PRs by age, according to these thresholds
+thresholds = [15, 90, 180, 365, 365 * 1000]
 
-new = Counter()
-med = Counter()
-old = Counter()
+counters   = {t: Counter() for t in thresholds}
 
 for beg, end, com in pr_dates():
     if end is None:
@@ -30,43 +28,42 @@ for beg, end, com in pr_dates():
         # Only count on each quarter's last day
         if q == q1:
             continue
-        if i <= new_days:
-            new[q] += 1
-        elif i <= old_days:
-            med[q] += 1
-        else:
-            old[q] += 1
+        for t in thresholds:
+            if i <= t:
+                counters[t][q] += 1
+                break
 
 first_q = quarter(first)
 last_q = quarter(last)
 
-quarters = (q for q in chain(new, med, old) if first_q <= q <= last_q)
+quarters = (q for q in chain(*counters.values()) if first_q <= q <= last_q)
 quarters = tuple(sorted(set(quarters)))
 
-new_y = tuple(new[q] for q in quarters)
-med_y = tuple(med[q] for q in quarters)
-old_y = tuple(old[q] for q in quarters)
-sum_y = tuple(old[q] + med[q] for q in quarters)
+buckets_y = {t: tuple(counters[t][q] for q in quarters) for t in thresholds}
 
-old_name = "older than {} days".format(old_days)
-med_name = "medium"
-new_name = "recent (less {} days old)".format(new_days)
+names = {t: None} #f"<= {t} days" for t in thresholds}
+names[thresholds[0]] = f"<= {thresholds[0]} days"
+for i in range(1, len(thresholds)):
+    names[thresholds[i]] = f"{thresholds[i-1] + 1}..{thresholds[i]} days"
+names[thresholds[-1]] = f"> {thresholds[-2]} days"
 
 width = 0.9
 fig, ax = plt.subplots()
-ax.bar(quarters, old_y, width, label=old_name)
-ax.bar(quarters, med_y, width, label=med_name, bottom=old_y)
-ax.bar(quarters, new_y, width, label=new_name, bottom=sum_y)
+prev_tops=[0] * len(quarters)
+for t in reversed(thresholds):
+    ax.bar(quarters, buckets_y[t], width, label=names[t], bottom=prev_tops)
+    prev_tops = [a + b for a,b in zip(prev_tops, buckets_y[t])]
 ax.legend(loc="upper left")
 ax.grid(True)
-ax.set_xlabel("quarter")
-ax.set_ylabel("Number or PRs pending")
+#ax.set_xlabel("quarter")
+ax.set_ylabel("Open PR count")
 ax.tick_params(axis="x", labelrotation=90)
-fig.suptitle("State of the PR backlog at the end of each quarter")
+fig.suptitle("Open PR count, broken down by PR age")
 fig.set_size_inches(12.8, 7.2)  # default 100 dpi -> 720p
 fig.savefig("prs-backlog.png")
 
 print("Quarter,recent,medium,old,total")
 for q in quarters:
-    print("{},{},{},{},{}".format(q, new[q], med[q], old[q],
-            new[q] + med[q] + old[q]))
+    s = ", ".join(str(counters[t][q]) for t in thresholds)
+    t = sum(counters[t][q] for t in thresholds)
+    print(f"{q}, {s}, {t}")

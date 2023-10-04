@@ -33,6 +33,7 @@ _team_logins = (
     "dgreen-arm",
     "gabor-mezei-arm",
     "gilles-peskine-arm",
+    "gowthamsk-arm",
     "hanno-arm",
     "hanno-becker",
     "jackbondpreston-arm",
@@ -55,12 +56,14 @@ _team_logins = (
     "RcColes",
     "ronald-cron-arm",
     "RonEld",
+    "Ryan-Everett-arm",
     "sbutcher-arm",
     "shanechko",
     "silabs-hannes",
     "silabs-Kusumit",
     "silabs-Saketh",
     "superna9999",
+    "tgonzalezorlandoarm",
     "tom-cosgrove-arm",
     "tom-daubney-arm",
     "tuvshinzayaArm",
@@ -86,7 +89,7 @@ def is_community(pr):
 def quarter(date):
     """Return a string decribing this date's quarter, for example 19q3."""
     q = str(date.year % 100)
-    q += "q"
+    q += " Q"
     q += str((date.month + 2) // 3)
     return q
 
