@@ -1,3 +1,13 @@
+/* Miscellaneous constants and helper functions
+ *
+ * Do not define mutable variables as fields! A Groovy module can be
+ * instantiated more than once and each instance has its own copy of
+ * the file-scope variables. It's ok to have variables that are
+ * initialized dynamically (for example, from environment variables)
+ * but you need to make sure that the variable will always end up with
+ * the same value in a given run.
+ */
+
 /*
  *  Copyright (c) 2019-2022, Arm Limited, All Rights Reserved
  *  SPDX-License-Identifier: Apache-2.0
@@ -61,19 +71,6 @@ import hudson.AbortException
 /* List of BSD platforms. They all run freebsd_all_sh_components. */
 @Field bsd_platforms = ["freebsd"]
 
-/* Map from component name to chosen platform to run it, or to null
- * if no platform has been chosen yet. */
-@Field all_all_sh_components = [:]
-
-/* Whether scripts/min_requirements.py is available. Older branches don't
- * have it, so they only get what's hard-coded in the docker files on Linux,
- * and bare python on other platforms. */
-@Field has_min_requirements = null
-
-/* We need to know whether the code is C99 in order to decide which versions
- * of Visual Studio to test with: older versions lack C99 support. */
-@Field code_is_c99 = null
-
 @Field freebsd_all_sh_components = [
     /* Do not include any components that do TLS system testing, because
      * we don't maintain suitable versions of OpenSSL and GnuTLS on
@@ -89,6 +86,39 @@ import hudson.AbortException
 /* Maps platform names to the tag of the docker image used to test that platform.
  * Populated by init_docker_images() / gen_jobs.gen_dockerfile_builder_job(platform). */
 @Field static docker_tags = [:]
+
+
+class BranchInfo {
+    /* Map from component name to chosen platform to run it, or to null
+     * if no platform has been chosen yet. */
+    public Map<String, String> all_all_sh_components
+
+    /* Whether scripts/min_requirements.py is available. Older branches don't
+     * have it, so they only get what's hard-coded in the docker files on Linux,
+     * and bare python on other platforms. */
+    public boolean has_min_requirements
+
+    /* Ad hoc overrides for scripts/ci.requirements.txt, used to adjust
+     * requirements on older branches that broke due to updates of the
+     * required packages.
+     * Only used if has_min_requirements is true. */
+    public String python_requirements_override_content
+
+    /* Name of the file containing python_requirements_override_content.
+     * The string is injected into Unix sh and Windows cmd command lines,
+     * so it must not contain any shell escapes or directory separators.
+     * Only used if has_min_requirements is true.
+     * Set to an empty string for convenience if no override is to be
+     * done. */
+    public String python_requirements_override_file
+
+    BranchInfo() {
+        this.all_all_sh_components = [:]
+        this.has_min_requirements = false
+        this.python_requirements_override_content = ''
+        this.python_requirements_override_file = ''
+    }
+}
 
 /* Compute the git object ID of the Dockerfile.
 * Equivalent to the `git hash-object <file>` command. */
@@ -139,6 +169,41 @@ Caught: ${stack_trace_to_string(err)}
 }
 
 
+String construct_python_requirements_override() {
+    List<String> overrides = []
+
+    /* Workaround for https://github.com/Mbed-TLS/mbedtls/issues/8250
+     * Affects 3.x branches older than 2023-09-25.
+     *
+     * The release of `types-jsonschema 4.19.0.0 broke our CI for two reasons:
+     * - It drops compatibility with Python 3.5 (which is fair, that's long
+     *   out of support), but fails to declare it. As a result,
+     *   check_python_files breaks.
+     * - Its prebuilt wheels require a recent enough version of pip. Our
+     *   FreeBSD instances on OpenCI have a version of pip that's too old.
+     *
+     * Workaround from https://github.com/Mbed-TLS/mbedtls/pull/8249:
+     * Pin an older types-jsonschema.
+     */
+    if (fileExists('scripts/driver.requirements.txt')) {
+        String contents = readFile('scripts/driver.requirements.txt')
+        if (contents.contains("\ntypes-jsonschema\n")) {
+            /* Use a >= requirement, which min_requirements.py will
+             * convert to an == requirement. */
+            overrides.add('types-jsonschema >= 3.2.0')
+        }
+    }
+
+    if (overrides) {
+        List<String> header = ['-r scripts/ci.requirements.txt']
+        List<String> footer = [''] // to get a trailing newline
+        return (header + overrides + footer).join('\n')
+    } else {
+        return ''
+    }
+}
+
+
 def init_docker_images() {
     stage('init-docker-images') {
         def jobs = wrap_report_errors(linux_platforms.collectEntries {
@@ -178,18 +243,25 @@ docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS --rm --entrypoint $entrypoint \
 """
 }
 
-/* Get components of all.sh for a list of platforms*/
+/* Gather information about the branch that determines how to set up the
+ * test environment.
+ * In particular, get components of all.sh for Linux platforms. */
 def get_branch_information() {
-    if (all_all_sh_components) {
-        return
-    }
-
     node('container-host') {
+        BranchInfo info = new BranchInfo()
+
         dir('src') {
             deleteDir()
             checkout_repo.checkout_repo()
 
-            has_min_requirements = fileExists('scripts/min_requirements.py')
+            info.has_min_requirements = fileExists('scripts/min_requirements.py')
+
+            if (info.has_min_requirements) {
+                info.python_requirements_override_content = construct_python_requirements_override()
+                if (info.python_requirements_override_content) {
+                    info.python_requirements_override_file = 'override.requirements.txt'
+                }
+            }
 
             // Branches written in C89 (plus very minor extensions) have
             // "-Wdeclaration-after-statement" in CMakeLists.txt, so look
@@ -210,7 +282,7 @@ def get_branch_information() {
                 returnStdout: true
             )
             if (all_sh_help.contains('list-components')) {
-                if (!all_all_sh_components) {
+                if (!info.all_all_sh_components) {
                     def all = sh(
                         script: docker_script(
                             platform, "./tests/scripts/all.sh",
@@ -219,7 +291,7 @@ def get_branch_information() {
                         returnStdout: true
                     ).trim().split('\n')
                     for (element in all) {
-                        all_all_sh_components[element] = null
+                        info.all_all_sh_components[element] = null
                     }
                 }
                 def available = sh(
@@ -230,8 +302,8 @@ def get_branch_information() {
                 ).trim().split('\n')
                 echo "Available all.sh components on ${platform}: ${available.join(" ")}"
                 for (element in available) {
-                    if (!all_all_sh_components[element]) {
-                        all_all_sh_components[element] = platform
+                    if (!info.all_all_sh_components[element]) {
+                        info.all_all_sh_components[element] = platform
                     }
                 }
             } else {
@@ -246,13 +318,15 @@ def get_branch_information() {
          * and we no longer care about older pull requests, choose
          * its dispatch manually.
          */
-        all_all_sh_components['build_armcc'] = 'arm-compilers'
+        info.all_all_sh_components['build_armcc'] = 'arm-compilers'
         echo "Overriding all_all_sh_components['build_armcc'] = 'arm-compilers'"
+
+        return info
     }
 }
 
-def check_every_all_sh_component_will_be_run() {
-    def untested_all_sh_components = all_all_sh_components.collectMany(
+def check_every_all_sh_component_will_be_run(BranchInfo info) {
+    def untested_all_sh_components = info.all_all_sh_components.collectMany(
         {name, platform -> platform ? [] : [name]})
     if (untested_all_sh_components != []) {
         error(
