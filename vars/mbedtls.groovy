@@ -17,8 +17,13 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+
+import hudson.model.Cause
+import hudson.model.Result
 import hudson.triggers.TimerTrigger
+import jenkins.model.CauseOfInterruption
 import org.jenkinsci.plugins.parameterizedscheduler.ParameterizedTimerTriggerCause
+import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
 def run_tls_tests(label_prefix='') {
     try {
@@ -48,40 +53,49 @@ def run_tls_tests(label_prefix='') {
 /* main job */
 def run_pr_job(is_production=true) {
     analysis.main_record_timestamps('run_pr_job') {
-        try {
-            if (is_production) {
-                // Cancel in-flight jobs for the same PR when a new job is launched
-                def buildNumber = env.BUILD_NUMBER as int
-                if (buildNumber > 1)
-                    milestone(buildNumber - 1)
-                /* If buildNumber > 1, the following statement aborts all builds
-                * whose most-recently passed milestone was the previous milestone
-                * passed by this job (buildNumber - 1).
-                * After this, it checks to see if a later build has already passed
-                * milestone(buildNumber), and if so aborts the current build as well.
-                *
-                * Because of the order of operations, each build is only responsible
-                * for aborting the one directly before it, and itself if necessary.
-                * Thus we don't have to iterate over all milestones 1 to buildNumber.
-                */
-                milestone(buildNumber)
+        if (is_production) {
+            // Cancel in-flight jobs for the same PR when a new job is launched
+            def buildNumber = env.BUILD_NUMBER as int
+            if (buildNumber > 1)
+                milestone(buildNumber - 1)
+            /* If buildNumber > 1, the following statement aborts all builds
+            * whose most-recently passed milestone was the previous milestone
+            * passed by this job (buildNumber - 1).
+            * After this, it checks to see if a later build has already passed
+            * milestone(buildNumber), and if so aborts the current build as well.
+            *
+            * Because of the order of operations, each build is only responsible
+            * for aborting the one directly before it, and itself if necessary.
+            * Thus we don't have to iterate over all milestones 1 to buildNumber.
+            */
+            milestone(buildNumber)
 
-                /* Discarding old builds has to be individually configured for each
-                * branch in a multibranch pipeline, so do it from groovy.
-                */
-                properties([
-                    buildDiscarder(
-                        logRotator(
-                            numToKeepStr: '5'
-                        )
+            /* Discarding old builds has to be individually configured for each
+            * branch in a multibranch pipeline, so do it from groovy.
+            */
+            properties([
+                buildDiscarder(
+                    logRotator(
+                        numToKeepStr: '5'
                     )
-                ])
-            }
+                )
+            ])
+        }
 
-            environ.set_tls_pr_environment(is_production)
+        environ.set_tls_pr_environment(is_production)
+        boolean is_merge_queue = env.BRANCH_NAME ==~ /gh-readonly-queue\/.*/
+
+        if (!is_merge_queue && currentBuild.rawBuild.getCause(Cause.UserIdCause) == null) {
+            if (!common.is_pr_author_member_of_team("$env.GITHUB_ORG/$env.GITHUB_REPO", env.CHANGE_ID as int)) {
+                echo 'PR author not found on allowlist - not building'
+                throw new FlowInterruptedException(Result.NOT_BUILT, new CauseOfInterruption[0])
+            }
+        }
+
+        try {
             common.maybe_notify_github('PENDING', 'In progress')
 
-            if (!common.is_open_ci_env && env.BRANCH_NAME ==~ /gh-readonly-queue\/.*/) {
+            if (!is_merge_queue) {
                 // Fake required checks that don't run in the merge queue
                 def skipped_checks = [
                     'DCO',
