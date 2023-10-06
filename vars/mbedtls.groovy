@@ -86,7 +86,7 @@ def run_pr_job(is_production=true) {
         boolean is_merge_queue = env.BRANCH_NAME ==~ /gh-readonly-queue\/.*/
 
         if (!is_merge_queue && currentBuild.rawBuild.getCause(Cause.UserIdCause) == null) {
-            if (!common.is_pr_author_member_of_team("$env.GITHUB_ORG/$env.GITHUB_REPO", env.CHANGE_ID as int)) {
+            if (!common.pr_author_has_write_access("$env.GITHUB_ORG/$env.GITHUB_REPO", env.CHANGE_ID as int)) {
                 echo 'PR author not found on allowlist - not building'
                 throw new FlowInterruptedException(Result.NOT_BUILT, new CauseOfInterruption[0])
             }

@@ -34,6 +34,7 @@ import groovy.transform.Field
 import com.cloudbees.groovy.cps.NonCPS
 import hudson.AbortException
 import org.jenkinsci.plugins.github_branch_source.Connector
+import org.kohsuke.github.GHPermissionType
 
 /* Indicates if CI is running on Open CI (hosted on https://ci.trustedfirmware.org/) */
 @Field is_open_ci_env = env.JENKINS_URL ==~ /\S+(trustedfirmware)\S+/
@@ -438,9 +439,9 @@ Logs: ${env.BUILD_URL}
 }
 
 @NonCPS
-boolean is_pr_author_member_of_team(String repo, int pr) {
+boolean pr_author_has_write_access(String repo_name, int pr) {
     String credentials = is_open_ci_env ? 'mbedtls-github-token' : 'd015f9b1-4800-4a81-86b3-9dbadc18ee00'
     def github = Connector.connect(null, Connector.lookupScanCredentials(currentBuild.rawBuild.parent, null, credentials))
-    def author = github.getRepository(repo).getPullRequest(pr).user
-    return github.getOrganization('Mbed-TLS').getTeamBySlug('mbed-tls-reviewers').hasMember(author)
+    def repo = github.getRepository(repo_name)
+    return repo.getPermission(repo.getPullRequest(pr).user) in [GHPermissionType.ADMIN, GHPermissionType.WRITE]
 }
