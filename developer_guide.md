@@ -83,6 +83,12 @@ At runtime, the general structure of the pipeline for a release or PR job is:
     * A test coverage job (`basic-build-test.sh`). Omitted in the pull request job.
 4. Run result analysis (`analysis.analyze_results`). This runs `tests/scripts/analyze_outcomes.py` from the tested branch.
 
+### Miscellaneous Jenkins APIs
+
+#### Build causes
+
+Confused about build causes? Read [Bence's guide](https://github.com/Mbed-TLS/mbedtls-test/pull/129/files#r1348764797).
+
 ### Groovy coding tips
 
 #### Available library functions
