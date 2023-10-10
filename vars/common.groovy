@@ -248,10 +248,9 @@ docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS --rm --entrypoint $entrypoint \
 /* Gather information about the branch that determines how to set up the
  * test environment.
  * In particular, get components of all.sh for Linux platforms. */
-def get_branch_information() {
+BranchInfo get_branch_information() {
+    BranchInfo info = new BranchInfo()
     node('container-host') {
-        BranchInfo info = new BranchInfo()
-
         dir('src') {
             deleteDir()
             checkout_repo.checkout_repo()
@@ -316,9 +315,8 @@ def get_branch_information() {
          */
         info.all_all_sh_components['build_armcc'] = 'arm-compilers'
         echo "Overriding all_all_sh_components['build_armcc'] = 'arm-compilers'"
-
-        return info
     }
+    return info
 }
 
 def check_every_all_sh_component_will_be_run(BranchInfo info) {
