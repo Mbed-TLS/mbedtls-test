@@ -278,10 +278,9 @@ def gen_windows_jobs(BranchInfo info, String label_prefix='') {
     return jobs
 }
 
-def gen_abi_api_checking_job(platform) {
+def gen_abi_api_checking_job(BranchInfo info, String platform) {
     def job_name = 'ABI-API-checking'
     def credentials_id = common.is_open_ci_env ? "mbedtls-github-ssh" : "742b7080-e1cc-41c6-bf55-efb72013bc28"
-    BranchInfo info = common.get_branch_information()
 
     return instrumented_node_job('container-host', job_name) {
         try {
@@ -536,9 +535,8 @@ def gen_coverity_push_jobs() {
     return jobs
 }
 
-def gen_release_jobs(label_prefix='', run_examples=true) {
+def gen_release_jobs(BranchInfo info, String label_prefix='', boolean run_examples=true) {
     def jobs = [:]
-    BranchInfo info = common.get_branch_information()
 
     if (env.RUN_BASIC_BUILD_TEST == "true") {
         jobs = jobs + gen_code_coverage_job(info, 'ubuntu-16.04');

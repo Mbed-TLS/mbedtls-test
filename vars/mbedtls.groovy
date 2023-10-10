@@ -25,14 +25,14 @@ import jenkins.model.CauseOfInterruption
 import org.jenkinsci.plugins.parameterizedscheduler.ParameterizedTimerTriggerCause
 import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
-def run_tls_tests(label_prefix='') {
+void run_tls_tests(BranchInfo info, String label_prefix='') {
     try {
         def jobs = [:]
 
-        jobs = jobs + gen_jobs.gen_release_jobs(label_prefix, false)
+        jobs = jobs + gen_jobs.gen_release_jobs(info, label_prefix, false)
 
         if (env.RUN_ABI_CHECK == "true") {
-            jobs = jobs + gen_jobs.gen_abi_api_checking_job('ubuntu-16.04')
+            jobs = jobs + gen_jobs.gen_abi_api_checking_job(info, 'ubuntu-16.04')
         }
 
         jobs = common.wrap_report_errors(jobs)
@@ -126,7 +126,7 @@ def run_pr_job(is_production=true) {
 
         try {
             stage('tls-testing') {
-                run_tls_tests()
+                run_tls_tests(info)
             }
         } finally {
             stage('result-analysis') {
@@ -149,7 +149,8 @@ void run_release_job() {
             environ.set_tls_release_environment()
             common.init_docker_images()
             stage('tls-testing') {
-                def jobs = common.wrap_report_errors(gen_jobs.gen_release_jobs())
+                BranchInfo info = common.get_branch_information()
+                def jobs = common.wrap_report_errors(gen_jobs.gen_release_jobs(info))
                 jobs.failFast = false
                 try {
                     analysis.record_inner_timestamps('main', 'run_release_job') {
