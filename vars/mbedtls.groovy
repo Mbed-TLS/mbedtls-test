@@ -92,6 +92,8 @@ def run_pr_job(is_production=true) {
             }
         }
 
+        BranchInfo info
+
         try {
             common.maybe_notify_github('PENDING', 'In progress')
 
