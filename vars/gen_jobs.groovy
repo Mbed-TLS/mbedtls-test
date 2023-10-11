@@ -281,13 +281,13 @@ def gen_windows_jobs(BranchInfo info, String label_prefix='') {
 def gen_abi_api_checking_job(platform) {
     def job_name = 'ABI-API-checking'
     def credentials_id = common.is_open_ci_env ? "mbedtls-github-ssh" : "742b7080-e1cc-41c6-bf55-efb72013bc28"
+    BranchInfo info = common.get_branch_information()
 
     return instrumented_node_job('container-host', job_name) {
         try {
             deleteDir()
             common.get_docker_image(platform)
             dir('src') {
-                BranchInfo info = common.get_branch_information()
                 checkout_repo.checkout_repo(info)
                 /* The credentials here are the SSH credentials for accessing the repositories.
                    They are defined at {JENKINS_URL}/credentials */
