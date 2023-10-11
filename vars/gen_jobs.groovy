@@ -23,6 +23,8 @@ import groovy.transform.Field
 
 import hudson.AbortException
 
+import org.mbed.tls.jenkins.BranchInfo
+
 // Keep track of builds that fail.
 // Use static field, so the is content preserved across stages.
 @Field static failed_builds = [:]

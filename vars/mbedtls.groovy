@@ -25,6 +25,8 @@ import jenkins.model.CauseOfInterruption
 import org.jenkinsci.plugins.parameterizedscheduler.ParameterizedTimerTriggerCause
 import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
+import org.mbed.tls.jenkins.BranchInfo
+
 void run_tls_tests(BranchInfo info, String label_prefix='') {
     try {
         def jobs = [:]

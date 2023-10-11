@@ -22,6 +22,8 @@ import hudson.scm.NullSCM
 import jenkins.model.CauseOfInterruption
 import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
+import org.mbed.tls.jenkins.BranchInfo
+
 /* Write some files that override the default behavior.
  *
  * This is intended for older branches where the CI was passing when the
