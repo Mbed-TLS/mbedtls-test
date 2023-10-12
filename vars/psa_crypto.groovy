@@ -22,7 +22,7 @@ import jenkins.model.CauseOfInterruption
 import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
 void run_pr_job() {
-    if (env.TARGET_BRANCH != 'main') {
+    if (env.CHANGE_TARGET != 'main') {
         echo 'PR target is not "main" branch - not building.'
         throw new FlowInterruptedException(Result.NOT_BUILT, new CauseOfInterruption[0])
     }
