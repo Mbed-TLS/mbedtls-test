@@ -130,18 +130,26 @@ RUN if [ "$(uname -m)" = x86_64 ]; then \
         ln -s x86_64-linux-gnu/asm /usr/include/asm; \
     fi
 
-# Install arm-linux-gnueabi-gcc and arm-none-eabi-gcc - to cross-build Mbed TLS
+# Install the Arm gcc-cross toolchains
 RUN apt-get update -q && apt-get install -yq \
         gcc-arm-linux-gnueabi \
+        gcc-arm-linux-gnueabihf \
         gcc-arm-none-eabi \
+        libc6-dev-arm64-cross \
         libc6-dev-armel-cross \
-    && rm -rf /var/lib/apt/lists/ && \
+        libc6-dev-armhf-cross \
+    && \
     if [ "$(uname -m)" = aarch64 ]; then \
         # HACK: Ubuntu doesn't provide an armel port for Thumb-1 testing, so link
         #       the cross-compiler's libraries into the standard multiarch location.
         ln -s /usr/arm-linux-gnueabi/lib /lib/arm-linux-gnueabi && \
         ln -s arm-linux-gnueabi/ld-linux.so.3 /lib/ld-linux.so.3; \
-    fi
+    else  \
+        # The gcc-aarch64-linux-gnu virtual package doesn't exist on AArch64 Ubuntu < 20.04
+        apt-get install -yq  \
+            gcc-aarch64-linux-gnu \
+        ; \
+    fi && rm -rf /var/lib/apt/lists/
 
 # Install abi-compliance-checker
 # The version in Ubuntu 18.04 is too old, we want at least the version below

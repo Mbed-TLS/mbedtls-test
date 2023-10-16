@@ -136,7 +136,7 @@ RUN if [ "$(uname -m)" = x86_64 ]; then \
         ln -s x86_64-linux-gnu/asm /usr/include/asm; \
     fi
 
-# Install arm-linux-gnueabi-gcc and arm-none-eabi-gcc - to cross-build Mbed TLS
+# Install the Arm gcc-cross toolchains
 RUN if [ "$(uname -m)" = aarch64 ]; then \
         # HACK: Ubuntu doesn't provide an armel port for Thumb-1 testing, so link
         #       the cross-compiler's libraries into the standard multiarch location.
@@ -147,9 +147,13 @@ RUN if [ "$(uname -m)" = aarch64 ]; then \
         ln -s arm-linux-gnueabi/ld-linux.so.3 /lib/ld-linux.so.3; \
     fi && \
     apt-get update -q && apt-get install -yq \
+        gcc-aarch64-linux-gnu \
         gcc-arm-linux-gnueabi \
+        gcc-arm-linux-gnueabihf \
         gcc-arm-none-eabi \
+        libc6-dev-arm64-cross \
         libc6-dev-armel-cross \
+        libc6-dev-armhf-cross \
     && rm -rf /var/lib/apt/lists/
 
 # Install exact upstream versions of OpenSSL and GnuTLS
