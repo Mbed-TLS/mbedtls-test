@@ -574,10 +574,12 @@ def gen_release_jobs(BranchInfo info, String label_prefix='', boolean run_exampl
     return jobs
 }
 
-def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
-    def dockerfile = libraryResource "docker_files/$platform/Dockerfile"
+def gen_dockerfile_builder_job(String image, boolean overwrite=false) {
+    def dockerfile = libraryResource "docker_files/$image/Dockerfile"
 
-    def tag = "$platform-${common.git_hash_object(dockerfile)}"
+    def job_name = "$image-arm64"
+    def tag = "$image-${common.git_hash_object(dockerfile)}-arm64"
+    def cache_tag ="$image-cache-arm64"
     def check_docker_image
     if (common.is_open_ci_env) {
         check_docker_image = "docker manifest inspect $common.docker_repo:$tag > /dev/null 2>&1"
@@ -585,12 +587,12 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
         check_docker_image = "aws ecr describe-images --repository-name $common.docker_repo_name --image-ids imageTag=$tag"
     }
 
-    common.docker_tags[platform] = tag
+    common.docker_tags[image] = tag
 
-    return job(platform) {
+    return job(job_name) {
         /* Take the lock on the master node, so we don't tie up an executor while waiting */
         lock(tag) {
-            analysis.node_record_timestamps('dockerfile-builder', platform) {
+            analysis.node_record_timestamps('linux-arm64', job_name) {
                 def image_exists = false
                 if (!overwrite) {
                     image_exists = sh(script: check_docker_image, returnStatus: true) == 0
@@ -625,7 +627,7 @@ aws ecr get-login-password | docker login --username AWS --password-stdin $commo
 """
                         }
 
-                        analysis.record_inner_timestamps('dockerfile-builder', platform) {
+                        analysis.record_inner_timestamps('dockerfile-builder', job_name) {
                             sh """\
 # Use BuildKit and a remote build cache to pull only the reuseable layers
 # from the last successful build for this platform
@@ -633,13 +635,13 @@ DOCKER_BUILDKIT=1 docker build \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
     --build-arg DOCKER_REPO=$common.docker_repo \
     $extra_build_args \
-    --cache-from $common.docker_repo:$platform-cache \
+    --cache-from $common.docker_repo:$cache_tag \
     -t $common.docker_repo:$tag \
-    -t $common.docker_repo:$platform-cache .
+    -t $common.docker_repo:$cache_tag .
 
 # Push the image with its unique tag, as well as the build cache tag
 docker push $common.docker_repo:$tag
-docker push $common.docker_repo:$platform-cache
+docker push $common.docker_repo:$cache_tag
 """
                         }
                     }
