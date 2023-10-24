@@ -195,7 +195,7 @@ docker pull $docker_repo:$docker_image
 """
             else
                 sh """\
-aws ecr get-login-password | docker login --username AWS --password-stdin $docker_ecr
+aws ecr --region eu-west-1 get-login-password | docker login --username AWS --password-stdin $docker_ecr
 docker pull $docker_repo:$docker_image
 """
             break

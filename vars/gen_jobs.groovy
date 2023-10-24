@@ -623,7 +623,7 @@ chmod 0600 ${env.HOME}/.docker/config.json
                             }
                         } else {
                             sh """\
-aws ecr get-login-password | docker login --username AWS --password-stdin $common.docker_ecr
+aws ecr --region eu-west-1 get-login-password | docker login --username AWS --password-stdin $common.docker_ecr
 """
                         }
 
