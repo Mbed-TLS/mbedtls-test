@@ -1,3 +1,13 @@
+/* Miscellaneous constants and helper functions
+ *
+ * Do not define mutable variables as fields! A Groovy module can be
+ * instantiated more than once and each instance has its own copy of
+ * the file-scope variables. It's ok to have variables that are
+ * initialized dynamically (for example, from environment variables)
+ * but you need to make sure that the variable will always end up with
+ * the same value in a given run.
+ */
+
 /*
  *  Copyright (c) 2019-2022, Arm Limited, All Rights Reserved
  *  SPDX-License-Identifier: Apache-2.0
@@ -23,7 +33,10 @@ import groovy.transform.Field
 
 import com.cloudbees.groovy.cps.NonCPS
 import hudson.AbortException
-import hudson.plugins.git.GitSCM
+import org.jenkinsci.plugins.github_branch_source.Connector
+import org.kohsuke.github.GHPermissionType
+
+import org.mbed.tls.jenkins.BranchInfo
 
 /* Indicates if CI is running on Open CI (hosted on https://ci.trustedfirmware.org/) */
 @Field is_open_ci_env = env.JENKINS_URL ==~ /\S+(trustedfirmware)\S+/
@@ -61,19 +74,6 @@ import hudson.plugins.git.GitSCM
 ]
 /* List of BSD platforms. They all run freebsd_all_sh_components. */
 @Field bsd_platforms = ["freebsd"]
-
-/* Map from component name to chosen platform to run it, or to null
- * if no platform has been chosen yet. */
-@Field all_all_sh_components = [:]
-
-/* Whether scripts/min_requirements.py is available. Older branches don't
- * have it, so they only get what's hard-coded in the docker files on Linux,
- * and bare python on other platforms. */
-@Field has_min_requirements = null
-
-/* We need to know whether the code is C99 in order to decide which versions
- * of Visual Studio to test with: older versions lack C99 support. */
-@Field code_is_c99 = null
 
 @Field freebsd_all_sh_components = [
     /* Do not include any components that do TLS system testing, because
@@ -140,6 +140,41 @@ Caught: ${stack_trace_to_string(err)}
 }
 
 
+String construct_python_requirements_override() {
+    List<String> overrides = []
+
+    /* Workaround for https://github.com/Mbed-TLS/mbedtls/issues/8250
+     * Affects 3.x branches older than 2023-09-25.
+     *
+     * The release of `types-jsonschema 4.19.0.0 broke our CI for two reasons:
+     * - It drops compatibility with Python 3.5 (which is fair, that's long
+     *   out of support), but fails to declare it. As a result,
+     *   check_python_files breaks.
+     * - Its prebuilt wheels require a recent enough version of pip. Our
+     *   FreeBSD instances on OpenCI have a version of pip that's too old.
+     *
+     * Workaround from https://github.com/Mbed-TLS/mbedtls/pull/8249:
+     * Pin an older types-jsonschema.
+     */
+    if (fileExists('scripts/driver.requirements.txt')) {
+        String contents = readFile('scripts/driver.requirements.txt')
+        if (contents.contains("\ntypes-jsonschema\n")) {
+            /* Use a >= requirement, which min_requirements.py will
+             * convert to an == requirement. */
+            overrides.add('types-jsonschema >= 3.2.0')
+        }
+    }
+
+    if (overrides) {
+        List<String> header = ['-r scripts/ci.requirements.txt']
+        List<String> footer = [''] // to get a trailing newline
+        return (header + overrides + footer).join('\n')
+    } else {
+        return ''
+    }
+}
+
+
 def init_docker_images() {
     stage('init-docker-images') {
         def jobs = wrap_report_errors(linux_platforms.collectEntries {
@@ -179,24 +214,24 @@ docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS --rm --entrypoint $entrypoint \
 """
 }
 
-/* Get components of all.sh for a list of platforms*/
-def get_branch_information() {
-    if (all_all_sh_components) {
-        return
-    }
-
+/* Gather information about the branch that determines how to set up the
+ * test environment.
+ * In particular, get components of all.sh for Linux platforms. */
+BranchInfo get_branch_information() {
+    BranchInfo info = new BranchInfo()
     node('container-host') {
         dir('src') {
             deleteDir()
             checkout_repo.checkout_repo()
 
-            has_min_requirements = fileExists('scripts/min_requirements.py')
+            info.has_min_requirements = fileExists('scripts/min_requirements.py')
 
-            // Branches written in C89 (plus very minor extensions) have
-            // "-Wdeclaration-after-statement" in CMakeLists.txt, so look
-            // for that to determine whether the code is supposed to be C89.
-            String cmakelists_contents = readFile('CMakeLists.txt')
-            code_is_c89 = cmakelists_contents.contains('-Wdeclaration-after-statement')
+            if (info.has_min_requirements) {
+                info.python_requirements_override_content = construct_python_requirements_override()
+                if (info.python_requirements_override_content) {
+                    info.python_requirements_override_file = 'override.requirements.txt'
+                }
+            }
         }
 
         // Log the environment for debugging purposes
@@ -211,7 +246,7 @@ def get_branch_information() {
                 returnStdout: true
             )
             if (all_sh_help.contains('list-components')) {
-                if (!all_all_sh_components) {
+                if (!info.all_all_sh_components) {
                     def all = sh(
                         script: docker_script(
                             platform, "./tests/scripts/all.sh",
@@ -220,7 +255,7 @@ def get_branch_information() {
                         returnStdout: true
                     ).trim().split('\n')
                     for (element in all) {
-                        all_all_sh_components[element] = null
+                        info.all_all_sh_components[element] = null
                     }
                 }
                 def available = sh(
@@ -231,8 +266,8 @@ def get_branch_information() {
                 ).trim().split('\n')
                 echo "Available all.sh components on ${platform}: ${available.join(" ")}"
                 for (element in available) {
-                    if (!all_all_sh_components[element]) {
-                        all_all_sh_components[element] = platform
+                    if (!info.all_all_sh_components[element]) {
+                        info.all_all_sh_components[element] = platform
                     }
                 }
             } else {
@@ -247,13 +282,14 @@ def get_branch_information() {
          * and we no longer care about older pull requests, choose
          * its dispatch manually.
          */
-        all_all_sh_components['build_armcc'] = 'arm-compilers'
+        info.all_all_sh_components['build_armcc'] = 'arm-compilers'
         echo "Overriding all_all_sh_components['build_armcc'] = 'arm-compilers'"
     }
+    return info
 }
 
-def check_every_all_sh_component_will_be_run() {
-    def untested_all_sh_components = all_all_sh_components.collectMany(
+def check_every_all_sh_component_will_be_run(BranchInfo info) {
+    def untested_all_sh_components = info.all_all_sh_components.collectMany(
         {name, platform -> platform ? [] : [name]})
     if (untested_all_sh_components != []) {
         error(
@@ -269,9 +305,6 @@ def get_supported_windows_builds() {
         vs_builds = ['2013']
     } else {
         vs_builds = ['2013', '2015', '2017']
-    }
-    if (code_is_c89) {
-        vs_builds = ['2010'] + vs_builds
     }
     echo "vs_builds = ${vs_builds}"
     return ['mingw'] + vs_builds
@@ -309,16 +342,13 @@ void maybe_notify_github(String state, String description, String context=null) 
         context = "$ci: $job"
     }
 
-    /* Set owner and repository explicitly in case the multibranch pipeline uses multiple repos
-     * Needed for testing Github merge queues */
-    def (account, repo) = ((GitSCM) scm).userRemoteConfigs[0].url.replaceFirst(/.*:/, '').split('/')[-2..-1]
-    repo = repo.replaceFirst(/\.git$/, '')
-
     githubNotify context: context,
                  status: state,
                  description: description,
-                 account: account,
-                 repo: repo
+                /* Set owner and repository explicitly in case the multibranch pipeline uses multiple repos
+-                * Needed for testing Github merge queues */
+                 account: env.GITHUB_ORG,
+                 repo: env.GITHUB_REPO
 }
 
 def archive_zipped_log_files(job_name) {
@@ -364,4 +394,12 @@ Logs: ${env.BUILD_URL}
              subject: subject,
              to: recipients,
              mimeType: 'text/plain'
+}
+
+@NonCPS
+boolean pr_author_has_write_access(String repo_name, int pr) {
+    String credentials = is_open_ci_env ? 'mbedtls-github-token' : 'd015f9b1-4800-4a81-86b3-9dbadc18ee00'
+    def github = Connector.connect(null, Connector.lookupScanCredentials(currentBuild.rawBuild.parent, null, credentials))
+    def repo = github.getRepository(repo_name)
+    return repo.getPermission(repo.getPullRequest(pr).user) in [GHPermissionType.ADMIN, GHPermissionType.WRITE]
 }

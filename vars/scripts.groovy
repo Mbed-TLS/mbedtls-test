@@ -20,7 +20,6 @@
 import groovy.transform.Field
 
 @Field static final String win32_mingw_test_bat = '''\
-if exist scripts\\min_requirements.py python scripts\\min_requirements.py || exit
 set CC=gcc
 if exist scripts\\make_generated_files.bat call scripts\\make_generated_files.bat || exit
 cmake . -G "MinGW Makefiles" || exit
@@ -31,7 +30,6 @@ programs\\test\\selftest.exe || exit
 '''
 
 @Field static final String iar8_mingw_test_bat = '''\
-if exist scripts\\min_requirements.py python scripts\\min_requirements.py || exit
 set CC=iccarm
 if exist scripts\\make_generated_files.bat call scripts\\make_generated_files.bat || exit
 perl scripts/config.pl baremetal || exit
@@ -40,7 +38,6 @@ mingw32-make lib || exit
 '''
 
 @Field static final String win32_msvc12_32_test_bat = '''\
-if exist scripts\\min_requirements.py python scripts\\min_requirements.py || exit
 call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat" || exit
 set CC=cl
 if exist scripts\\make_generated_files.bat call scripts\\make_generated_files.bat || exit
@@ -50,7 +47,6 @@ programs\\test\\Debug\\selftest.exe || exit
 '''
 
 @Field static final String win32_msvc12_64_test_bat = '''\
-if exist scripts\\min_requirements.py python scripts\\min_requirements.py || exit
 call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat" || exit
 set CC=cl
 if exist scripts\\make_generated_files.bat call scripts\\make_generated_files.bat || exit

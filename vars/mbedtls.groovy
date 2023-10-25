@@ -17,17 +17,24 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
-import hudson.triggers.TimerTrigger
-import org.jenkinsci.plugins.parameterizedscheduler.ParameterizedTimerTriggerCause
 
-def run_tls_tests(label_prefix='') {
+import hudson.model.Cause
+import hudson.model.Result
+import hudson.triggers.TimerTrigger
+import jenkins.model.CauseOfInterruption
+import org.jenkinsci.plugins.parameterizedscheduler.ParameterizedTimerTriggerCause
+import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
+
+import org.mbed.tls.jenkins.BranchInfo
+
+void run_tls_tests(BranchInfo info, String label_prefix='') {
     try {
         def jobs = [:]
 
-        jobs = jobs + gen_jobs.gen_release_jobs(label_prefix, false)
+        jobs = jobs + gen_jobs.gen_release_jobs(info, label_prefix, false)
 
         if (env.RUN_ABI_CHECK == "true") {
-            jobs = jobs + gen_jobs.gen_abi_api_checking_job('ubuntu-16.04')
+            jobs = jobs + gen_jobs.gen_abi_api_checking_job(info, 'ubuntu-16.04')
         }
 
         jobs = common.wrap_report_errors(jobs)
@@ -48,39 +55,51 @@ def run_tls_tests(label_prefix='') {
 /* main job */
 def run_pr_job(is_production=true) {
     analysis.main_record_timestamps('run_pr_job') {
-        try {
-            if (is_production) {
-                // Cancel in-flight jobs for the same PR when a new job is launched
-                def buildNumber = env.BUILD_NUMBER as int
-                if (buildNumber > 1)
-                    milestone(buildNumber - 1)
-                /* If buildNumber > 1, the following statement aborts all builds
-                * whose most-recently passed milestone was the previous milestone
-                * passed by this job (buildNumber - 1).
-                * After this, it checks to see if a later build has already passed
-                * milestone(buildNumber), and if so aborts the current build as well.
-                *
-                * Because of the order of operations, each build is only responsible
-                * for aborting the one directly before it, and itself if necessary.
-                * Thus we don't have to iterate over all milestones 1 to buildNumber.
-                */
-                milestone(buildNumber)
+        if (is_production) {
+            // Cancel in-flight jobs for the same PR when a new job is launched
+            def buildNumber = env.BUILD_NUMBER as int
+            if (buildNumber > 1)
+                milestone(buildNumber - 1)
+            /* If buildNumber > 1, the following statement aborts all builds
+            * whose most-recently passed milestone was the previous milestone
+            * passed by this job (buildNumber - 1).
+            * After this, it checks to see if a later build has already passed
+            * milestone(buildNumber), and if so aborts the current build as well.
+            *
+            * Because of the order of operations, each build is only responsible
+            * for aborting the one directly before it, and itself if necessary.
+            * Thus we don't have to iterate over all milestones 1 to buildNumber.
+            */
+            milestone(buildNumber)
 
-                /* Discarding old builds has to be individually configured for each
-                * branch in a multibranch pipeline, so do it from groovy.
-                */
-                properties([
-                    buildDiscarder(
-                        logRotator(
-                            numToKeepStr: '5'
-                        )
+            /* Discarding old builds has to be individually configured for each
+            * branch in a multibranch pipeline, so do it from groovy.
+            */
+            properties([
+                buildDiscarder(
+                    logRotator(
+                        numToKeepStr: '5'
                     )
-                ])
-            }
+                )
+            ])
+        }
 
+        environ.set_tls_pr_environment(is_production)
+        boolean is_merge_queue = env.BRANCH_NAME ==~ /gh-readonly-queue\/.*/
+
+        if (!is_merge_queue && currentBuild.rawBuild.getCause(Cause.UserIdCause) == null) {
+            if (!common.pr_author_has_write_access("$env.GITHUB_ORG/$env.GITHUB_REPO", env.CHANGE_ID as int)) {
+                echo 'PR author not found on allowlist - not building'
+                throw new FlowInterruptedException(Result.NOT_BUILT, new CauseOfInterruption[0])
+            }
+        }
+
+        BranchInfo info
+
+        try {
             common.maybe_notify_github('PENDING', 'In progress')
 
-            if (!common.is_open_ci_env && env.BRANCH_NAME ==~ /gh-readonly-queue\/.*/) {
+            if (!common.is_open_ci_env && is_merge_queue) {
                 // Fake required checks that don't run in the merge queue
                 def skipped_checks = [
                     'DCO',
@@ -95,9 +114,8 @@ def run_pr_job(is_production=true) {
             common.init_docker_images()
 
             stage('pre-test-checks') {
-                environ.set_tls_pr_environment(is_production)
-                common.get_branch_information()
-                common.check_every_all_sh_component_will_be_run()
+                info = common.get_branch_information()
+                common.check_every_all_sh_component_will_be_run(info)
             }
         } catch (err) {
             def description = 'Pre-test checks failed.'
@@ -110,7 +128,7 @@ def run_pr_job(is_production=true) {
 
         try {
             stage('tls-testing') {
-                run_tls_tests()
+                run_tls_tests(info)
             }
         } finally {
             stage('result-analysis') {
@@ -133,7 +151,8 @@ void run_release_job() {
             environ.set_tls_release_environment()
             common.init_docker_images()
             stage('tls-testing') {
-                def jobs = common.wrap_report_errors(gen_jobs.gen_release_jobs())
+                BranchInfo info = common.get_branch_information()
+                def jobs = common.wrap_report_errors(gen_jobs.gen_release_jobs(info))
                 jobs.failFast = false
                 try {
                     analysis.record_inner_timestamps('main', 'run_release_job') {

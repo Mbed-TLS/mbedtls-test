@@ -17,6 +17,8 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+import hudson.plugins.git.GitSCM
+
 def set_common_environment() {
     /* Do moderately parallel builds. This overrides the default in all.sh
      * which is to do maximally parallel builds (-j). Massively parallel builds
@@ -47,6 +49,15 @@ def set_common_pr_production_environment() {
         env.RUN_FREEBSD = 'true'
         env.RUN_WINDOWS_TEST = 'true'
         env.RUN_ALL_SH = 'true'
+    }
+    /* Extract owner and repository from the repo url - needed for testing Github merge queues
+     * "scm" might degenerate to a NullSCM object if the branch we are testing is deleted durin the test.
+     *  This tends to happen during merge queue runs */
+    if (scm instanceof GitSCM) {
+        def (org, repo) = scm.userRemoteConfigs[0].url.replaceFirst(/.*:/, '').split('/')[-2..-1]
+        repo = repo.replaceFirst(/\.git$/, '')
+        env.GITHUB_ORG = org
+        env.GITHUB_REPO = repo
     }
 }
 

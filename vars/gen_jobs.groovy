@@ -23,6 +23,8 @@ import groovy.transform.Field
 
 import hudson.AbortException
 
+import org.mbed.tls.jenkins.BranchInfo
+
 // Keep track of builds that fail.
 // Use static field, so the is content preserved across stages.
 @Field static failed_builds = [:]
@@ -40,12 +42,12 @@ private Map<String, Callable<Void>> instrumented_node_job(String node_label, Str
     }
 }
 
-Map<String, Callable<Void>> gen_simple_windows_jobs(String label, String script) {
+Map<String, Callable<Void>> gen_simple_windows_jobs(BranchInfo info, String label, String script) {
     return instrumented_node_job('windows', label) {
         try {
             dir('src') {
                 deleteDir()
-                checkout_repo.checkout_repo()
+                checkout_repo.checkout_repo(info)
                 timeout(time: common.perJobTimeout.time,
                         unit: common.perJobTimeout.unit) {
                     analysis.record_inner_timestamps('windows', label) {
@@ -88,7 +90,7 @@ def platform_lacks_tls_tools(platform) {
     return ['freebsd'].contains(os)
 }
 
-def gen_all_sh_jobs(platform, component, label_prefix='') {
+def gen_all_sh_jobs(BranchInfo info, platform, component, label_prefix='') {
     def shorthands = [
         "arm-compilers": "armcc",
         "ubuntu-16.04": "u16",
@@ -145,10 +147,10 @@ echo >&2 'Note: "clang" will run /usr/bin/clang -Wno-error=c11-extensions'
 '''
     }
 
-    if (common.has_min_requirements) {
-        extra_setup_code += '''
-scripts/min_requirements.py --user
-'''
+    if (info.has_min_requirements) {
+        extra_setup_code += """
+scripts/min_requirements.py --user ${info.python_requirements_override_file}
+"""
     }
 
     return instrumented_node_job(node_label, job_name) {
@@ -158,7 +160,7 @@ scripts/min_requirements.py --user
                 common.get_docker_image(platform)
             }
             dir('src') {
-                checkout_repo.checkout_repo()
+                checkout_repo.checkout_repo(info)
                 writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
@@ -203,14 +205,14 @@ ${extra_setup_code}
     }
 }
 
-def gen_windows_testing_job(build, label_prefix='') {
+def gen_windows_testing_job(BranchInfo info, build, label_prefix='') {
     def job_name = "${label_prefix}Windows-${build}"
 
     return instrumented_node_job('windows', job_name) {
         try {
             dir("src") {
                 deleteDir()
-                checkout_repo.checkout_repo()
+                checkout_repo.checkout_repo(info)
             }
             /* The empty files are created to re-create the directory after it
              * and its contents have been removed by deleteDir. */
@@ -224,11 +226,11 @@ def gen_windows_testing_job(build, label_prefix='') {
                 writeFile file:'_do_not_delete_this_directory.txt', text:''
             }
 
-            if (common.has_min_requirements) {
+            if (info.has_min_requirements) {
                 dir("src") {
                     timeout(time: common.perJobTimeout.time,
                             unit: common.perJobTimeout.unit) {
-                        bat "python scripts\\min_requirements.py"
+                        bat "python scripts\\min_requirements.py ${info.python_requirements_override_file}"
                     }
                 }
             }
@@ -253,24 +255,32 @@ def gen_windows_testing_job(build, label_prefix='') {
     }
 }
 
-def gen_windows_jobs(String label_prefix='') {
+def gen_windows_jobs(BranchInfo info, String label_prefix='') {
+    String preamble = ''
+    if (info.has_min_requirements) {
+        preamble += "python scripts\\min_requirements.py ${info.python_requirements_override_file} || exit\r\n"
+    }
+
     def jobs = [:]
     jobs = jobs + gen_simple_windows_jobs(
-        label_prefix + 'win32-mingw', scripts.win32_mingw_test_bat
+        info, label_prefix + 'win32-mingw',
+        preamble + scripts.win32_mingw_test_bat
     )
     jobs = jobs + gen_simple_windows_jobs(
-        label_prefix + 'win32_msvc12_32', scripts.win32_msvc12_32_test_bat
+        info, label_prefix + 'win32_msvc12_32',
+        preamble + scripts.win32_msvc12_32_test_bat
     )
     jobs = jobs + gen_simple_windows_jobs(
-        label_prefix + 'win32-msvc12_64', scripts.win32_msvc12_64_test_bat
+        info, label_prefix + 'win32-msvc12_64',
+        preamble + scripts.win32_msvc12_64_test_bat
     )
     for (build in common.get_supported_windows_builds()) {
-        jobs = jobs + gen_windows_testing_job(build, label_prefix)
+        jobs = jobs + gen_windows_testing_job(info, build, label_prefix)
     }
     return jobs
 }
 
-def gen_abi_api_checking_job(platform) {
+def gen_abi_api_checking_job(BranchInfo info, String platform) {
     def job_name = 'ABI-API-checking'
     def credentials_id = common.is_open_ci_env ? "mbedtls-github-ssh" : "742b7080-e1cc-41c6-bf55-efb72013bc28"
 
@@ -279,7 +289,7 @@ def gen_abi_api_checking_job(platform) {
             deleteDir()
             common.get_docker_image(platform)
             dir('src') {
-                checkout_repo.checkout_repo()
+                checkout_repo.checkout_repo(info)
                 /* The credentials here are the SSH credentials for accessing the repositories.
                    They are defined at {JENKINS_URL}/credentials */
                 withCredentials([sshUserPrivateKey(credentialsId: credentials_id, keyFileVariable: 'keyfile')]) {
@@ -291,7 +301,7 @@ set -eux
 ulimit -f 20971520
 
 if [ -e scripts/min_requirements.py ]; then
-scripts/min_requirements.py --user
+scripts/min_requirements.py --user ${info.python_requirements_override_file}
 fi
 
 tests/scripts/list-identifiers.sh --internal
@@ -316,20 +326,20 @@ scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
     }
 }
 
-def gen_code_coverage_job(platform) {
+def gen_code_coverage_job(BranchInfo info, platform) {
     def job_name = 'code-coverage'
     return instrumented_node_job('container-host', job_name) {
         try {
             deleteDir()
             common.get_docker_image(platform)
             dir('src') {
-                checkout_repo.checkout_repo()
+                checkout_repo.checkout_repo(info)
                 writeFile file: 'steps.sh', text: '''#!/bin/sh
 set -eux
 ulimit -f 20971520
 
 if [ -e scripts/min_requirements.py ]; then
-scripts/min_requirements.py --user
+scripts/min_requirements.py --user ''' + info.python_requirements_override_file + '''
 fi
 
 if grep -q -F coverage-summary.txt tests/scripts/basic-build-test.sh; then
@@ -527,18 +537,16 @@ def gen_coverity_push_jobs() {
     return jobs
 }
 
-def gen_release_jobs(label_prefix='', run_examples=true) {
+def gen_release_jobs(BranchInfo info, String label_prefix='', boolean run_examples=true) {
     def jobs = [:]
 
-    common.get_branch_information()
-
     if (env.RUN_BASIC_BUILD_TEST == "true") {
-        jobs = jobs + gen_code_coverage_job('ubuntu-16.04');
+        jobs = jobs + gen_code_coverage_job(info, 'ubuntu-16.04');
     }
 
     if (env.RUN_ALL_SH == "true") {
-        common.all_all_sh_components.each({component, platform ->
-            jobs = jobs + gen_all_sh_jobs(platform, component, label_prefix)
+        info.all_all_sh_components.each({component, platform ->
+            jobs = jobs + gen_all_sh_jobs(info, platform, component, label_prefix)
         })
     }
 
@@ -546,13 +554,13 @@ def gen_release_jobs(label_prefix='', run_examples=true) {
     if (env.RUN_FREEBSD == "true") {
         for (platform in common.bsd_platforms) {
             for (component in common.freebsd_all_sh_components) {
-                jobs = jobs + gen_all_sh_jobs(platform, component, label_prefix)
+                jobs = jobs + gen_all_sh_jobs(info, platform, component, label_prefix)
             }
         }
     }
 
     if (env.RUN_WINDOWS_TEST == "true") {
-        jobs = jobs + gen_windows_jobs(label_prefix)
+        jobs = jobs + gen_windows_jobs(info, label_prefix)
     }
 
     if (run_examples) {
@@ -617,21 +625,13 @@ aws ecr get-login-password | docker login --username AWS --password-stdin $commo
 """
                         }
 
-                        /* Hack alert: at the time of writing, building the
-                         * arm-compilers image doesn't work, because the
-                         * URLS to download Arm compilers aren't valid anymore.
-                         * So arrange to look for cached copies of the image.
-                         */
-                        if (platform == 'arm-compilers') {
-                            extra_build_args += " --cache-from $common.docker_repo:ubuntu-20.04-f15359b0ac46e767133991b76ccf23e3cd2e5e0f "
-                        }
-
                         analysis.record_inner_timestamps('dockerfile-builder', platform) {
                             sh """\
 # Use BuildKit and a remote build cache to pull only the reuseable layers
 # from the last successful build for this platform
 DOCKER_BUILDKIT=1 docker build \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
+    --build-arg DOCKER_REPO=$common.docker_repo \
     $extra_build_args \
     --cache-from $common.docker_repo:$platform-cache \
     -t $common.docker_repo:$tag \
