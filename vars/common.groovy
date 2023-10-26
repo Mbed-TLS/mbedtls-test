@@ -177,6 +177,9 @@ String construct_python_requirements_override() {
 
 def init_docker_images() {
     stage('init-docker-images') {
+        node('dockerfile-builder') {
+            sh 'aws s3 ls s3://trustedfirmware-private --recursive'
+        }
         def jobs = wrap_report_errors(linux_platforms.collectEntries {
             platform -> gen_jobs.gen_dockerfile_builder_job(platform)
         })
