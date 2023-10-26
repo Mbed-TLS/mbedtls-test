@@ -157,7 +157,53 @@ RUN if [ "$(uname -m)" = aarch64 ]; then \
 # Distro packages tend to include patches that disrupt our testing scripts,
 # and such patches may be added at any time. Avoid surprises by using fixed
 # versions.
-#
+
+RUN wget -q https://www.openssl.org/source/old/1.0.1/openssl-1.0.1j.tar.gz && \
+    tar -zxf openssl-1.0.1j.tar.gz && cd openssl-1.0.1j && \
+    ./config --openssldir=/usr/local/openssl-1.0.1j && \
+    make clean && make && make install && cd .. && \
+    rm -rf openssl-1.0.1j*
+ENV OPENSSL_1_0_1=/usr/local/openssl-1.0.1j/bin/openssl
+# Up to at least 2023, the test scripts expect that $OPENSSL_LEGACY is 1.0.1j.
+ENV OPENSSL_LEGACY=/usr/local/openssl-1.0.1j/bin/openssl
+
+RUN wget -q https://www.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz && \
+    tar -zxf openssl-1.0.2g.tar.gz && cd openssl-1.0.2g && \
+    ./config --openssldir=/usr/local/openssl-1.0.2g enable-ssl-trace && \
+    make clean && make && make install && cd .. && \
+    rm -rf openssl-1.0.2g*
+ENV OPENSSL_1_0_2=/usr/local/openssl-1.0.2g/bin/openssl
+# Up to at least 2023, the test scripts expect that $OPENSSL is 1.0.2g.
+ENV OPENSSL=/usr/local/openssl-1.0.2g/bin/openssl
+
+RUN wget -q https://www.openssl.org/source/openssl-1.1.1a.tar.gz && \
+    tar -zxf openssl-1.1.1a.tar.gz && cd openssl-1.1.1a && \
+    ./config --prefix=/usr/local/openssl-1.1.1a -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' enable-ssl-trace && \
+    make clean && make && make install && cd .. && \
+    rm -rf openssl-1.1.1a*
+ENV OPENSSL_1_1_1=/usr/local/openssl-1.1.1a/bin/openssl
+ENV OPENSSL_1_1=/usr/local/openssl-1.1.1a/bin/openssl
+ENV OPENSSL_1=/usr/local/openssl-1.1.1a/bin/openssl
+# Up to at least 2023, the test scripts expect that $OPENSSL_NEXT is 1.1.1a.
+ENV OPENSSL_NEXT=/usr/local/openssl-1.1.1a/bin/openssl
+
+RUN wget -q https://www.openssl.org/source/openssl-3.0.10.tar.gz && \
+    tar -zxf openssl-3.0.10.tar.gz && cd openssl-3.0.10 && \
+    ./config --prefix=/usr/local/openssl-3.0.10 -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' enable-ssl-trace && \
+    make clean && make && make install && cd .. && \
+    rm -rf openssl-3.0.10*
+ENV OPENSSL_3_0_10=/usr/local/openssl-3.0.10/bin/openssl
+ENV OPENSSL_3_0=/usr/local/openssl-3.0.10/bin/openssl
+
+RUN wget -q https://www.openssl.org/source/openssl-3.1.2.tar.gz && \
+    tar -zxf openssl-3.1.2.tar.gz && cd openssl-3.1.2 && \
+    ./config --prefix=/usr/local/openssl-3.1.2 -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' enable-ssl-trace && \
+    make clean && make && make install && cd .. && \
+    rm -rf openssl-3.1.2*
+ENV OPENSSL_3_1_2=/usr/local/openssl-3.1.2/bin/openssl
+ENV OPENSSL_3_1=/usr/local/openssl-3.1.2/bin/openssl
+ENV OPENSSL_3=/usr/local/openssl-3.1.2/bin/openssl
+
 # GnuTLS has a number of (optional) dependencies:
 # - nettle (crypto library): quite tighly coupled, so build one for each
 # version of GnuTLS that we want.
@@ -167,67 +213,30 @@ RUN if [ "$(uname -m)" = aarch64 ]; then \
 # - libunistring: since 3.6 - the Ubuntu package works; if it didn't a config
 # option --with-included-libunistring is available.
 
-# Install openssl 1.0.2g - main version, in the PATH
-RUN wget -q https://www.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz && \
-    tar -zxf openssl-1.0.2g.tar.gz && cd openssl-1.0.2g && \
-    ./config --openssldir=/usr/local/openssl-1.0.2g enable-ssl-trace && \
-    make clean && make && make install && cd .. && \
-    rm -rf openssl-1.0.2g*
-
-ENV OPENSSL=/usr/local/openssl-1.0.2g/bin/openssl
-ENV PATH=/usr/local/openssl-1.0.2g/bin:$PATH
-
-# Install openssl 1.0.1j - "legacy" version
-RUN wget -q https://www.openssl.org/source/old/1.0.1/openssl-1.0.1j.tar.gz && \
-    tar -zxf openssl-1.0.1j.tar.gz && cd openssl-1.0.1j && \
-    ./config --openssldir=/usr/local/openssl-1.0.1j && \
-    make clean && make && make install && cd .. && \
-    rm -rf openssl-1.0.1j*
-
-ENV OPENSSL_LEGACY=/usr/local/openssl-1.0.1j/bin/openssl
-
-# Install openssl 1.1.1a - "next" version
-RUN wget -q https://www.openssl.org/source/openssl-1.1.1a.tar.gz && \
-    tar -zxf openssl-1.1.1a.tar.gz && cd openssl-1.1.1a && \
-    ./config --prefix=/usr/local/openssl-1.1.1a -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' enable-ssl-trace && \
-    make clean && make && make install && cd .. && \
-    rm -rf openssl-1.1.1a*
-
-ENV OPENSSL_NEXT=/usr/local/openssl-1.1.1a/bin/openssl
-
-# Install Gnu TLS 3.4.10 (nettle 3.1) - main version, in the PATH
+# Install Gnu TLS 3.4.6 (nettle 3.1) - main version, in the PATH
 RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.1.tar.gz && \
     tar -zxf nettle-3.1.tar.gz && cd nettle-3.1 && \
     ./configure --prefix=/usr/local/libnettle-3.1 --exec_prefix=/usr/local/libnettle-3.1  --disable-shared --disable-openssl && \
     make && make install && cd .. && rm -rf nettle-3.1* && \
     export PKG_CONFIG_PATH=/usr/local/libnettle-3.1/lib/pkgconfig:/usr/local/libnettle-3.1/lib64/pkgconfig:/usr/local/lib/pkgconfig && \
-    wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.4/gnutls-3.4.10.tar.xz && \
-    tar -xJf gnutls-3.4.10.tar.xz && cd gnutls-3.4.10 && \
-    ./configure --prefix=/usr/local/gnutls-3.4.10 --exec_prefix=/usr/local/gnutls-3.4.10 --disable-shared --without-p11-kit && \
+    wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.4/gnutls-3.4.6.tar.xz && \
+    tar -xJf gnutls-3.4.6.tar.xz && cd gnutls-3.4.6 && \
+    ./configure --prefix=/usr/local/gnutls-3.4.6 --exec_prefix=/usr/local/gnutls-3.4.6 --disable-shared --without-p11-kit && \
     make && make install && cat config.log && cd .. && \
-    rm -rf gnutls-3.4.10*
+    rm -rf gnutls-3.4.6*
+ENV GNUTLS_3_4_6_CLI=/usr/local/gnutls-3.4.6/bin/gnutls-cli
+ENV GNUTLS_3_4_6_SERV=/usr/local/gnutls-3.4.6/bin/gnutls-serv
+ENV GNUTLS_3_4_CLI=/usr/local/gnutls-3.4.6/bin/gnutls-cli
+ENV GNUTLS_3_4_SERV=/usr/local/gnutls-3.4.6/bin/gnutls-serv
+# Up to at least 2023, the test scripts expect that $GNUTLS_xxx is 3.4.6.
+ENV GNUTLS_CLI=/usr/local/gnutls-3.4.6/bin/gnutls-cli
+ENV GNUTLS_SERV=/usr/local/gnutls-3.4.6/bin/gnutls-serv
 
-ENV GNUTLS_CLI=/usr/local/gnutls-3.4.10/bin/gnutls-cli
-ENV GNUTLS_SERV=/usr/local/gnutls-3.4.10/bin/gnutls-serv
-ENV PATH=/usr/local/gnutls-3.4.10/bin:$PATH
-
-# Install Gnu TLS 3.3.8 (nettle 2.7) - "legacy" version
-RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-2.7.1.tar.gz && \
-    tar -zxf nettle-2.7.1.tar.gz && cd nettle-2.7.1 && \
-    # Update autoconf to support building on aarch64
-    cp -f /usr/share/misc/config.sub . && \
-    cp -f /usr/share/misc/config.guess . && \
-    ./configure --prefix=/usr/local/libnettle-2.7.1 --exec_prefix=/usr/local/libnettle-2.7.1  --disable-shared --disable-openssl && \
-    make && make install && cd .. && rm -rf nettle-2.7.1* && \
-    export PKG_CONFIG_PATH=/usr/local/libnettle-2.7.1/lib/pkgconfig:/usr/local/libnettle-2.7.1/lib64/pkgconfig:/usr/local/lib/pkgconfig && \
-    wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.3/gnutls-3.3.8.tar.xz && \
-    tar -xJf gnutls-3.3.8.tar.xz && cd gnutls-3.3.8 && \
-    ./configure --prefix=/usr/local/gnutls-3.3.8 --exec_prefix=/usr/local/gnutls-3.3.8 --disable-shared --without-p11-kit && \
-    make && make install && cat config.log && cd .. && \
-    rm -rf gnutls-3.3.8*
-
-ENV GNUTLS_LEGACY_CLI=/usr/local/gnutls-3.3.8/bin/gnutls-cli
-ENV GNUTLS_LEGACY_SERV=/usr/local/gnutls-3.3.8/bin/gnutls-serv
+# For backward compatibility with older all.sh. At the time of writing,
+# GnuTLS 3.4.6 works fine as the "legacy" version, and newer all.sh will
+# stop using a separate GNUTLS_LEGACY_xxx pair of programs.
+ENV GNUTLS_LEGACY_CLI=$GNUTLS_CLI
+ENV GNUTLS_LEGACY_SERV=$GNUTLS_SERV
 
 # Instal GNU TLS 3.7.2 (nettle 3.7) - "next" version
 RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.7.3.tar.gz && \
@@ -240,7 +249,13 @@ RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.7.3.tar.gz && \
     ./configure --prefix=/usr/local/gnutls-3.7.2 --exec_prefix=/usr/local/gnutls-3.7.2 --disable-shared --without-p11-kit && \
     make && make install && cat config.log && cd .. && \
     rm -rf gnutls-3.7.2*
-
+ENV GNUTLS_3_7_2_CLI=/usr/local/gnutls-3.7.2/bin/gnutls-cli
+ENV GNUTLS_3_7_2_SERV=/usr/local/gnutls-3.7.2/bin/gnutls-serv
+ENV GNUTLS_3_7_CLI=/usr/local/gnutls-3.7.2/bin/gnutls-cli
+ENV GNUTLS_3_7_SERV=/usr/local/gnutls-3.7.2/bin/gnutls-serv
+ENV GNUTLS_3_CLI=/usr/local/gnutls-3.7.2/bin/gnutls-cli
+ENV GNUTLS_3_SERV=/usr/local/gnutls-3.7.2/bin/gnutls-serv
+# Up to at least 2023, the test scripts expect that $GNUTLS_NEXT_xxx is 3.7.2.
 ENV GNUTLS_NEXT_CLI=/usr/local/gnutls-3.7.2/bin/gnutls-cli
 ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.7.2/bin/gnutls-serv
 
