@@ -99,7 +99,7 @@ Jenkins (with the plugins we have installed) makes some extra functions availabl
 
 #### Global variables
 
-Note that Groovy does not have global variables as such. Each module (`*.groovy` file) is a class, and that class can have multiple instances. Therefore, avoid using script-scope variables in a Groovy module that is loaded from another module. There's existing code that does this, but it's fragile and has caused us headache so we are moving away from that.
+Note that Groovy does not have global variables as such. Each module (`*.groovy` file) is a class, and that class can have multiple instances. Therefore, avoid using script-scope variables in a Groovy module that is loaded from another module. There's existing code that does this, but it's fragile and has caused us headaches so we are moving away from that.
 
 ### Playing well with Jenkins
 
@@ -133,7 +133,7 @@ For each `all.sh` component, the Groovy code selects one of the Docker container
 
 ## Validating changes
 
-There is to continuous integration on the `mbedtls-test` repository (except a DCO check for the rare external contributions). Therefore, whenever you change the code, you must run some test jobs manually. What to run depends on what you're changing.
+There is no continuous integration on the `mbedtls-test` repository (except a DCO check for the rare external contributions). Therefore, whenever you change the code, you must run some test jobs manually. What to run depends on what you're changing.
 
 As discussed in [“Versioning”](#versioning), remember that the `mbedtls-test` repository must work not only with `development`, but also with LTS branches and with older branches.
 
@@ -164,5 +164,5 @@ Groovy is, for practical purposes, an interpreted language. Things like undefine
 
 If you make changes that affect error reporting, make sure that failures are still caught properly. We don't want to accidentally make a change that is fine if the tests pass, but hide failures!
 
-There are pull requests for testing various kinds of failure in the [`mbedtls-restricted` repository](https://github.com/Mbed-TLS/mbedtls-restricted/labels/ci-testing) (private link). See [“CI testing: development, good”](https://github.com/Mbed-TLS/mbedtls-restricted/pull/906) for more information.
+There are pull requests for testing various kinds of failures in the [`mbedtls-restricted` repository](https://github.com/Mbed-TLS/mbedtls-restricted/labels/ci-testing) (private link). See [“CI testing: development, good”](https://github.com/Mbed-TLS/mbedtls-restricted/pull/906) for more information.
 
