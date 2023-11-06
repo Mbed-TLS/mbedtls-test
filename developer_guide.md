@@ -56,7 +56,7 @@ If you add a new entry point in `mbedtls` that CI code should invoke:
 4. Merge the `mbedtls-test` pull request (once tested and approved).
 5. Trigger a new CI run on the `mbedtls` pull request. If that passes (and the pull request is approved), the pull request can be merged.
 
-What goes for `mbedtls` also goes for other repositories tested by `mbedtls-test`, such as the upcoming PSA crypto implementation repository.
+What goes for `mbedtls` also goes for other repositories tested by `mbedtls-test`, in particular [TF-PSA-Crypto](https://github.com/Mbed-TLS/TF-PSA-Crypto).
 
 ## Groovy scripts
 
