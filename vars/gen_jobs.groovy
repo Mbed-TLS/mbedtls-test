@@ -582,7 +582,7 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
     if (common.is_open_ci_env) {
         check_docker_image = "docker manifest inspect $common.docker_repo:$tag > /dev/null 2>&1"
     } else {
-        check_docker_image = "aws ecr describe-images --repository-name $common.docker_repo_name --image-ids imageTag=$tag"
+        check_docker_image = "aws ecr describe-images --registry-id 666618195821 --repository-name $common.docker_repo_name --image-ids imageTag=$tag"
     }
 
     common.docker_tags[platform] = tag
