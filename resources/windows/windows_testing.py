@@ -460,7 +460,7 @@ class MbedWindowsTesting(object):
 
         cmd = (
             'call {} {} && '
-            'msbuild /nodeReuse:false /t:Rebuild /p:Configuration={},Platform={}, PlatformToolset={} /m "{}"'
+            'msbuild /nodeReuse:false /t:Rebuild /p:Configuration={},Platform={},PlatformToolset={} /m "{}"'
             ).format(
                 self.visual_studio_vcvars_path[test_run.vs_version],
                 self.visual_studio_architecture_flags[test_run.architecture],
