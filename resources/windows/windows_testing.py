@@ -394,25 +394,19 @@ class MbedWindowsTesting(object):
             solution_dir
         )
         my_environment["CTEST_OUTPUT_ON_FAILURE"] = "1"
+        cmd = 'call "{}" {} && msbuild /nodeReuse:false /p:Configuration={} /m RUN_TESTS.vcxproj'.format(
+            self.visual_studio_vcvars_path[test_run.vs_version],
+            self.visual_studio_architecture_flags[test_run.architecture],
+            test_run.configuration
+        )
         msbuild_test_process = subprocess.Popen(
-            ["cmd.exe"],
+            cmd, shell=True,
             env=my_environment,
             encoding=sys.stdout.encoding,
             cwd=solution_dir,
-            stdin=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             stdout=subprocess.PIPE,
         )
-        msbuild_test_process.stdin.write("\"{}\" {}\n".format(
-            self.visual_studio_vcvars_path[test_run.vs_version],
-            self.visual_studio_architecture_flags[test_run.architecture]
-        ))
-        msbuild_test_process.stdin.write(
-            "msbuild /nodeReuse:false /p:Configuration={} /m RUN_TESTS.vcxproj\n".format(
-                test_run.configuration
-            )
-        )
-        msbuild_test_process.stdin.close()
         msbuild_test_output, _ = msbuild_test_process.communicate()
         logger.info(msbuild_test_output)
         if (msbuild_test_process.returncode == 0 and
@@ -463,27 +457,24 @@ class MbedWindowsTesting(object):
             self.set_return_code(1)
             test_run.results[solution_type + " build"] = "Fail"
             return False
-        msbuild_process = subprocess.Popen(
-            ["cmd.exe"],
-            env=my_environment,
-            encoding=sys.stdout.encoding,
-            cwd=solution_dir,
-            stdin=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            stdout=subprocess.PIPE,
-        )
-        msbuild_process.stdin.write("\"{}\" {}\n".format(
-            self.visual_studio_vcvars_path[test_run.vs_version],
-            self.visual_studio_architecture_flags[test_run.architecture]
-        ))
-        msbuild_process.stdin.write(
-            "msbuild /nodeReuse:false /t:Rebuild /p:Configuration={},Platform={},"
-            "PlatformToolset={} /m \"{}\"\n".format(
+
+        cmd = (
+            'call "{}" {} && '
+            'msbuild /nodeReuse:false /t:Rebuild /p:Configuration={},Platform={},PlatformToolset={} /m "{}"'
+            ).format(
+                self.visual_studio_vcvars_path[test_run.vs_version],
+                self.visual_studio_architecture_flags[test_run.architecture],
                 test_run.configuration, test_run.architecture,
                 retarget, solution_file
             )
+        msbuild_process = subprocess.Popen(
+            cmd, shell=True,
+            env=my_environment,
+            encoding=sys.stdout.encoding,
+            cwd=solution_dir,
+            stderr=subprocess.STDOUT,
+            stdout=subprocess.PIPE,
         )
-        msbuild_process.stdin.close()
         msbuild_output, _ = msbuild_process.communicate()
         logger.info(msbuild_output)
         if (msbuild_process.returncode == 0 and
