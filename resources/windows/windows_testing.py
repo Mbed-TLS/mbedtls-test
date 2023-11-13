@@ -394,7 +394,7 @@ class MbedWindowsTesting(object):
             solution_dir
         )
         my_environment["CTEST_OUTPUT_ON_FAILURE"] = "1"
-        cmd = 'call "{}" "{}" && msbuild /nodeReuse:false /p:Configuration={} /m RUN_TESTS.vcxproj'.format(
+        cmd = 'call "{}" {} && msbuild /nodeReuse:false /p:Configuration={} /m RUN_TESTS.vcxproj'.format(
             self.visual_studio_vcvars_path[test_run.vs_version],
             self.visual_studio_architecture_flags[test_run.architecture],
             test_run.configuration
@@ -459,7 +459,7 @@ class MbedWindowsTesting(object):
             return False
 
         cmd = (
-            'call "{}" "{}" && '
+            'call "{}" {} && '
             'msbuild /nodeReuse:false /t:Rebuild /p:Configuration={},Platform={},PlatformToolset={} /m "{}"'
             ).format(
                 self.visual_studio_vcvars_path[test_run.vs_version],
