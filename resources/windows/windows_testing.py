@@ -190,46 +190,32 @@ class MbedWindowsTesting(object):
         logger.info("Checking out git worktree")
         git_worktree_path = os.path.abspath(tempfile.mkdtemp(dir="worktrees"))
         try:
-            worktree_output = subprocess.run(
+            subprocess.run(
                 [self.git_command, "worktree", "add", "--detach",
                  git_worktree_path, "HEAD"],
                 cwd=self.repository_path,
-                encoding=sys.stdout.encoding,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
                 check=True
             )
-            logger.info(worktree_output.stdout)
-            submodule_output = subprocess.run(
+            subprocess.run(
                 [self.git_command, "submodule", "update", "--init"],
                 cwd=git_worktree_path,
-                encoding=sys.stdout.encoding,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
                 check=True
             )
-            logger.info(submodule_output.stdout)
             return git_worktree_path
-        except subprocess.CalledProcessError as error:
+        except subprocess.CalledProcessError:
             self.set_return_code(2)
-            logger.error(error.output)
             raise Exception("Checking out worktree failed, aborting")
 
     def cleanup_git_worktree(self, git_worktree_path, logger):
         shutil.rmtree(git_worktree_path)
         try:
-            worktree_output = subprocess.run(
+            subprocess.run(
                 [self.git_command, "worktree", "prune"],
                 cwd=self.repository_path,
-                encoding=sys.stdout.encoding,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
                 check=True
             )
-            logger.info(worktree_output.stdout)
-        except subprocess.CalledProcessError as error:
+        except subprocess.CalledProcessError:
             self.set_return_code(2)
-            logger.error(error.output)
             raise Exception("Worktree cleanup failed, aborting")
 
     def set_config_on_code(self, git_worktree_path, logger):
@@ -239,29 +225,20 @@ class MbedWindowsTesting(object):
                 self.config_pl_location
         ))
         try:
-            enable_output = subprocess.run(
+            subprocess.run(
                 [self.perl_command, self.config_pl_location, "full"],
                 cwd=git_worktree_path,
-                encoding=sys.stdout.encoding,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
                 check=True
             )
-            logger.info(enable_output.stdout)
             for option in self.config_to_disable:
-                disable_output = subprocess.run(
+                subprocess.run(
                     [self.perl_command, self.config_pl_location,
                      "unset", option],
                     cwd=git_worktree_path,
-                    encoding=sys.stdout.encoding,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
                     check=True
                 )
-                logger.info(disable_output.stdout)
-        except subprocess.CalledProcessError as error:
+        except subprocess.CalledProcessError:
             self.set_return_code(2)
-            logger.error(error.output)
             raise Exception("Setting config failed, aborting")
 
     def generate_seedfile(self, filename):
@@ -325,16 +302,12 @@ class MbedWindowsTesting(object):
         my_environment["WINDOWS"] = "1"
         logger.info("Building mbed TLS using {}".format(self.mingw_command))
         try:
-            mingw_clean = subprocess.run(
+            subprocess.run(
                 [self.mingw_command, "clean"],
                 env=my_environment,
-                encoding=sys.stdout.encoding,
                 cwd=git_worktree_path,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
                 check=True
             )
-            logger.info(mingw_clean.stdout)
             mingw_check = subprocess.run(
                 [self.mingw_command, "CC=gcc", "check"],
                 env=my_environment,
@@ -491,23 +464,18 @@ class MbedWindowsTesting(object):
         solution_dir = os.path.join(git_worktree_path, "cmake_solution")
         os.makedirs(solution_dir)
         try:
-            cmake_output = subprocess.run(
+            subprocess.run(
                 ["cmake", "-D", "ENABLE_TESTING=ON", "-G",
                  "{}{}".format(
                      self.cmake_generators[test_run.vs_version],
                      self.cmake_architecture_flags[test_run.architecture]),
                  ".."],
                 cwd=solution_dir,
-                encoding=sys.stdout.encoding,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
                 check=True
             )
-            logger.info(cmake_output.stdout)
             return solution_dir
-        except subprocess.CalledProcessError as error:
+        except subprocess.CalledProcessError:
             self.set_return_code(2)
-            logger.error(error.output)
             raise Exception("Building solution using Cmake failed, aborting")
 
     def generate_source_files(self, git_worktree_path, logger):
@@ -529,12 +497,10 @@ class MbedWindowsTesting(object):
                 cmd, shell=True,
                 cwd=git_worktree_path,
                 env=env,
-                encoding=sys.stdout.encoding,
                 check=True
             )
-        except subprocess.CalledProcessError as error:
+        except subprocess.CalledProcessError:
             self.set_return_code(2)
-            logger.error(error.output)
             raise Exception("{} failed, aborting".format(batch_script))
 
     def test_visual_studio_built_code(self, test_run, solution_type):
