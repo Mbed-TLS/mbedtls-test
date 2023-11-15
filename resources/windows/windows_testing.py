@@ -40,6 +40,10 @@ import traceback
 import glob
 
 
+def log_call(logger, func, *args, **kwargs):
+    logger.info("func: {}, args: {}, kwargs: {}".format(func, args, kwargs))
+    return func(*args, **kwargs)
+
 class VStestrun(object):
 
     def __init__(self, vs_version, configuration, architecture, retargeted):
@@ -195,7 +199,7 @@ class MbedWindowsTesting(object):
         logger.info("Checking out git worktree")
         git_worktree_path = os.path.abspath(tempfile.mkdtemp(dir="worktrees"))
         try:
-            worktree_output = subprocess.run(
+            worktree_output = log_call(logger, subprocess.run,
                 [self.git_command, "worktree", "add", "--detach",
                  git_worktree_path, "HEAD"],
                 cwd=self.repository_path,
@@ -205,7 +209,7 @@ class MbedWindowsTesting(object):
                 check=True
             )
             logger.info(worktree_output.stdout)
-            submodule_output = subprocess.run(
+            submodule_output = log_call(logger, subprocess.run,
                 [self.git_command, "submodule", "update", "--init"],
                 cwd=git_worktree_path,
                 encoding=sys.stdout.encoding,
@@ -223,7 +227,7 @@ class MbedWindowsTesting(object):
     def cleanup_git_worktree(self, git_worktree_path, logger):
         shutil.rmtree(git_worktree_path)
         try:
-            worktree_output = subprocess.run(
+            worktree_output = log_call(logger, subprocess.run,
                 [self.git_command, "worktree", "prune"],
                 cwd=self.repository_path,
                 encoding=sys.stdout.encoding,
@@ -244,7 +248,7 @@ class MbedWindowsTesting(object):
                 self.config_pl_location
         ))
         try:
-            enable_output = subprocess.run(
+            enable_output = log_call(logger, subprocess.run,
                 [self.perl_command, self.config_pl_location, "full"],
                 cwd=git_worktree_path,
                 encoding=sys.stdout.encoding,
@@ -254,7 +258,7 @@ class MbedWindowsTesting(object):
             )
             logger.info(enable_output.stdout)
             for option in self.config_to_disable:
-                disable_output = subprocess.run(
+                disable_output = log_call(logger, subprocess.run,
                     [self.perl_command, self.config_pl_location,
                      "unset", option],
                     cwd=git_worktree_path,
@@ -332,7 +336,7 @@ class MbedWindowsTesting(object):
         my_environment["WINDOWS"] = "1"
         logger.info("Building mbed TLS using {}".format(self.mingw_command))
         try:
-            mingw_clean = subprocess.run(
+            mingw_clean = log_call(logger, subprocess.run,
                 [self.mingw_command, "clean"],
                 env=my_environment,
                 encoding=sys.stdout.encoding,
@@ -342,7 +346,7 @@ class MbedWindowsTesting(object):
                 check=True
             )
             logger.info(mingw_clean.stdout)
-            mingw_check = subprocess.run(
+            mingw_check = log_call(logger, subprocess.run,
                 [self.mingw_command, "CC=gcc", "check"],
                 env=my_environment,
                 encoding=sys.stdout.encoding,
@@ -367,7 +371,7 @@ class MbedWindowsTesting(object):
         reports all tests passing."""
         logger.info(selftest_dir)
         try:
-            test_output = subprocess.run(
+            test_output = log_call(logger, subprocess.run,
                 [os.path.join(selftest_dir, self.selftest_exe)],
                 cwd=selftest_dir,
                 input="\n",
@@ -394,7 +398,7 @@ class MbedWindowsTesting(object):
             solution_dir
         )
         my_environment["CTEST_OUTPUT_ON_FAILURE"] = "1"
-        msbuild_test_process = subprocess.Popen(
+        msbuild_test_process = log_call(logger, subprocess.Popen,
             ["cmd.exe"],
             env=my_environment,
             encoding=sys.stdout.encoding,
@@ -463,7 +467,7 @@ class MbedWindowsTesting(object):
             self.set_return_code(1)
             test_run.results[solution_type + " build"] = "Fail"
             return False
-        msbuild_process = subprocess.Popen(
+        msbuild_process = log_call(logger, subprocess.Popen,
             ["cmd.exe"],
             env=my_environment,
             encoding=sys.stdout.encoding,
@@ -507,7 +511,7 @@ class MbedWindowsTesting(object):
         solution_dir = os.path.join(git_worktree_path, "cmake_solution")
         os.makedirs(solution_dir)
         try:
-            cmake_output = subprocess.run(
+            cmake_output = log_call(logger, subprocess.run,
                 ["cmake", "-D", "ENABLE_TESTING=ON", "-G",
                  "{}{}".format(
                      self.cmake_generators[test_run.vs_version],
@@ -541,7 +545,7 @@ class MbedWindowsTesting(object):
             )
             env['CC'] = 'cl.exe'
             logger.info('Generating source files: ' + cmd)
-            subprocess.run(
+            log_call(logger, subprocess.run,
                 cmd, shell=True,
                 cwd=git_worktree_path,
                 env=env,
