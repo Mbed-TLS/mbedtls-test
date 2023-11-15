@@ -178,7 +178,7 @@ class MbedWindowsTesting(object):
         log_formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         )
-        console = logging.StreamHandler()
+        console = logging.StreamHandler(sys.stdout)
         if name is not "Results":
             console.setFormatter(log_formatter)
         logger = logging.getLogger(name)
