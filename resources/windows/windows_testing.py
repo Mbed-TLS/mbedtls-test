@@ -62,11 +62,9 @@ class MbedWindowsTesting(object):
 
     def __init__(self,
                  repository_path,
-                 logging_directory,
                  build_method,
                  testing_config):
         self.repository_path = repository_path
-        self.log_dir = logging_directory
         self.return_code = 0
         if "config_to_disable" in testing_config.keys():
             self.config_to_disable = testing_config["config_to_disable"]
@@ -175,19 +173,16 @@ class MbedWindowsTesting(object):
         if return_code > self.return_code:
             self.return_code = return_code
 
-    def setup_logger(self, name, log_file, level=logging.INFO):
-        """Creates a logger that outputs both to console and to log_file"""
+    def setup_logger(self, name, level=logging.INFO):
+        """Creates a logger that outputs to console"""
         log_formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         )
         console = logging.StreamHandler()
-        file_handler = logging.FileHandler(log_file)
         if name is not "Results":
             console.setFormatter(log_formatter)
-            file_handler.setFormatter(log_formatter)
         logger = logging.getLogger(name)
         logger.setLevel(level)
-        logger.addHandler(file_handler)
         logger.addHandler(console)
         return logger
 
@@ -293,9 +288,7 @@ class MbedWindowsTesting(object):
         config and then builds and tests using MinGW. The result is determined
         by parsing the output for any test failures."""
         log_name = "MinGW"
-        mingw_logger = self.setup_logger(
-            log_name, os.path.join(self.log_dir, log_name + ".txt")
-        )
+        mingw_logger = self.setup_logger(log_name)
         git_worktree_path = None
         try:
             git_worktree_path = self.get_clean_worktree_for_git_reference(
@@ -552,9 +545,7 @@ class MbedWindowsTesting(object):
             " Retargeted" if test_run.retargeted else "",
             solution_type
         )
-        vs_logger = self.setup_logger(
-            log_name, os.path.join(self.log_dir, log_name + ".txt")
-        )
+        vs_logger = self.setup_logger(log_name)
         git_worktree_path = None
         try:
             git_worktree_path = self.get_clean_worktree_for_git_reference(
@@ -618,10 +609,7 @@ class MbedWindowsTesting(object):
                 self.cleanup_git_worktree(git_worktree_path, vs_logger)
 
     def log_results(self):
-        result_logger = self.setup_logger(
-            "Results",
-            os.path.join(self.log_dir, "results.txt")
-        )
+        result_logger = self.setup_logger("Results")
         total_test_runs = 0
         successful_test_runs = 0
         if self.build_mingw:
@@ -713,9 +701,6 @@ def run_main():
         "repo_path", type=str, help="the path to the Mbed TLS repository"
     )
     parser.add_argument(
-        "log_path", type=str, help="the directory path for log files"
-    )
-    parser.add_argument(
         "-b", "--build-method", type=str, nargs="+",
         choices=["mingw", "2010", "2013", "2015", "2017"],
         default=["mingw", "2010", "2013", "2015", "2017"],
@@ -734,7 +719,6 @@ def run_main():
         testing_config = {}
     mbed_test = MbedWindowsTesting(
         windows_testing_args.repo_path,
-        windows_testing_args.log_path,
         windows_testing_args.build_method,
         testing_config
     )

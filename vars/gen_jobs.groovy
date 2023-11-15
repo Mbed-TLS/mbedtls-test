@@ -243,7 +243,7 @@ def gen_windows_testing_job(BranchInfo info, build, label_prefix='') {
                           common.perJobTimeout.windowsTestingOffset,
                     unit: common.perJobTimeout.unit) {
                 analysis.record_inner_timestamps('windows', job_name) {
-                    bat "python windows_testing.py src logs -b $build"
+                    bat "python windows_testing.py src -b $build"
                 }
             }
         } catch (err) {
