@@ -149,7 +149,7 @@ class MbedWindowsTesting(object):
         self.visual_studio_build_success_patterns = [
             "Build succeeded.", "\d+ Warning\(s\)", "0 Error\(s\)"
         ]
-        self.visual_studio_build_zero_warnings_string = "0 Warning(s)"
+        self.visual_studio_build_zero_warnings_pattern = "0 Warning\(s\)"
         self.selftest_success_pattern = "\[ All tests (PASS|passed) \]"
         self.test_suites_success_pattern = "100% tests passed, 0 tests failed"
         self.mingw_success_pattern = "PASSED \(\d+ suites, \d+ tests run\)"
@@ -308,24 +308,28 @@ class MbedWindowsTesting(object):
                 cwd=git_worktree_path,
                 check=True
             )
-            mingw_check = subprocess.run(
+            mingw_check = subprocess.Popen(
                 [self.mingw_command, "CC=gcc", "check"],
                 env=my_environment,
                 encoding=sys.stdout.encoding,
                 cwd=git_worktree_path,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                check=True
+                bufsize=1
             )
-            logger.info(mingw_check.stdout)
-            if re.search(self.mingw_success_pattern, mingw_check.stdout):
-                return True
+            for line in mingw_check.stdout:
+                sys.stdout.write(line)
+                if re.search(self.mingw_success_pattern, line):
+                    sys.stdout.writelines(mingw_check.stdout)
+                    break
             else:
                 self.set_return_code(1)
-                return False
-        except subprocess.CalledProcessError as error:
+            returncode = mingw_check.wait()
+            if returncode != 0:
+                raise subprocess.CalledProcessError(returncode, mingw_check.args)
+            return self.return_code == 0
+        except subprocess.CalledProcessError:
             self.set_return_code(2)
-            logger.error(error.output)
             return False
 
     def run_selftest_on_built_code(self, selftest_dir, logger):
@@ -333,24 +337,33 @@ class MbedWindowsTesting(object):
         reports all tests passing."""
         logger.info(selftest_dir)
         try:
-            test_output = subprocess.run(
+            selftest = subprocess.Popen(
                 [os.path.join(selftest_dir, self.selftest_exe)],
                 cwd=selftest_dir,
-                input="\n",
                 encoding=sys.stdout.encoding,
+                stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                check=True
+                bufsize=1
             )
-            logger.info(test_output.stdout)
-            if re.search(self.selftest_success_pattern, test_output.stdout):
-                return "Pass"
+            selftest.stdin.write("\n")
+            selftest.stdin.close()
+            for line in selftest.stdout:
+                sys.stdout.write(line)
+                if re.search(self.selftest_success_pattern, line):
+                    sys.stdout.writelines(selftest.stdout)
+                    break
             else:
                 self.set_return_code(1)
+            returncode = selftest.wait()
+            if returncode != 0:
+                raise subprocess.CalledProcessError(returncode, selftest.args)
+            if self.return_code == 0:
+                return "Pass"
+            else:
                 return "Fail"
-        except subprocess.CalledProcessError as error:
+        except subprocess.CalledProcessError:
             self.set_return_code(2)
-            logger.error(error.output)
             return "Fail"
 
     def run_test_suites_on_built_code(self, solution_dir, test_run, logger):
@@ -372,13 +385,16 @@ class MbedWindowsTesting(object):
             cwd=solution_dir,
             stderr=subprocess.STDOUT,
             stdout=subprocess.PIPE,
+            bufsize=1
         )
-        msbuild_test_output, _ = msbuild_test_process.communicate()
-        logger.info(msbuild_test_output)
-        if (msbuild_test_process.returncode == 0 and
-                all(re.search(x, msbuild_test_output) for x in
-                    [self.test_suites_success_pattern] +
-                    self.visual_studio_build_success_patterns)):
+        success_patterns = set(self.visual_studio_build_success_patterns)
+        success_patterns.add(self.test_suites_success_pattern)
+        for line in msbuild_test_process.stdout:
+            sys.stdout.write(line)
+            for pattern in list(success_patterns):
+                if re.search(pattern, line):
+                    success_patterns.remove(pattern)
+        if msbuild_test_process.wait() == 0 and len(success_patterns) == 0:
             return "Pass"
         else:
             self.set_return_code(1)
@@ -440,13 +456,17 @@ class MbedWindowsTesting(object):
             cwd=solution_dir,
             stderr=subprocess.STDOUT,
             stdout=subprocess.PIPE,
+            bufsize=1
         )
-        msbuild_output, _ = msbuild_process.communicate()
-        logger.info(msbuild_output)
-        if (msbuild_process.returncode == 0 and
-                all(re.search(x, msbuild_output) for x in
-                    self.visual_studio_build_success_patterns)):
-            if self.visual_studio_build_zero_warnings_string in msbuild_output:
+        success_patterns = set(self.visual_studio_build_success_patterns)
+        success_patterns.add(self.visual_studio_build_zero_warnings_pattern)
+        for line in msbuild_process.stdout:
+            sys.stdout.write(line)
+            for pattern in list(success_patterns):
+                if re.search(pattern, line):
+                    success_patterns.remove(pattern)
+        if msbuild_process.wait() == 0 and len(success_patterns - {self.visual_studio_build_zero_warnings_pattern}) == 0:
+            if len(success_patterns) == 0:
                 build_result = "Pass"
             else:
                 build_result = "Pass with warnings"
