@@ -51,7 +51,7 @@ import org.mbed.tls.jenkins.BranchInfo
 @Field perJobTimeout = [
         time: 120,
         raasOffset: 17,
-        windowsTestingOffset: 0,
+        windowsTestingOffset: 60,
         unit: 'MINUTES'
 ]
 
