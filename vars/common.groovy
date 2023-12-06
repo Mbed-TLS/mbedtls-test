@@ -284,6 +284,13 @@ BranchInfo get_branch_information() {
          */
         info.all_all_sh_components['build_armcc'] = 'arm-compilers'
         echo "Overriding all_all_sh_components['build_armcc'] = 'arm-compilers'"
+
+        if (env.JOB_TYPE == 'PR') {
+            // Do not run release components in PR jobs
+            info.all_all_sh_components = info.all_all_sh_components.findAll {
+                component, platform -> !component.startsWith('release')
+            }
+        }
     }
     return info
 }
