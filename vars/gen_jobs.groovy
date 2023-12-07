@@ -66,7 +66,7 @@ Map<String, Callable<Void>> gen_simple_windows_jobs(BranchInfo info, String labe
 
 def node_label_for_platform(platform) {
     switch (platform) {
-    case ~/^(debian|ubuntu)(-.*)?/: return 'container-host';
+    case ~/^(debian|ubuntu)(-.*)?/: return 'container-host-arm64';
     case 'arm-compilers': return 'container-host';
     case ~/^freebsd(-.*)?/: return 'freebsd';
     case ~/^windows(-.*)?/: return 'windows';
@@ -284,7 +284,7 @@ def gen_abi_api_checking_job(BranchInfo info, String platform) {
     def job_name = 'ABI-API-checking'
     def credentials_id = common.is_open_ci_env ? "mbedtls-github-ssh" : "742b7080-e1cc-41c6-bf55-efb72013bc28"
 
-    return instrumented_node_job('container-host', job_name) {
+    return instrumented_node_job('container-host-arm64', job_name) {
         try {
             deleteDir()
             common.get_docker_image(platform)
@@ -311,7 +311,7 @@ scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
             }
             timeout(time: common.perJobTimeout.time,
                     unit: common.perJobTimeout.unit) {
-                analysis.record_inner_timestamps('container-host', job_name) {
+                analysis.record_inner_timestamps('container-host-arm64', job_name) {
                     sh common.docker_script(
                             platform, "/var/lib/build/steps.sh"
                     )
@@ -328,7 +328,7 @@ scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
 
 def gen_code_coverage_job(BranchInfo info, platform) {
     def job_name = 'code-coverage'
-    return instrumented_node_job('container-host', job_name) {
+    return instrumented_node_job('container-host-arm64', job_name) {
         try {
             deleteDir()
             common.get_docker_image(platform)
@@ -359,7 +359,7 @@ fi
             timeout(time: common.perJobTimeout.time,
                     unit: common.perJobTimeout.unit) {
                 try {
-                    analysis.record_inner_timestamps('container-host', job_name) {
+                    analysis.record_inner_timestamps('container-host-arm64', job_name) {
                         sh common.docker_script(
                                 platform, "/var/lib/build/steps.sh"
                         )
@@ -514,13 +514,13 @@ def gen_coverity_push_jobs() {
     def job_name = 'coverity-push'
 
     if (env.MBED_TLS_BRANCH == "development") {
-        jobs << instrumented_node_job('container-host', job_name) {
+        jobs << instrumented_node_job('container-host-arm64', job_name) {
             try {
                 dir("src") {
                     deleteDir()
                     checkout_repo.checkout_repo()
                     sshagent([env.GIT_CREDENTIALS_ID]) {
-                        analysis.record_inner_timestamps('container-host', job_name) {
+                        analysis.record_inner_timestamps('container-host-arm64', job_name) {
                             sh 'git push origin HEAD:coverity_scan'
                         }
                     }
@@ -577,7 +577,8 @@ def gen_release_jobs(BranchInfo info, String label_prefix='', boolean run_exampl
 def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
     def dockerfile = libraryResource "docker_files/$platform/Dockerfile"
 
-    def tag = "$platform-${common.git_hash_object(dockerfile)}"
+    def tag = "$platform-${common.git_hash_object(dockerfile)}-arm64"
+    def cache = "$platform-cache-arm64"
     def check_docker_image
     if (common.is_open_ci_env) {
         check_docker_image = "docker manifest inspect $common.docker_repo:$tag > /dev/null 2>&1"
@@ -590,7 +591,7 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
     return job(platform) {
         /* Take the lock on the master node, so we don't tie up an executor while waiting */
         lock(tag) {
-            analysis.node_record_timestamps('dockerfile-builder', platform) {
+            analysis.node_record_timestamps('container-host-arm64', platform) {
                 def image_exists = false
                 if (!overwrite) {
                     image_exists = sh(script: check_docker_image, returnStatus: true) == 0
@@ -625,7 +626,7 @@ aws ecr get-login-password | docker login --username AWS --password-stdin $commo
 """
                         }
 
-                        analysis.record_inner_timestamps('dockerfile-builder', platform) {
+                        analysis.record_inner_timestamps('container-host-arm64', platform) {
                             sh """\
 # Use BuildKit and a remote build cache to pull only the reuseable layers
 # from the last successful build for this platform
@@ -633,13 +634,13 @@ DOCKER_BUILDKIT=1 docker build \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
     --build-arg DOCKER_REPO=$common.docker_repo \
     $extra_build_args \
-    --cache-from $common.docker_repo:$platform-cache \
+    --cache-from $common.docker_repo:$cache \
     -t $common.docker_repo:$tag \
-    -t $common.docker_repo:$platform-cache .
+    -t $common.docker_repo:$cache .
 
 # Push the image with its unique tag, as well as the build cache tag
 docker push $common.docker_repo:$tag
-docker push $common.docker_repo:$platform-cache
+docker push $common.docker_repo:$cache
 """
                         }
                     }

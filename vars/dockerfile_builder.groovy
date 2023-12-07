@@ -11,7 +11,7 @@ def gen_job_for_action(action, platform) {
 
 def run_job() {
     timestamps {
-        stage('dockerfile-builder') {
+        stage('container-host-arm64') {
             def jobs = gen_job_for_action(DOCKER_IMAGE_16_04_ACTION, 'ubuntu-16.04')
             jobs += gen_job_for_action(DOCKER_IMAGE_18_04_ACTION, 'ubuntu-18.04')
             jobs += gen_job_for_action(DOCKER_IMAGE_20_04_ACTION, 'ubuntu-20.04')

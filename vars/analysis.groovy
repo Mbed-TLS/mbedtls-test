@@ -253,7 +253,7 @@ fi
 
     try {
         if (fileExists('tests/scripts/analyze_outcomes.py')) {
-            record_inner_timestamps('helper-container-host', 'result-analysis') {
+            record_inner_timestamps('container-host-arm64', 'result-analysis') {
                 sh 'tests/scripts/analyze_outcomes.py outcomes.csv'
             }
         }
@@ -273,7 +273,7 @@ def gather_outcomes() {
     if (outcome_stashes.isEmpty()) {
         return
     }
-    node_record_timestamps('helper-container-host', 'result-analysis') {
+    node_record_timestamps('container-host-arm64', 'result-analysis') {
         dir('outcomes') {
             deleteDir()
             try {

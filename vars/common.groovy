@@ -219,7 +219,7 @@ docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS --rm --entrypoint $entrypoint \
  * In particular, get components of all.sh for Linux platforms. */
 BranchInfo get_branch_information() {
     BranchInfo info = new BranchInfo()
-    node('container-host') {
+    node('container-host-arm64') {
         dir('src') {
             deleteDir()
             checkout_repo.checkout_repo()
