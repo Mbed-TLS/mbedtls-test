@@ -32,17 +32,17 @@ import org.mbed.tls.jenkins.BranchInfo
 //Record coverage details for reporting
 @Field coverage_details = ['coverage': 'Code coverage job did not run']
 
-private Map<String, Callable<Void>> job(String label, Callable<Void> body) {
+private Map<String, Closure<Void>> job(String label, Closure<Void> body) {
     return Collections.singletonMap(label, body)
 }
 
-private Map<String, Callable<Void>> instrumented_node_job(String node_label, String job_name, Callable<Void> body) {
+private Map<String, Closure<Void>> instrumented_node_job(String node_label, String job_name, Callable<Void> body) {
     return job(job_name) {
         analysis.node_record_timestamps(node_label, job_name, body)
     }
 }
 
-Map<String, Callable<Void>> gen_simple_windows_jobs(BranchInfo info, String label, String script) {
+Map<String, Closure<Void>> gen_simple_windows_jobs(BranchInfo info, String label, String script) {
     return instrumented_node_job('windows', label) {
         try {
             dir('src') {
