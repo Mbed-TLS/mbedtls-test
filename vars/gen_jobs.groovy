@@ -731,6 +731,7 @@ DOCKER_BUILDKIT=1 docker build \
     --build-arg DOCKER_REPO=$common.docker_repo \
     $extra_build_args \
     --cache-from $common.docker_repo:$cache \
+    --cache-from $common.docker_repo:$image-cache \
     -t $common.docker_repo:$tag \
     -t $common.docker_repo:$cache .
 
