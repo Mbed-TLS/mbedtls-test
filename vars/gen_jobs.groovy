@@ -574,11 +574,11 @@ def gen_release_jobs(BranchInfo info, String label_prefix='', boolean run_exampl
     return jobs
 }
 
-def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
-    def dockerfile = libraryResource "docker_files/$platform/Dockerfile"
+Map<String, Closure<Void>> gen_dockerfile_builder_job(String image, String arch, boolean overwrite = false) {
+    def dockerfile = libraryResource "docker_files/$image/Dockerfile"
 
-    def tag = "$platform-${common.git_hash_object(dockerfile)}-arm64"
-    def cache = "$platform-cache-arm64"
+    def tag = "$image-${common.git_hash_object(dockerfile)}-$arch"
+    def cache = "$image-cache-$arch"
     def check_docker_image
     if (common.is_open_ci_env) {
         check_docker_image = "docker manifest inspect $common.docker_repo:$tag > /dev/null 2>&1"
@@ -586,12 +586,13 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
         check_docker_image = "aws ecr describe-images --repository-name $common.docker_repo_name --image-ids imageTag=$tag"
     }
 
-    common.docker_tags[platform] = tag
+    common.docker_tags[image] = tag
 
-    return job(platform) {
+    return job("$image-$arch") {
         /* Take the lock on the master node, so we don't tie up an executor while waiting */
         lock(tag) {
-            analysis.node_record_timestamps('container-host-arm64', platform) {
+            def node_label = "${arch == 'amd64' ? 'dockerfile-builder' : 'container-host'}-$arch"
+            analysis.node_record_timestamps(node_label, image) {
                 def image_exists = false
                 if (!overwrite) {
                     image_exists = sh(script: check_docker_image, returnStatus: true) == 0
@@ -626,7 +627,7 @@ aws ecr get-login-password | docker login --username AWS --password-stdin $commo
 """
                         }
 
-                        analysis.record_inner_timestamps('container-host-arm64', platform) {
+                        analysis.record_inner_timestamps(node_label, image) {
                             sh """\
 # Use BuildKit and a remote build cache to pull only the reuseable layers
 # from the last successful build for this platform

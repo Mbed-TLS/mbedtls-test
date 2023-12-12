@@ -1,7 +1,7 @@
 def gen_job_for_action(action, platform) {
     switch (action) {
         case 'build':
-            return gen_jobs.gen_dockerfile_builder_job(platform, true)
+            return gen_jobs.gen_dockerfile_builder_job(platform, 'arm64', true)
         case 'skip':
             return [:]
         default:
