@@ -239,7 +239,7 @@ BranchInfo get_branch_information() {
         // Log the environment for debugging purposes
         sh script: 'export'
 
-        for (platform in linux_platforms) {
+        for (platform in linux_platforms.arm64) {
             get_docker_image(platform)
             def all_sh_help = sh(
                 script: docker_script(
