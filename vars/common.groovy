@@ -70,8 +70,8 @@ import org.mbed.tls.jenkins.BranchInfo
 /* List of Linux platforms. When a job can run on multiple Linux platforms,
  * it runs on the first element of the list that supports this job. */
 @Field linux_platforms = [
-    "ubuntu-16.04", "ubuntu-18.04", "ubuntu-20.04", "ubuntu-22.04",
-    "arm-compilers",
+    'ubuntu-16.04-amd64', 'ubuntu-18.04-amd64', 'ubuntu-20.04-amd64', 'ubuntu-22.04-amd64', 'arm-compilers-amd64',
+    'ubuntu-16.04-arm64', 'ubuntu-18.04-arm64', 'ubuntu-20.04-arm64', 'ubuntu-22.04-arm64'
 ]
 /* List of BSD platforms. They all run freebsd_all_sh_components. */
 @Field bsd_platforms = ["freebsd"]
@@ -238,8 +238,14 @@ BranchInfo get_branch_information() {
 
         // Log the environment for debugging purposes
         sh script: 'export'
+    }
 
-        for (platform in linux_platforms) {
+    for (platform in linux_platforms) {
+        node(gen_jobs.node_label_for_platform(platform)) {
+            dir('src') {
+                deleteDir()
+                checkout_repo.checkout_repo()
+            }
             get_docker_image(platform)
             def all_sh_help = sh(
                 script: docker_script(
@@ -276,12 +282,12 @@ BranchInfo get_branch_information() {
                 error('Pre Test Checks failed: Base branch out of date. Please rebase')
             }
         }
+    }
 
-        if (env.JOB_TYPE == 'PR') {
-            // Do not run release components in PR jobs
-            info.all_all_sh_components = info.all_all_sh_components.findAll {
-                component, platform -> !component.startsWith('release')
-            }
+    if (env.JOB_TYPE == 'PR') {
+        // Do not run release components in PR jobs
+        info.all_all_sh_components = info.all_all_sh_components.findAll {
+            component, platform -> !component.startsWith('release')
         }
     }
     return info
