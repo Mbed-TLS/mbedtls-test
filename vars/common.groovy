@@ -298,14 +298,15 @@ BranchInfo get_branch_information() {
 }
 
 def check_every_all_sh_component_will_be_run(BranchInfo info) {
-    def untested_all_sh_components = info.all_all_sh_components.findResults {
-        name, platform -> platform ? null : name
+    def components = info.all_all_sh_components.groupBy {
+        name, platform -> platform ? 'tested' : 'untested'
     }
-    if (untested_all_sh_components != []) {
-        error(
+    if (components.containsKey('untested')) {
+        unstable(
             "Pre-test checks failed: Unable to run all.sh components: \
-            ${untested_all_sh_components.join(",")}"
+            ${components.untested.keySet().join(',')}"
         )
+        info.all_all_sh_components = components.tested
     }
 }
 

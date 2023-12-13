@@ -152,6 +152,7 @@ void run_release_job() {
             common.init_docker_images()
             stage('tls-testing') {
                 BranchInfo info = common.get_branch_information()
+                common.check_every_all_sh_component_will_be_run(info)
                 def jobs = common.wrap_report_errors(gen_jobs.gen_release_jobs(info))
                 jobs.failFast = false
                 try {
