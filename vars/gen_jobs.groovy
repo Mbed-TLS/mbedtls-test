@@ -577,20 +577,21 @@ def gen_release_jobs(BranchInfo info, String label_prefix='', boolean run_exampl
 Map<String, Closure<Void>> gen_dockerfile_builder_job(String image, String arch, boolean overwrite = false) {
     def dockerfile = libraryResource "docker_files/$image/Dockerfile"
 
-    def tag = "$image-${common.git_hash_object(dockerfile)}-$arch"
+    def tag = "$image-${common.git_hash_object(dockerfile)}"
+    def arch_tag = "$tag-$arch"
     def cache = "$image-cache-$arch"
     def check_docker_image
     if (common.is_open_ci_env) {
-        check_docker_image = "docker manifest inspect $common.docker_repo:$tag > /dev/null 2>&1"
+        check_docker_image = "docker manifest inspect $common.docker_repo:$arch_tag > /dev/null 2>&1"
     } else {
-        check_docker_image = "aws ecr describe-images --repository-name $common.docker_repo_name --image-ids imageTag=$tag"
+        check_docker_image = "aws ecr describe-images --repository-name $common.docker_repo_name --image-ids imageTag=$arch_tag"
     }
 
     common.docker_tags[image] = tag
 
     return job("$image-$arch") {
         /* Take the lock on the master node, so we don't tie up an executor while waiting */
-        lock(tag) {
+        lock(arch_tag) {
             def node_label = "${arch == 'amd64' ? 'dockerfile-builder' : 'container-host'}-$arch"
             analysis.node_record_timestamps(node_label, image) {
                 def image_exists = false
@@ -637,11 +638,11 @@ DOCKER_BUILDKIT=1 docker build \
     $extra_build_args \
     --cache-from $common.docker_repo:$cache \
     --cache-from $common.docker_repo:$image-cache \
-    -t $common.docker_repo:$tag \
+    -t $common.docker_repo:$arch_tag \
     -t $common.docker_repo:$cache .
 
 # Push the image with its unique tag, as well as the build cache tag
-docker push $common.docker_repo:$tag
+docker push $common.docker_repo:$arch_tag
 docker push $common.docker_repo:$cache
 """
                         }

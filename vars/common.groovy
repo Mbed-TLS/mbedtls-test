@@ -107,7 +107,7 @@ def get_docker_tag(platform) {
     if (tag == null)
         throw new NoSuchElementException(platform)
     else
-        return tag
+        return "$tag-${tag == 'arm-compilers' ? 'amd64' : 'arm64'}"
 }
 
 @NonCPS
