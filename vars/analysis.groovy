@@ -241,6 +241,9 @@ def process_outcomes() {
     // Often we just want the failures, so make an artifact with just those.
     // Only produce a failure file if there was a failing job (otherwise
     // we'd just waste time creating an empty file).
+    //
+    // Note that grep ';FAIL;' could pick up false positives, if another field such
+    // as test description or test suite was "FAIL".
     if (gen_jobs.failed_builds) {
         sh '''\
 grep ';FAIL;' outcomes.csv >"failures.csv"
