@@ -249,7 +249,7 @@ def process_outcomes() {
 grep ';FAIL;' outcomes.csv >"failures.csv"
 # Compress the failure list if it is large (for some value of large)
 if [ "$(wc -c <failures.csv)" -gt 99999 ]; then
-    xz -0 -T8 failures.csv
+    LC_ALL=C xz -0 -T8 failures.csv
 fi
 '''
     }
