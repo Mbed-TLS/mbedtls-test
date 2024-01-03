@@ -249,7 +249,7 @@ def process_outcomes() {
 LC_ALL=C grep ';FAIL;' outcomes.csv >"failures.csv"
 # Compress the failure list if it is large (for some value of large)
 if [ "$(wc -c <failures.csv)" -gt 99999 ]; then
-    xz -0 -T8 failures.csv
+    xz -0 -T0 failures.csv
 fi
 '''
     }
@@ -261,7 +261,7 @@ fi
             }
         }
     } finally {
-        sh 'xz -0 -T8 outcomes.csv'
+        sh 'xz -0 -T0 outcomes.csv'
         archiveArtifacts(artifacts: 'outcomes.csv.xz, failures.csv*',
                          fingerprint: true,
                          allowEmptyArchive: true)
