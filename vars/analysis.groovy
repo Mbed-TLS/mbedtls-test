@@ -237,16 +237,19 @@ def process_outcomes() {
         deleteDir()
     }
 
-    // The complete outcome file is ~14MB compressed as I write.
+    // The complete outcome file is 2.1GB uncompressed / 56MB compressed as I write.
     // Often we just want the failures, so make an artifact with just those.
     // Only produce a failure file if there was a failing job (otherwise
     // we'd just waste time creating an empty file).
+    //
+    // Note that grep ';FAIL;' could pick up false positives, if another field such
+    // as test description or test suite was "FAIL".
     if (gen_jobs.failed_builds) {
         sh '''\
-awk -F';' '$5 == "FAIL"' outcomes.csv >"failures.csv"
+LC_ALL=C grep ';FAIL;' outcomes.csv >"failures.csv"
 # Compress the failure list if it is large (for some value of large)
 if [ "$(wc -c <failures.csv)" -gt 99999 ]; then
-    xz failures.csv
+    xz -0 -T0 failures.csv
 fi
 '''
     }
@@ -258,7 +261,7 @@ fi
             }
         }
     } finally {
-        sh 'xz outcomes.csv'
+        sh 'xz -0 -T0 outcomes.csv'
         archiveArtifacts(artifacts: 'outcomes.csv.xz, failures.csv*',
                          fingerprint: true,
                          allowEmptyArchive: true)
