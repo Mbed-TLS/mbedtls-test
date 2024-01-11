@@ -17,7 +17,7 @@ The [`mbedtls-test` repository](https://github.com/Mbed-TLS/mbedtls-test) contai
 
 At the time of writing, there are two instances of Jenkins:
 
-* [OpenCI](https://mbedtls.trustedfirmware.org/), maintained by Linaro on behalf of TrustedFirmware. The OpenCI instance is public. Only Mbed TLS team members can have accounts, but everyone can see test results.
+* [OpenCI](https://mbedtls.trustedfirmware.org/), maintained by Linaro on behalf of TrustedFirmware. The OpenCI instance is public. Only Mbed TLS team members can have accounts (access is via [the `trusted-firmware-mbed-tls-openci-users` team in `trusted-firmware-ci` on GitHub](https://github.com/orgs/trusted-firmware-ci/teams/trusted-firmware-mbed-tls-openci-users/members)), but everyone can see test results.
 * [Arm Internal CI](https://jenkins-mbedtls.oss.arm.com/) (private link), maintained by Arm. This instance is only accessible to Arm employees.
 
 The two instances mostly have the same capabilities, but they can differ in terms of Jenkins versions, available plugins, OS versions, etc.
