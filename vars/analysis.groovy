@@ -246,7 +246,7 @@ def process_outcomes() {
     // as test description or test suite was "FAIL".
     if (gen_jobs.failed_builds) {
         sh '''\
-LC_ALL=C grep ';FAIL;' outcomes.csv >"failures.csv"
+LC_ALL=C grep ';FAIL;' outcomes.csv >"failures.csv" || [ $? -eq 1 ]
 # Compress the failure list if it is large (for some value of large)
 if [ "$(wc -c <failures.csv)" -gt 99999 ]; then
     xz -0 -T0 failures.csv
