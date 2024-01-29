@@ -311,7 +311,7 @@ def get_supported_windows_builds() {
     if (env.JOB_TYPE == 'PR') {
         vs_builds = ['2013']
     } else {
-        vs_builds = ['2013', '2015', '2017']
+        vs_builds = ['2013', '2017']
     }
     echo "vs_builds = ${vs_builds}"
     return ['mingw'] + vs_builds
