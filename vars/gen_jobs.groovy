@@ -21,6 +21,7 @@ import java.util.concurrent.Callable
 
 import groovy.transform.Field
 
+import net.sf.json.JSONObject
 import hudson.AbortException
 
 import org.mbed.tls.jenkins.BranchInfo
@@ -205,52 +206,80 @@ ${extra_setup_code}
     }
 }
 
-def gen_windows_testing_job(BranchInfo info, build, label_prefix='') {
-    def job_name = "${label_prefix}Windows-${build}"
+def gen_windows_testing_job(BranchInfo info, String toolchain, String label_prefix='') {
+    def prefix = "${label_prefix}Windows-${toolchain}"
+    def build_configs, arches, build_systems, retargeted
+    if (toolchain == 'mingw') {
+        build_configs = ['mingw']
+        arches = ['x64']
+        build_systems = ['shipped']
+        retargeted = [false]
+    } else {
+        build_configs = ['Release', 'Debug']
+        arches = ['Win32', 'x64']
+        build_systems = ['shipped', 'cmake']
+        retargeted = [false, true]
+    }
 
-    return instrumented_node_job('windows', job_name) {
-        try {
-            dir("src") {
-                deleteDir()
-                checkout_repo.checkout_repo(info)
-            }
-            /* The empty files are created to re-create the directory after it
-             * and its contents have been removed by deleteDir. */
-            dir("logs") {
-                deleteDir()
-                writeFile file:'_do_not_delete_this_directory.txt', text:''
-            }
-
-            dir("worktrees") {
-                deleteDir()
-                writeFile file:'_do_not_delete_this_directory.txt', text:''
-            }
-
-            if (info.has_min_requirements) {
+    return [build_configs, arches, build_systems, retargeted].combinations().collectEntries { args ->
+        def (build_config, arch, build_system, retarget) = args
+        def job_name = "$prefix${toolchain == 'mingw' ? '' : "-$build_config-$arch-$build_system${retarget ? '-retarget' : ''}"}"
+        return instrumented_node_job('windows', job_name) {
+            try {
                 dir("src") {
-                    timeout(time: common.perJobTimeout.time,
-                            unit: common.perJobTimeout.unit) {
-                        bat "python scripts\\min_requirements.py ${info.python_requirements_override_file}"
+                    deleteDir()
+                    checkout_repo.checkout_repo(info)
+                }
+                /* The empty files are created to re-create the directory after it
+                 * and its contents have been removed by deleteDir. */
+                dir("logs") {
+                    deleteDir()
+                    writeFile file: '_do_not_delete_this_directory.txt', text: ''
+                }
+
+                dir("worktrees") {
+                    deleteDir()
+                    writeFile file: '_do_not_delete_this_directory.txt', text: ''
+                }
+
+                if (info.has_min_requirements) {
+                    dir("src") {
+                        timeout(time: common.perJobTimeout.time,
+                                unit: common.perJobTimeout.unit) {
+                            bat "python scripts\\min_requirements.py ${info.python_requirements_override_file}"
+                        }
                     }
                 }
-            }
 
-            /* libraryResource loads the file as a string. This is then
-             * written to a file so that it can be run on a node. */
-            def windows_testing = libraryResource 'windows/windows_testing.py'
-            writeFile file: 'windows_testing.py', text: windows_testing
-            timeout(time: common.perJobTimeout.time +
-                          common.perJobTimeout.windowsTestingOffset,
-                    unit: common.perJobTimeout.unit) {
-                analysis.record_inner_timestamps('windows', job_name) {
-                    bat "python windows_testing.py src logs -b $build"
+                def extra_args = ''
+                if (toolchain != 'mingw') {
+                    def test_config = [
+                        visual_studio_configurations:    [build_config],
+                        visual_studio_architectures:     [arch],
+                        visual_studio_solution_types:    [build_system],
+                        visual_studio_retarget_solution: [retarget],
+                    ]
+                    writeFile file: 'test_config.json', text: JSONObject.fromObject(test_config).toString()
+                    extra_args = '-c test_config.json'
                 }
+
+                /* libraryResource loads the file as a string. This is then
+                 * written to a file so that it can be run on a node. */
+                def windows_testing = libraryResource 'windows/windows_testing.py'
+                writeFile file: 'windows_testing.py', text: windows_testing
+                timeout(time: common.perJobTimeout.time +
+                        common.perJobTimeout.windowsTestingOffset,
+                        unit: common.perJobTimeout.unit) {
+                    analysis.record_inner_timestamps('windows', job_name) {
+                        bat "python windows_testing.py src logs $extra_args -b $toolchain"
+                    }
+                }
+            } catch (err) {
+                failed_builds[job_name] = true
+                throw (err)
+            } finally {
+                deleteDir()
             }
-        } catch (err) {
-            failed_builds[job_name] = true
-            throw (err)
-        } finally {
-            deleteDir()
         }
     }
 }
