@@ -686,21 +686,22 @@ aws ecr get-login-password | docker login --username AWS --password-stdin $commo
 """
                         }
 
+                        // Check if the buildkit container already exists
+                        if (sh(script: 'docker buildx inspect dockerfile-builder', returnStatus: true) != 0) {
+                            sh 'docker buildx create --name dockerfile-builder --use'
+                        }
+
                         analysis.record_inner_timestamps('dockerfile-builder', platform) {
                             sh """\
 # Use BuildKit and a remote build cache to pull only the reuseable layers
 # from the last successful build for this platform
-DOCKER_BUILDKIT=1 docker build \
-    --build-arg BUILDKIT_INLINE_CACHE=1 \
+docker buildx build \
     --build-arg DOCKER_REPO=$common.docker_repo \
     $extra_build_args \
     --cache-from $common.docker_repo:$platform-cache \
+    --cache-to type=registry,mode=max,image-manifest=true,oci-mediatypes=true,ref=$common.docker_repo:$platform-cache \
     -t $common.docker_repo:$tag \
-    -t $common.docker_repo:$platform-cache .
-
-# Push the image with its unique tag, as well as the build cache tag
-docker push $common.docker_repo:$tag
-docker push $common.docker_repo:$platform-cache
+    --push - <Dockerfile
 """
                         }
                     }
