@@ -29,11 +29,38 @@
 # ARMLMD_LICENSE_FILE argument when building the image
 # (docker build --build-arg ARMLMD_LICENSE_FILE=... arm-compilers).
 
-# For now, copy the ARM compilers from a fixed image which is present in our caches.
-# This avoids the problem that the download URLs for Arm compilers are
-# not longer valid.
-ARG DOCKER_REPO
-FROM $DOCKER_REPO:arm-compilers-c568d022eecd6e6263f7bc0f8e94e003dd652160 AS arm-compiler-binaries
+# Download and verify hash of Arm Compiler 6 tarball
+# The URL is provided as a secret, so changing it doesn't invalidate the build cache.
+# On the other hand, the hash is provided as a build argument, so changing it *does*
+# invalidate the cache and triggers a rebuild.
+FROM curlimages/curl-base:latest AS armc6
+
+# Hash of ARMCompiler6.21_standalone_linux-x86_64.tar.gz
+# Override if you use a different compiler version
+ARG ARMC6_SHA256=4bcdf9f719a8140b152b699fce8242a68b612cb0cb59f811ae11eb48302d1efe
+
+# The build context is mounted under /run/context so you can supply your own
+# local tarball of Arm Compiler 6 by placing the <gzipped tarball> in the
+# folder of the Dockerfile, and building the image with the following parameters:
+# $ ARMC6_URL=file:///run/context/<gzipped tarball>
+# $ docker build \
+#       -t jenkins-mbedtls:arm-compilers \
+#       --secret id=armc6_url,env=ARMC6_URL \
+#       resources/docker_files/arm-compilers
+RUN --mount=type=secret,id=armc6_url,required=true \
+    --mount=type=bind,target=/run/context \
+    { \
+        curl "$(cat /run/secrets/armc6_url)" | tee /dev/fd/3 | \
+        tar --exclude license_terms --exclude releasenotes.html -zx; \
+    } 3>&1 | { \
+        echo "$ARMC6_SHA256  /dev/fd/3" | sha256sum -c; \
+    } 3<&0
+
+RUN ./install_*.sh \
+        -d ./armc6 \
+        --i-agree-to-the-contained-eula \
+        --no-interactive \
+        --quiet
 
 FROM ubuntu:20.04
 
@@ -91,13 +118,22 @@ RUN locale && \
     locale-gen "en_US.UTF-8" && \
     dpkg-reconfigure locales
 
-# Install ARM Compiler 5.06 and 6.6
-COPY --link --from=arm-compiler-binaries /usr/local/ARM_Compiler_5.06u3 /usr/local/ARM_Compiler_5.06u3
-COPY --link --from=arm-compiler-binaries /usr/local/ARM_Compiler_6.6 /usr/local/ARM_Compiler_6.6
+# Install ARM Compiler 6.21
+ARG ARMC6_INSTALL_DIR=/usr/local/ARM_Compiler_6.21
+ENV ARMC6_BIN_DIR=$ARMC6_INSTALL_DIR/bin/
+COPY --link --from=armc6 --chown=root /home/curl_user/armc6 $ARMC6_INSTALL_DIR
 
-ENV ARMC5_BIN_DIR=/usr/local/ARM_Compiler_5.06u3/bin/
-ENV ARMC6_BIN_DIR=/usr/local/ARM_Compiler_6.6/bin/
-ENV PATH=$PATH:/usr/local/ARM_Compiler_5.06u3/bin
+# HACK: Versions of all.sh that support ArmCC 5 detect the presence of armcc 5
+#       and 6 in a single operation, so fake the presence of ArmCC 5 to make
+#       un-rebased PRs happy
+
+ENV ARMC5_BIN_DIR=/usr/local/Fake_ARM_Compiler_5
+RUN mkdir $ARMC5_BIN_DIR && \
+    ln -s /bin/true $ARMC5_BIN_DIR/armcc && \
+    ln -s /bin/true $ARMC5_BIN_DIR/armar && \
+    ln -s /bin/true $ARMC5_BIN_DIR/fromelf
+
+
 ARG ARMLMD_LICENSE_FILE=7010@10.6.26.52:7010@10.6.26.53:7010@10.6.26.54:7010@10.6.26.56
 ENV ARMLMD_LICENSE_FILE=${ARMLMD_LICENSE_FILE}
 
@@ -113,4 +149,3 @@ ENV AGENT_WORKDIR=${AGENT_WORKDIR}
 WORKDIR ${AGENT_WORKDIR}
 
 ENTRYPOINT ["bash"]
-

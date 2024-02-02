@@ -728,13 +728,24 @@ aws ecr get-login-password | docker login --username AWS --password-stdin $commo
 """
                         }
 
+                        // Generate download URL for armclang
+                        if (platform.startsWith('arm-compilers')) {
+                            withCredentials(common.is_open_ci_env ? [] : [aws(credentialsId: 'armclang-readonly-keys')]) {
+                                sh '''
+aws s3 presign --expires-in 300 \
+    s3://trustedfirmware-private/armclang/ARMCompiler6.21_standalone_linux-x86_64.tar.gz >armc6_url
+'''
+                                extra_build_args +=
+                                    ' --secret id=armc6_url,src=./armc6_url'
+                            }
+                        }
+
                         analysis.record_inner_timestamps(node_label, platform) {
                             sh """\
 # Use BuildKit and a remote build cache to pull only the reuseable layers
 # from the last successful build for this platform
 DOCKER_BUILDKIT=1 docker build \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
-    --build-arg DOCKER_REPO=$common.docker_repo \
     $extra_build_args \
     --cache-from $common.docker_repo:$cache \
     --cache-from $common.docker_repo:$image-cache \
