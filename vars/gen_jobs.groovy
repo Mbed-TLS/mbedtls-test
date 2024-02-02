@@ -739,7 +739,8 @@ DOCKER_BUILDKIT=1 docker build \
     --cache-from $common.docker_repo:$cache \
     --cache-from $common.docker_repo:$image-cache \
     -t $common.docker_repo:$tag \
-    -t $common.docker_repo:$cache .
+    -t $common.docker_repo:$cache \
+    - <Dockerfile
 
 # Push the image with its unique tag, as well as the build cache tag
 docker push $common.docker_repo:$tag
