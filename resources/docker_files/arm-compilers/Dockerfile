@@ -29,11 +29,21 @@
 # ARMLMD_LICENSE_FILE argument when building the image
 # (docker build --build-arg ARMLMD_LICENSE_FILE=... arm-compilers).
 
-# For now, copy the ARM compilers from a fixed image which is present in our caches.
-# This avoids the problem that the download URLs for Arm compilers are
-# not longer valid.
-ARG DOCKER_REPO
-FROM $DOCKER_REPO:arm-compilers-c568d022eecd6e6263f7bc0f8e94e003dd652160 AS arm-compiler-binaries
+# Download and verify hash of armclang tarball
+# The URL is provided as a secret, so changing it doesn't trigger a rebuild of the image
+# On the other hand, the hash is provided as a build argument, so changing it *does* trigger a rebuild.
+FROM curlimages/curl-base:8.6.0 AS armclang
+
+# Hash of ARMCompiler6.21_standalone_linux-x86_64.tar.gz - override if you use a different compiler / architecture
+ARG ARMCLANG_SHA256=4bcdf9f719a8140b152b699fce8242a68b612cb0cb59f811ae11eb48302d1efe
+
+# The build context is mounted under /run/context so you can supply your own local tarball of armclang
+# by pointing curl to file:///run/context/<tarball>
+RUN --mount=type=secret,id=armclang_url,required=true \
+    --mount=type=bind,target=/run/context \
+    mkdir armclang && \
+    { curl "$(cat /run/secrets/armclang_url)" | tee /dev/fd/3 | tar -zxC armclang; } 3>&1 | \
+    { echo "$ARMCLANG_SHA256  /dev/fd/3" | sha256sum -c; } 3<&0
 
 FROM ubuntu:20.04
 
@@ -43,11 +53,6 @@ WORKDIR /opt/src
 # Note: scripts/min_requirements.py need a writable
 # destination for installing python dependencies
 ENV HOME=/var/lib/builds
-
-# Support for i386:
-# - for 32-bit builds+tests of Mbed TLS
-# - required to install Arm Compiler 5.06 (armcc)
-RUN dpkg --add-architecture i386
 
 # Main apt-get call with all packages except those that have conflicts,
 # handled below. One big alphabetised list, in order to avoid duplicates, with
@@ -59,13 +64,7 @@ RUN apt-get update -q && apt-get install -yq \
         cmake \
         # to check out Mbed TLS and others
         git \
-        # for 32-bit Mbed TLS testing and armcc
-        libc6-i386 \
-        # for 32-bit Mbed TLS testing and armcc
-        libc6:i386 \
-        # for armcc
-        libstdc++6:i386 \
-        # needed for armcc (see locale-gen below)
+        # to have a UTF-8 locale (see locale-gen below)
         locales \
         # to install several Python packages (done by individual jobs)
         python3-pip \
@@ -86,18 +85,20 @@ RUN python3 -m pip config set global.progress_bar off && \
     python3 -m pip install setuptools --upgrade && \
     true
 
-# Set locale for ARMCC to work
+# Make sure we have a UTF-8 locale
 RUN locale && \
     locale-gen "en_US.UTF-8" && \
     dpkg-reconfigure locales
 
-# Install ARM Compiler 5.06 and 6.6
-COPY --link --from=arm-compiler-binaries /usr/local/ARM_Compiler_5.06u3 /usr/local/ARM_Compiler_5.06u3
-COPY --link --from=arm-compiler-binaries /usr/local/ARM_Compiler_6.6 /usr/local/ARM_Compiler_6.6
+# Install ARM Compiler 6
+RUN --mount=type=bind,target=/run/armclang,source=/home/curl_user/armclang,from=armclang \
+    /run/armclang/install_$(uname -m).sh \
+        -d /usr/local/ARM_Compiler_6 \
+        --i-agree-to-the-contained-eula \
+        --no-interactive \
+        --quiet
 
-ENV ARMC5_BIN_DIR=/usr/local/ARM_Compiler_5.06u3/bin/
-ENV ARMC6_BIN_DIR=/usr/local/ARM_Compiler_6.6/bin/
-ENV PATH=$PATH:/usr/local/ARM_Compiler_5.06u3/bin
+ENV ARMC6_BIN_DIR=/usr/local/ARM_Compiler_6/bin/
 ARG ARMLMD_LICENSE_FILE=7010@10.6.26.52:7010@10.6.26.53:7010@10.6.26.54:7010@10.6.26.56
 ENV ARMLMD_LICENSE_FILE=${ARMLMD_LICENSE_FILE}
 
@@ -113,4 +114,3 @@ ENV AGENT_WORKDIR=${AGENT_WORKDIR}
 WORKDIR ${AGENT_WORKDIR}
 
 ENTRYPOINT ["bash"]
-
