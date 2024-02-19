@@ -28,6 +28,7 @@
  */
 
 import java.security.MessageDigest
+import java.util.concurrent.Callable
 
 import groovy.transform.Field
 
@@ -119,26 +120,27 @@ static String stack_trace_to_string(Throwable t) {
     return writer.toString()
 }
 
-Map wrap_report_errors(Map jobs) {
-    return jobs.collectEntries { name, job ->
-        [(name): {
-            try {
-                job()
-            } catch (err) {
-                echo """\
-Failed job: $name
+def <V> V report_errors(String job_name, Callable<V> body) {
+    try {
+        return body()
+    } catch (err) {
+        echo """\
+Failed job: $job_name
 Caught: ${stack_trace_to_string(err)}
 """
-                if (!currentBuild.resultIsWorseOrEqualTo('FAILURE')) {
-                    currentBuild.result = 'FAILURE'
-                    maybe_notify_github('FAILURE', "Failures: ${name}…")
-                }
-                throw err
-            }
-        }]
+        if (!currentBuild.resultIsWorseOrEqualTo('FAILURE')) {
+            currentBuild.result = 'FAILURE'
+            maybe_notify_github('FAILURE', "Failures: ${job_name}…")
+        }
+        throw err
     }
 }
 
+Map<String, ? super Closure> wrap_report_errors(Map<String, ?> jobs) {
+    return (Map<String, ? super Closure>) jobs.collectEntries { key, value ->
+        return [(key): value instanceof Callable ? { report_errors(key, value) } : value]
+    }
+}
 
 String construct_python_requirements_override() {
     List<String> overrides = []

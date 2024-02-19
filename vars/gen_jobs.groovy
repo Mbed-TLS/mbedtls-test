@@ -221,10 +221,24 @@ def gen_windows_testing_job(BranchInfo info, String toolchain, String label_pref
         retargeted = [false, true]
     }
 
-    return [build_configs, arches, build_systems, retargeted].combinations().collectEntries { args ->
+    def test_configs = [build_configs, arches, build_systems, retargeted].combinations().collect { args ->
         def (build_config, arch, build_system, retarget) = args
         def job_name = "$prefix${toolchain == 'mingw' ? '' : "-$build_config-$arch-$build_system${retarget ? '-retarget' : ''}"}"
-        return instrumented_node_job('windows', job_name) {
+        def group = build_config == 'Debug' &&  build_system == 'cmake' ? job_name : prefix
+        return [
+            group:       group,
+            job_name:    job_name,
+            test_config: [
+                visual_studio_configurations:    [build_config],
+                visual_studio_architectures:     [arch],
+                visual_studio_solution_types:    [build_system],
+                visual_studio_retarget_solution: [retarget],
+            ],
+        ]
+    }
+
+    return test_configs.groupBy({ item -> (String) item.group }).collectEntries { group, items ->
+        return instrumented_node_job('windows', group) {
             try {
                 dir("src") {
                     deleteDir()
@@ -251,32 +265,39 @@ def gen_windows_testing_job(BranchInfo info, String toolchain, String label_pref
                     }
                 }
 
-                def extra_args = ''
-                if (toolchain != 'mingw') {
-                    def test_config = [
-                        visual_studio_configurations:    [build_config],
-                        visual_studio_architectures:     [arch],
-                        visual_studio_solution_types:    [build_system],
-                        visual_studio_retarget_solution: [retarget],
-                    ]
-                    writeFile file: 'test_config.json', text: JSONObject.fromObject(test_config).toString()
-                    extra_args = '-c test_config.json'
-                }
-
                 /* libraryResource loads the file as a string. This is then
                  * written to a file so that it can be run on a node. */
                 def windows_testing = libraryResource 'windows/windows_testing.py'
                 writeFile file: 'windows_testing.py', text: windows_testing
-                timeout(time: common.perJobTimeout.time +
-                        common.perJobTimeout.windowsTestingOffset,
-                        unit: common.perJobTimeout.unit) {
-                    analysis.record_inner_timestamps('windows', job_name) {
-                        bat "python windows_testing.py src logs $extra_args -b $toolchain"
+
+                analysis.record_inner_timestamps('windows', group) {
+                    def exceptions = items.findResults { item ->
+                        def job_name = (String) item.job_name
+                        try {
+                            stage(job_name) {
+                                common.report_errors(job_name) {
+                                    def extra_args = ''
+                                    if (toolchain != 'mingw') {
+                                        writeFile file: 'test_config.json', text: JSONObject.fromObject(item.test_config).toString()
+                                        extra_args = '-c test_config.json'
+                                    }
+
+                                    timeout(time: common.perJobTimeout.time + common.perJobTimeout.windowsTestingOffset,
+                                        unit: common.perJobTimeout.unit) {
+                                        bat "python windows_testing.py src logs $extra_args -b $toolchain"
+                                    }
+                                }
+                            }
+                        } catch (exception) {
+                            failed_builds[job_name] = true
+                            return exception
+                        }
+                        return null
+                    }
+                    if (exceptions.size() > 0) {
+                        throw exceptions.first()
                     }
                 }
-            } catch (err) {
-                failed_builds[job_name] = true
-                throw (err)
             } finally {
                 deleteDir()
             }
