@@ -190,7 +190,7 @@ class MbedWindowsTesting(object):
         )
         console = logging.StreamHandler()
         file_handler = logging.FileHandler(log_file)
-        if name is not "Results":
+        if name != "Results":
             console.setFormatter(log_formatter)
             file_handler.setFormatter(log_formatter)
         logger = logging.getLogger(name)
