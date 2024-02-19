@@ -240,35 +240,37 @@ def gen_windows_testing_job(BranchInfo info, String toolchain, String label_pref
     return test_configs.groupBy({ item -> (String) item.group }).collectEntries { group, items ->
         return instrumented_node_job('windows', group) {
             try {
-                dir("src") {
-                    deleteDir()
-                    checkout_repo.checkout_repo(info)
-                }
-                /* The empty files are created to re-create the directory after it
-                 * and its contents have been removed by deleteDir. */
-                dir("logs") {
-                    deleteDir()
-                    writeFile file: '_do_not_delete_this_directory.txt', text: ''
-                }
-
-                dir("worktrees") {
-                    deleteDir()
-                    writeFile file: '_do_not_delete_this_directory.txt', text: ''
-                }
-
-                if (info.has_min_requirements) {
+                stage('checkout') {
                     dir("src") {
-                        timeout(time: common.perJobTimeout.time,
+                        deleteDir()
+                        checkout_repo.checkout_repo(info)
+                    }
+                    /* The empty files are created to re-create the directory after it
+                     * and its contents have been removed by deleteDir. */
+                    dir("logs") {
+                        deleteDir()
+                        writeFile file: '_do_not_delete_this_directory.txt', text: ''
+                    }
+
+                    dir("worktrees") {
+                        deleteDir()
+                        writeFile file: '_do_not_delete_this_directory.txt', text: ''
+                    }
+
+                    if (info.has_min_requirements) {
+                        dir("src") {
+                            timeout(time: common.perJobTimeout.time,
                                 unit: common.perJobTimeout.unit) {
-                            bat "python scripts\\min_requirements.py ${info.python_requirements_override_file}"
+                                bat "python scripts\\min_requirements.py ${info.python_requirements_override_file}"
+                            }
                         }
                     }
-                }
 
-                /* libraryResource loads the file as a string. This is then
-                 * written to a file so that it can be run on a node. */
-                def windows_testing = libraryResource 'windows/windows_testing.py'
-                writeFile file: 'windows_testing.py', text: windows_testing
+                    /* libraryResource loads the file as a string. This is then
+                     * written to a file so that it can be run on a node. */
+                    def windows_testing = libraryResource 'windows/windows_testing.py'
+                    writeFile file: 'windows_testing.py', text: windows_testing
+                }
 
                 analysis.record_inner_timestamps('windows', group) {
                     def exceptions = items.findResults { item ->
