@@ -221,9 +221,13 @@ def gen_windows_testing_job(BranchInfo info, String toolchain, String label_pref
         retargeted = [false, true]
     }
 
+    // Generate the test configs we will be testing, and tag each with the group they will be executed in
     def test_configs = [build_configs, arches, build_systems, retargeted].combinations().collect { args ->
         def (build_config, arch, build_system, retarget) = args
         def job_name = "$prefix${toolchain == 'mingw' ? '' : "-$build_config-$arch-$build_system${retarget ? '-retarget' : ''}"}"
+        /* Sort debug builds using the cmake build system into individual groups, since they are by far the slowest,
+         * lumping everything else into a single group per toolchain. This should give us workgroups that take between
+         * 15-30 minutes to execute. */
         def group = build_config == 'Debug' &&  build_system == 'cmake' ? job_name : prefix
         return [
             group:       group,
@@ -237,6 +241,7 @@ def gen_windows_testing_job(BranchInfo info, String toolchain, String label_pref
         ]
     }
 
+    // Return one job per workgroup
     return test_configs.groupBy({ item -> (String) item.group }).collectEntries { group, items ->
         return instrumented_node_job('windows', group) {
             try {
@@ -273,6 +278,9 @@ def gen_windows_testing_job(BranchInfo info, String toolchain, String label_pref
                 }
 
                 analysis.record_inner_timestamps('windows', group) {
+                    /* Execute each test in a workgroup serially. If any exceptions are thrown store them, and continue
+                     * with the next test. This replicates the preexisting behaviour windows_testing.py and
+                     * jobs.failFast = false */
                     def exceptions = items.findResults { item ->
                         def job_name = (String) item.job_name
                         try {
@@ -296,6 +304,7 @@ def gen_windows_testing_job(BranchInfo info, String toolchain, String label_pref
                         }
                         return null
                     }
+                    // If we collected any exceptions, throw the first one
                     if (exceptions.size() > 0) {
                         throw exceptions.first()
                     }
