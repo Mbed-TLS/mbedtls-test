@@ -123,13 +123,21 @@ class MbedWindowsTesting(object):
             self.mingw_directory = os.path.join(
                 "C:", "tools", "mingw64", "bin"
             )
+        if "visual_studio_solution_types" in testing_config.keys():
+            self.visual_studio_solution_types = testing_config["visual_studio_solution_types"]
+        else:
+            self.visual_studio_solution_types = ["shipped", "cmake"]
+        if "visual_studio_retarget_solution" in testing_config.keys():
+            self.visual_studio_retarget_solution = testing_config["visual_studio_retarget_solution"]
+        else:
+            self.visual_studio_retarget_solution = [False, True]
+
         self.vs_version_toolsets = {
             "2010": "100",
             "2013": "120",
             "2015": "140",
             "2017": "141"
         }
-        self.visual_studio_solution_types = ["shipped", "cmake"]
         self.visual_studio_architecture_flags = {"Win32": "x86", "x64": "x64"}
         self.cmake_architecture_flags = {"Win32": "", "x64": " Win64"}
         self.cmake_generators = {
@@ -182,7 +190,7 @@ class MbedWindowsTesting(object):
         )
         console = logging.StreamHandler()
         file_handler = logging.FileHandler(log_file)
-        if name is not "Results":
+        if name != "Results":
             console.setFormatter(log_formatter)
             file_handler.setFormatter(log_formatter)
         logger = logging.getLogger(name)
@@ -692,7 +700,7 @@ class MbedWindowsTesting(object):
                     vs_version in self.vs_versions_to_build for
                     configuration in self.visual_studio_configurations for
                     architecture in self.visual_studio_architectures for
-                    retargeted in [False, True] if
+                    retargeted in self.visual_studio_retarget_solution if
                     ((vs_version, architecture) != ("2010", "x64") and
                      (vs_version, retargeted) != ("2010", True))
                 ]

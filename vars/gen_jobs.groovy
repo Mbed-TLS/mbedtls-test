@@ -21,6 +21,7 @@ import java.util.concurrent.Callable
 
 import groovy.transform.Field
 
+import net.sf.json.JSONObject
 import hudson.AbortException
 
 import org.mbed.tls.jenkins.BranchInfo
@@ -205,52 +206,112 @@ ${extra_setup_code}
     }
 }
 
-def gen_windows_testing_job(BranchInfo info, build, label_prefix='') {
-    def job_name = "${label_prefix}Windows-${build}"
+def gen_windows_testing_job(BranchInfo info, String toolchain, String label_prefix='') {
+    def prefix = "${label_prefix}Windows-${toolchain}"
+    def build_configs, arches, build_systems, retargeted
+    if (toolchain == 'mingw') {
+        build_configs = ['mingw']
+        arches = ['x64']
+        build_systems = ['shipped']
+        retargeted = [false]
+    } else {
+        build_configs = ['Release', 'Debug']
+        arches = ['Win32', 'x64']
+        build_systems = ['shipped', 'cmake']
+        retargeted = [false, true]
+    }
 
-    return instrumented_node_job('windows', job_name) {
-        try {
-            dir("src") {
-                deleteDir()
-                checkout_repo.checkout_repo(info)
-            }
-            /* The empty files are created to re-create the directory after it
-             * and its contents have been removed by deleteDir. */
-            dir("logs") {
-                deleteDir()
-                writeFile file:'_do_not_delete_this_directory.txt', text:''
-            }
+    // Generate the test configs we will be testing, and tag each with the group they will be executed in
+    def test_configs = [build_configs, arches, build_systems, retargeted].combinations().collect { args ->
+        def (build_config, arch, build_system, retarget) = args
+        def job_name = "$prefix${toolchain == 'mingw' ? '' : "-$build_config-$arch-$build_system${retarget ? '-retarget' : ''}"}"
+        /* Sort debug builds using the cmake build system into individual groups, since they are by far the slowest,
+         * lumping everything else into a single group per toolchain. This should give us workgroups that take between
+         * 15-30 minutes to execute. */
+        def group = build_config == 'Debug' &&  build_system == 'cmake' ? job_name : prefix
+        return [
+            group:       group,
+            job_name:    job_name,
+            test_config: [
+                visual_studio_configurations:    [build_config],
+                visual_studio_architectures:     [arch],
+                visual_studio_solution_types:    [build_system],
+                visual_studio_retarget_solution: [retarget],
+            ],
+        ]
+    }
 
-            dir("worktrees") {
-                deleteDir()
-                writeFile file:'_do_not_delete_this_directory.txt', text:''
-            }
+    // Return one job per workgroup
+    return test_configs.groupBy({ item -> (String) item.group }).collectEntries { group, items ->
+        return instrumented_node_job('windows', group) {
+            try {
+                stage('checkout') {
+                    dir("src") {
+                        deleteDir()
+                        checkout_repo.checkout_repo(info)
+                    }
+                    /* The empty files are created to re-create the directory after it
+                     * and its contents have been removed by deleteDir. */
+                    dir("logs") {
+                        deleteDir()
+                        writeFile file: '_do_not_delete_this_directory.txt', text: ''
+                    }
 
-            if (info.has_min_requirements) {
-                dir("src") {
-                    timeout(time: common.perJobTimeout.time,
-                            unit: common.perJobTimeout.unit) {
-                        bat "python scripts\\min_requirements.py ${info.python_requirements_override_file}"
+                    dir("worktrees") {
+                        deleteDir()
+                        writeFile file: '_do_not_delete_this_directory.txt', text: ''
+                    }
+
+                    if (info.has_min_requirements) {
+                        dir("src") {
+                            timeout(time: common.perJobTimeout.time,
+                                unit: common.perJobTimeout.unit) {
+                                bat "python scripts\\min_requirements.py ${info.python_requirements_override_file}"
+                            }
+                        }
+                    }
+
+                    /* libraryResource loads the file as a string. This is then
+                     * written to a file so that it can be run on a node. */
+                    def windows_testing = libraryResource 'windows/windows_testing.py'
+                    writeFile file: 'windows_testing.py', text: windows_testing
+                }
+
+                analysis.record_inner_timestamps('windows', group) {
+                    /* Execute each test in a workgroup serially. If any exceptions are thrown store them, and continue
+                     * with the next test. This replicates the preexisting behaviour windows_testing.py and
+                     * jobs.failFast = false */
+                    def exceptions = items.findResults { item ->
+                        def job_name = (String) item.job_name
+                        try {
+                            stage(job_name) {
+                                common.report_errors(job_name) {
+                                    def extra_args = ''
+                                    if (toolchain != 'mingw') {
+                                        writeFile file: 'test_config.json', text: JSONObject.fromObject(item.test_config).toString()
+                                        extra_args = '-c test_config.json'
+                                    }
+
+                                    timeout(time: common.perJobTimeout.time + common.perJobTimeout.windowsTestingOffset,
+                                        unit: common.perJobTimeout.unit) {
+                                        bat "python windows_testing.py src logs $extra_args -b $toolchain"
+                                    }
+                                }
+                            }
+                        } catch (exception) {
+                            failed_builds[job_name] = true
+                            return exception
+                        }
+                        return null
+                    }
+                    // If we collected any exceptions, throw the first one
+                    if (exceptions.size() > 0) {
+                        throw exceptions.first()
                     }
                 }
+            } finally {
+                deleteDir()
             }
-
-            /* libraryResource loads the file as a string. This is then
-             * written to a file so that it can be run on a node. */
-            def windows_testing = libraryResource 'windows/windows_testing.py'
-            writeFile file: 'windows_testing.py', text: windows_testing
-            timeout(time: common.perJobTimeout.time +
-                          common.perJobTimeout.windowsTestingOffset,
-                    unit: common.perJobTimeout.unit) {
-                analysis.record_inner_timestamps('windows', job_name) {
-                    bat "python windows_testing.py src logs -b $build"
-                }
-            }
-        } catch (err) {
-            failed_builds[job_name] = true
-            throw (err)
-        } finally {
-            deleteDir()
         }
     }
 }
