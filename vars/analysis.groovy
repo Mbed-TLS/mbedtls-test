@@ -230,8 +230,12 @@ def stash_outcomes(job_name) {
 // from all the jobs.
 def process_outcomes() {
     dir('csvs') {
-        for (stash_name in outcome_stashes) {
-            unstash(stash_name)
+        stage('Unstash') {
+            steps {
+                for (stash_name in outcome_stashes) {
+                    unstash(stash_name)
+                }
+            }
         }
         sh 'cat *.csv >../outcomes.csv'
         deleteDir()

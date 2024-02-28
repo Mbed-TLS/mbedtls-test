@@ -27,21 +27,35 @@ import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
 import org.mbed.tls.jenkins.BranchInfo
 
-void run_tls_tests(BranchInfo info, String label_prefix='') {
+void run_test_stage(BranchInfo info) {
+    def jobs = [:]
+
+    jobs = jobs + gen_jobs.gen_release_jobs(info, '', false)
+
+    if (env.RUN_ABI_CHECK == "true") {
+        jobs = jobs + gen_jobs.gen_abi_api_checking_job(info, 'ubuntu-16.04')
+    }
+
+    jobs = common.wrap_report_errors(jobs)
+
+    jobs.failFast = false
+    analysis.record_inner_timestamps('main', 'run_main_job') {
+        parallel jobs
+    }
+}
+
+def run_all_stages(BranchInfo info) {
     try {
-        def jobs = [:]
-
-        jobs = jobs + gen_jobs.gen_release_jobs(info, label_prefix, false)
-
-        if (env.RUN_ABI_CHECK == "true") {
-            jobs = jobs + gen_jobs.gen_abi_api_checking_job(info, 'ubuntu-16.04')
+        stage('tls-testing') {
+            run_test_stage(info)
         }
-
-        jobs = common.wrap_report_errors(jobs)
-
-        jobs.failFast = false
-        analysis.record_inner_timestamps('main', 'run_pr_job') {
-            parallel jobs
+        stage('result-analysis') {
+            try {
+                analysis.analyze_results()
+            } catch (err) {
+                gen_jobs.failed_builds['analyze_results'] = true
+                throw err
+            }
         }
     } catch (err) {
         def failed_names = gen_jobs.failed_builds.keySet().sort().join(" ")
@@ -54,7 +68,7 @@ void run_tls_tests(BranchInfo info, String label_prefix='') {
 
 /* main job */
 def run_pr_job(is_production=true) {
-    analysis.main_record_timestamps('run_pr_job') {
+    analysis.main_record_timestamps('run_main_job') {
         if (is_production) {
             // Cancel in-flight jobs for the same PR when a new job is launched
             def buildNumber = env.BUILD_NUMBER as int
@@ -126,15 +140,7 @@ def run_pr_job(is_production=true) {
             throw (err)
         }
 
-        try {
-            stage('tls-testing') {
-                run_tls_tests(info)
-            }
-        } finally {
-            stage('result-analysis') {
-                analysis.analyze_results()
-            }
-        }
+        run_all_stages(info)
 
         common.maybe_notify_github('SUCCESS', 'All tests passed')
     }
@@ -146,29 +152,16 @@ def run_job() {
 }
 
 void run_release_job() {
-    analysis.main_record_timestamps('run_release_job') {
+    analysis.main_record_timestamps('run_main_job') {
+        environ.set_tls_release_environment()
+        common.init_docker_images()
+        BranchInfo info = common.get_branch_information()
         try {
-            environ.set_tls_release_environment()
-            common.init_docker_images()
-            stage('tls-testing') {
-                BranchInfo info = common.get_branch_information()
-                def jobs = common.wrap_report_errors(gen_jobs.gen_release_jobs(info))
-                jobs.failFast = false
-                try {
-                    analysis.record_inner_timestamps('main', 'run_release_job') {
-                        parallel jobs
-                    }
-                } finally {
-                    if (currentBuild.rawBuild.causes[0] instanceof ParameterizedTimerTriggerCause ||
-                        currentBuild.rawBuild.causes[0] instanceof TimerTrigger.TimerTriggerCause) {
-                        common.send_email('Mbed TLS nightly tests', env.MBED_TLS_BRANCH, gen_jobs.failed_builds, gen_jobs.coverage_details)
-                    }
-                }
-            }
-        }
-        finally {
-            stage('result-analysis') {
-                analysis.analyze_results()
+            run_all_stages(info)
+        } finally {
+            if (currentBuild.rawBuild.causes[0] instanceof ParameterizedTimerTriggerCause ||
+                currentBuild.rawBuild.causes[0] instanceof TimerTrigger.TimerTriggerCause) {
+                common.send_email('Mbed TLS nightly tests', env.MBED_TLS_BRANCH, gen_jobs.failed_builds, gen_jobs.coverage_details)
             }
         }
     }
