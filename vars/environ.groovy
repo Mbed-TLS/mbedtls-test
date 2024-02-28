@@ -28,14 +28,15 @@ def set_common_environment() {
     env.MAKEFLAGS = '-j2'
 }
 
-def set_tls_pr_environment(is_production) {
+void set_pr_environment(boolean is_production, String repo='tls') {
     set_common_environment()
     env.JOB_TYPE = 'PR'
-    env.TARGET_REPO = 'tls'
-    env.REPO_TO_CHECKOUT = 'tls'
+    env.TARGET_REPO = repo
     if (is_production) {
         set_common_pr_production_environment()
-        set_tls_pr_production_environment()
+        if (repo == 'tls') {
+            set_tls_pr_production_environment()
+        }
     } else {
         env.CHECKOUT_METHOD = 'parametrized'
     }
@@ -43,11 +44,7 @@ def set_tls_pr_environment(is_production) {
 
 def set_common_pr_production_environment() {
     env.CHECKOUT_METHOD = 'scm'
-    if (env.BRANCH_NAME ==~ /PR-\d+-merge/) {
-        env.RUN_ABI_CHECK = 'true'
-    } else {
-        env.RUN_FREEBSD = 'true'
-        env.RUN_WINDOWS_TEST = 'true'
+    if (!(env.BRANCH_NAME ==~ /PR-\d+-merge/)) {
         env.RUN_ALL_SH = 'true'
     }
     /* Extract owner and repository from the repo url - needed for testing Github merge queues
@@ -62,6 +59,12 @@ def set_common_pr_production_environment() {
 }
 
 def set_tls_pr_production_environment() {
+    if (env.BRANCH_NAME ==~ /PR-\d+-merge/) {
+        env.RUN_ABI_CHECK = 'true'
+    } else {
+        env.RUN_FREEBSD = 'true'
+        env.RUN_WINDOWS_TEST = 'true'
+    }
     env.MBED_TLS_BRANCH = env.CHANGE_BRANCH
 }
 
@@ -69,7 +72,6 @@ def set_tls_release_environment() {
     set_common_environment()
     env.JOB_TYPE = 'release'
     env.TARGET_REPO = 'tls'
-    env.REPO_TO_CHECKOUT = 'tls'
     env.CHECKOUT_METHOD = 'parametrized'
 }
 

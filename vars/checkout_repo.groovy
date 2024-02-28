@@ -61,7 +61,7 @@ Map<String, String> checkout_report_errors(scm_config) {
 
 Map<String, String> checkout_repo() {
     def scm_config
-    if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
+    if (env.TARGET_REPO != 'example' && env.CHECKOUT_METHOD == 'scm') {
         scm_config = scm
     } else {
         scm_config = parametrized_repo(env.MBED_TLS_REPO, env.MBED_TLS_BRANCH)

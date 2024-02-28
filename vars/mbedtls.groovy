@@ -53,7 +53,7 @@ void run_tls_tests(BranchInfo info, String label_prefix='') {
 }
 
 /* main job */
-def run_pr_job(is_production=true) {
+void run_pr_job(boolean is_production=true, String repo='tls') {
     analysis.main_record_timestamps('run_pr_job') {
         if (is_production) {
             // Cancel in-flight jobs for the same PR when a new job is launched
@@ -84,7 +84,7 @@ def run_pr_job(is_production=true) {
             ])
         }
 
-        environ.set_tls_pr_environment(is_production)
+        environ.set_pr_environment(is_production, repo)
         boolean is_merge_queue = env.BRANCH_NAME ==~ /gh-readonly-queue\/.*/
 
         if (!is_merge_queue && currentBuild.rawBuild.getCause(Cause.UserIdCause) == null) {
