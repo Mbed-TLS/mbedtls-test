@@ -50,7 +50,7 @@ import org.mbed.tls.jenkins.BranchInfo
  * it into account for the on-target test jobs.
  */
 @Field perJobTimeout = [
-        time: 120,
+        time: 240,
         raasOffset: 17,
         windowsTestingOffset: -60,
         unit: 'MINUTES'
