@@ -50,7 +50,7 @@ import org.mbed.tls.jenkins.BranchInfo
  * it into account for the on-target test jobs.
  */
 @Field perJobTimeout = [
-        time: 120,
+        time: 240,
         raasOffset: 17,
         windowsTestingOffset: -60,
         unit: 'MINUTES'
@@ -210,7 +210,7 @@ docker pull $docker_repo:$docker_image
 def docker_script(platform, entrypoint, entrypoint_arguments='') {
     def docker_image = get_docker_tag(platform)
     return """\
-docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS --rm --entrypoint $entrypoint \
+docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS -e VERBOSE_LOGS --rm --entrypoint $entrypoint \
     -w /var/lib/build -v `pwd`/src:/var/lib/build \
     --cap-add SYS_PTRACE $docker_repo:$docker_image $entrypoint_arguments
 """
