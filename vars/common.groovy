@@ -284,8 +284,9 @@ BranchInfo get_branch_information() {
          * and we no longer care about older pull requests, choose
          * its dispatch manually.
          */
-        info.all_all_sh_components['build_armcc'] = 'arm-compilers'
-        echo "Overriding all_all_sh_components['build_armcc'] = 'arm-compilers'"
+        if (info.all_all_sh_components.replace('build_armcc', 'arm-compilers') != null) {
+            echo "Overriding all_all_sh_components['build_armcc'] = 'arm-compilers'"
+        }
 
         if (env.JOB_TYPE == 'PR') {
             // Do not run release components in PR jobs
