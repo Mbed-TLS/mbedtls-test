@@ -659,14 +659,15 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
                 if (overwrite || !image_exists) {
                     dir('docker') {
                         deleteDir()
-                        writeFile file: 'Dockerfile', text: dockerfile
-                        def extra_build_args = ''
+                        try {
+                            writeFile file: 'Dockerfile', text: dockerfile
+                            def extra_build_args = ''
 
-                        if (common.is_open_ci_env) {
-                            extra_build_args = '--build-arg ARMLMD_LICENSE_FILE=27000@flexnet.trustedfirmware.org'
+                            if (common.is_open_ci_env) {
+                                extra_build_args = '--build-arg ARMLMD_LICENSE_FILE=27000@flexnet.trustedfirmware.org'
 
-                            withCredentials([string(credentialsId: 'DOCKER_AUTH', variable: 'TOKEN')]) {
-                                sh """\
+                                withCredentials([string(credentialsId: 'DOCKER_AUTH', variable: 'TOKEN')]) {
+                                    sh """\
 mkdir -p ${env.HOME}/.docker
 cat > ${env.HOME}/.docker/config.json << EOF
 {
@@ -679,35 +680,35 @@ cat > ${env.HOME}/.docker/config.json << EOF
 EOF
 chmod 0600 ${env.HOME}/.docker/config.json
 """
-                            }
-                        } else {
-                            sh """\
+                                }
+                            } else {
+                                sh """\
 aws ecr get-login-password | docker login --username AWS --password-stdin $common.docker_ecr
 """
-                        }
+                            }
 
-                        // Check if the buildkit container already exists
-                        if (sh(script: 'docker buildx inspect dockerfile-builder', returnStatus: true) != 0) {
-                            sh 'docker buildx create --name dockerfile-builder --use'
-                        }
+                            // Check if the buildkit container already exists
+                            if (sh(script: 'docker buildx inspect dockerfile-builder', returnStatus: true) != 0) {
+                                sh 'docker buildx create --name dockerfile-builder --use'
+                            }
 
-                        // Generate URL for armclang
-                        if (platform == 'arm-compilers') {
-                            withCredentials(common.is_open_ci_env ? [] : [aws(credentialsId: 'armclang-readonly-keys')]) {
-                                sh '''
+                            // Generate URL for armclang
+                            if (platform == 'arm-compilers') {
+                                withCredentials(common.is_open_ci_env ? [] : [aws(credentialsId: 'armclang-readonly-keys')]) {
+                                    sh '''
 set -eux
 aws s3 presign --expires-in 300 \
     s3://trustedfirmware-private/armclang/ARMCompiler_506_Linux_x86_b960.tar.gz >armc5_url
 aws s3 presign --expires-in 300 \
     s3://trustedfirmware-private/armclang/ARMCompiler6.21_standalone_linux-x86_64.tar.gz >armc6_url
 '''
-                                extra_build_args +=
-                                    ' --secret id=armc5_url,src=./armc5_url --secret id=armc6_url,src=./armc6_url'
+                                    extra_build_args +=
+                                        ' --secret id=armc5_url,src=./armc5_url --secret id=armc6_url,src=./armc6_url'
+                                }
                             }
-                        }
 
-                        analysis.record_inner_timestamps('dockerfile-builder', platform) {
-                            sh """\
+                            analysis.record_inner_timestamps('dockerfile-builder', platform) {
+                                sh """\
 # Use BuildKit and a remote build cache to pull only the reuseable layers
 # from the last successful build for this platform
 docker buildx build \
@@ -717,6 +718,9 @@ docker buildx build \
     -t $common.docker_repo:$tag \
     --push - <Dockerfile
 """
+                            }
+                        } finally {
+                            deleteDir()
                         }
                     }
                 }
