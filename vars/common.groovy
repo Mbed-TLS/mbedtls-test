@@ -207,10 +207,16 @@ docker pull $docker_repo:$docker_image
     }
 }
 
-def docker_script(platform, entrypoint, entrypoint_arguments='') {
+String docker_script(
+    String platform,
+    String entrypoint,
+    String entrypoint_arguments='',
+    Iterable<String> env_vars=[]
+) {
     def docker_image = get_docker_tag(platform)
+    def env_args = env_vars.collect({ e -> "-e $e" }).join(' ')
     return """\
-docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS -e VERBOSE_LOGS --rm --entrypoint $entrypoint \
+docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS -e VERBOSE_LOGS $env_args --rm --entrypoint $entrypoint \
     -w /var/lib/build -v `pwd`/src:/var/lib/build \
     --cap-add SYS_PTRACE $docker_repo:$docker_image $entrypoint_arguments
 """
