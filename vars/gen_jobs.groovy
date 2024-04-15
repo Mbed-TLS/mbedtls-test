@@ -177,6 +177,16 @@ ${extra_setup_code}
                 try {
                     if (use_docker) {
                         analysis.record_inner_timestamps(node_label, job_name) {
+                            if (common.is_open_ci_env) {
+                                withCredentials([string(credentialsId: 'ARMCLANG_UBL_CODE', variable:'ARMCLANG_UBL_CODE')]) {
+                                    sh common.docker_script(
+                                        platform,
+                                        '/bin/sh',
+                                        '-c exec \'$ARMC6_BIN_DIR/armlm activate -code $ARMCLANG_UBL_CODE\'',
+                                        ['ARMCLANG_UBL_CODE']
+                                    )
+                                }
+                            }
                             sh common.docker_script(
                                 platform, "/var/lib/build/steps.sh"
                             )
