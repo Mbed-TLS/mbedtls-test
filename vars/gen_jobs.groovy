@@ -274,6 +274,16 @@ ${extra_setup_code}
                 try {
                     if (use_docker) {
                         analysis.record_inner_timestamps(node_label, job_name) {
+                            if (common.is_open_ci_env && platform.startsWith('arm-compilers')) {
+                                withCredentials([string(credentialsId: 'MBEDTLS_ARMCLANG_UBL_CODE', variable:'MBEDTLS_ARMCLANG_UBL_CODE')]) {
+                                    sh common.docker_script(
+                                        platform,
+                                        '/bin/sh',
+                                        '-c \'exec $ARMC6_BIN_DIR/armlm activate -code "$MBEDTLS_ARMCLANG_UBL_CODE"\'',
+                                        ['MBEDTLS_ARMCLANG_UBL_CODE']
+                                    )
+                                }
+                            }
                             sh common.docker_script(
                                 platform, "/var/lib/build/steps.sh"
                             )
@@ -706,8 +716,6 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
                             def extra_build_args = ''
 
                             if (common.is_open_ci_env) {
-                                extra_build_args = '--build-arg ARMLMD_LICENSE_FILE=27000@flexnet.trustedfirmware.org'
-
                                 withCredentials([string(credentialsId: 'DOCKER_AUTH', variable: 'TOKEN')]) {
                                     sh """\
 mkdir -p ${env.HOME}/.docker
@@ -733,8 +741,7 @@ aws ecr get-login-password | docker login --username AWS --password-stdin $commo
                             if (platform.startsWith('arm-compilers')) {
                                 withCredentials(common.is_open_ci_env ? [] : [aws(credentialsId: 'armclang-readonly-keys')]) {
                                     sh '''
-aws s3 presign --expires-in 300 \
-    s3://trustedfirmware-private/armclang/ARMCompiler6.21_standalone_linux-x86_64.tar.gz >armc6_url
+aws s3 presign s3://trustedfirmware-private/armclang/ARMCompiler6.21_standalone_linux-x86_64.tar.gz >armc6_url
 '''
                                     extra_build_args +=
                                         ' --secret id=armc6_url,src=./armc6_url'
