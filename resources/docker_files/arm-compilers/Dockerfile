@@ -39,9 +39,9 @@ ARG ARMC5_SHA256=85d741527ba91383e419d86be330112d8e9e056adf3ba83d071d5be158ae3b4
 
 # The build context is mounted under /run/context so you can supply your own local tarball of Arm Compiler 5
 # by pointing curl to file:///run/context/<tarball>
-RUN --mount=type=secret,id=armc5_url,required=true \
+RUN --mount=type=secret,id=ARMC5_URL,required=true \
     --mount=type=bind,target=/run/context \
-    { curl "$(cat /run/secrets/armc5_url)" | tee /dev/fd/3 | tar -zx ./Installer/setup.sh; } 3>&1 | \
+    { curl "$(cat /run/secrets/ARMC5_URL)" | tee /dev/fd/3 | tar -zx ./Installer/setup.sh; } 3>&1 | \
     { echo "$ARMC5_SHA256  /dev/fd/3" | sha256sum -c; } 3<&0
 
 RUN ./Installer/setup.sh -d ./armc5 --i-agree-to-the-contained-eula --no-interactive --quiet
@@ -53,9 +53,9 @@ ARG ARMC6_SHA256=4bcdf9f719a8140b152b699fce8242a68b612cb0cb59f811ae11eb48302d1ef
 
 # The build context is mounted under /run/context so you can supply your own local tarball of Arm Compiler 6
 # by pointing curl to file:///run/context/<tarball>
-RUN --mount=type=secret,id=armc6_url,required=true \
+RUN --mount=type=secret,id=ARMC6_URL,required=true \
     --mount=type=bind,target=/run/context \
-    { curl "$(cat /run/secrets/armc6_url)" | tee /dev/fd/3 | tar --exclude license_terms --exclude releasenotes.html -zx; } 3>&1 | \
+    { curl "$(cat /run/secrets/ARMC6_URL)" | tee /dev/fd/3 | tar --exclude license_terms --exclude releasenotes.html -zx; } 3>&1 | \
     { echo "$ARMC6_SHA256  /dev/fd/3" | sha256sum -c; } 3<&0
 
 RUN ./install_*.sh -d ./armc6 --i-agree-to-the-contained-eula --no-interactive --quiet
