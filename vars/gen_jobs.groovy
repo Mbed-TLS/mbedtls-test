@@ -342,8 +342,21 @@ def gen_windows_jobs(BranchInfo info, String label_prefix='') {
 }
 
 def gen_abi_api_checking_job(BranchInfo info, String platform) {
-    def job_name = 'ABI-API-checking'
-    def credentials_id = common.is_open_ci_env ? "mbedtls-github-ssh" : "742b7080-e1cc-41c6-bf55-efb72013bc28"
+    String job_name = 'ABI-API-checking'
+    String script_in_docker = '''
+tests/scripts/list-identifiers.sh --internal
+scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
+'''
+
+    String credentials_id = common.is_open_ci_env ? "mbedtls-github-ssh" : "742b7080-e1cc-41c6-bf55-efb72013bc28"
+    Closure post_checkout = {
+        /* The credentials here are the SSH credentials for accessing the repositories.
+           They are defined at {JENKINS_URL}/credentials */
+        withCredentials([sshUserPrivateKey(credentialsId: credentials_id, keyFileVariable: 'keyfile')]) {
+            sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile}\" git fetch origin ${CHANGE_TARGET}"
+        }
+    }
+    Closure post_success = null
 
     return instrumented_node_job('container-host', job_name) {
         try {
@@ -351,10 +364,8 @@ def gen_abi_api_checking_job(BranchInfo info, String platform) {
             common.get_docker_image(platform)
             dir('src') {
                 checkout_repo.checkout_repo(info)
-                /* The credentials here are the SSH credentials for accessing the repositories.
-                   They are defined at {JENKINS_URL}/credentials */
-                withCredentials([sshUserPrivateKey(credentialsId: credentials_id, keyFileVariable: 'keyfile')]) {
-                    sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile}\" git fetch origin ${CHANGE_TARGET}"
+                if (post_checkout) {
+                    post_checkout()
                 }
                 writeFile file: 'steps.sh', text: """\
 #!/bin/sh
@@ -364,18 +375,24 @@ ulimit -f 20971520
 if [ -e scripts/min_requirements.py ]; then
 scripts/min_requirements.py --user ${info.python_requirements_override_file}
 fi
-
-tests/scripts/list-identifiers.sh --internal
-scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
-"""
+""" + script_in_docker
                 sh 'chmod +x steps.sh'
             }
             timeout(time: common.perJobTimeout.time,
                     unit: common.perJobTimeout.unit) {
-                analysis.record_inner_timestamps('container-host', job_name) {
-                    sh common.docker_script(
-                            platform, "/var/lib/build/steps.sh"
-                    )
+                try {
+                    analysis.record_inner_timestamps('container-host', job_name) {
+                        sh common.docker_script(
+                                platform, "/var/lib/build/steps.sh"
+                        )
+                    }
+                    if (post_success) {
+                        post_success()
+                    }
+                } finally {
+                    dir('src/tests/') {
+                        common.archive_zipped_log_files(job_name)
+                    }
                 }
             }
         } catch (err) {
@@ -387,22 +404,9 @@ scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
     }
 }
 
-def gen_code_coverage_job(BranchInfo info, platform) {
-    def job_name = 'code-coverage'
-    return instrumented_node_job('container-host', job_name) {
-        try {
-            deleteDir()
-            common.get_docker_image(platform)
-            dir('src') {
-                checkout_repo.checkout_repo(info)
-                writeFile file: 'steps.sh', text: '''#!/bin/sh
-set -eux
-ulimit -f 20971520
-
-if [ -e scripts/min_requirements.py ]; then
-scripts/min_requirements.py --user ''' + info.python_requirements_override_file + '''
-fi
-
+def gen_code_coverage_job(BranchInfo info, String platform) {
+    String job_name = 'code-coverage'
+    String script_in_docker = '''
 if grep -q -F coverage-summary.txt tests/scripts/basic-build-test.sh; then
 # New basic-build-test, generates coverage-summary.txt
 ./tests/scripts/basic-build-test.sh
@@ -415,6 +419,35 @@ sed -n '/^Test Report Summary/,$p' basic-build-test.log >coverage-summary.txt
 rm basic-build-test.log
 fi
 '''
+
+    Closure post_checkout = null
+    Closure post_success = {
+        dir('src') {
+            String coverage_log = readFile('coverage-summary.txt')
+            coverage_details['coverage'] = coverage_log.substring(
+                coverage_log.indexOf('\nCoverage\n') + 1
+            )
+        }
+    }
+
+    return instrumented_node_job('container-host', job_name) {
+        try {
+            deleteDir()
+            common.get_docker_image(platform)
+            dir('src') {
+                checkout_repo.checkout_repo(info)
+                if (post_checkout) {
+                    post_checkout()
+                }
+                writeFile file: 'steps.sh', text: """\
+#!/bin/sh
+set -eux
+ulimit -f 20971520
+
+if [ -e scripts/min_requirements.py ]; then
+scripts/min_requirements.py --user ${info.python_requirements_override_file}
+fi
+""" + script_in_docker
                 sh 'chmod +x steps.sh'
             }
             timeout(time: common.perJobTimeout.time,
@@ -425,11 +458,8 @@ fi
                                 platform, "/var/lib/build/steps.sh"
                         )
                     }
-                    dir('src') {
-                        String coverage_log = readFile('coverage-summary.txt')
-                        coverage_details['coverage'] = coverage_log.substring(
-                            coverage_log.indexOf('\nCoverage\n') + 1
-                        )
+                    if (post_success) {
+                        post_success()
                     }
                 } finally {
                     dir('src/tests/') {
