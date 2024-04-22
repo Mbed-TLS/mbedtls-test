@@ -91,18 +91,44 @@ def platform_lacks_tls_tools(platform) {
     return ['freebsd'].contains(os)
 }
 
-def gen_docker_job(String job_name, String platform,
-                   String script_in_docker,
-                   Closure post_checkout,
-                   Closure post_success) {
+/* gen_docker_job(info, job_name, platform, script_in_docker, ...)
+ *
+ * Construct a job that runs a script in Docker.
+ * Return a one-element map mapping job_name to a closure that runs the job.
+ *
+ * Positional parameters:
+ * - info: a BranchInfo object describing the branch to test.
+ * - job_name: the name to use for the job. It is used as a key in
+ *   the returned map, as a name in Jenkins reports and logs, to
+ *   construct file names and anywhere else this function needs
+ *   a presumed unique job name.
+ * - platform: the name of the Docker image.
+ * - script_in_docker: a shell script to run in the Docker image.
+ *
+ * Named parameters (all optional):
+ * - post_checkout: a closure to run with no arguments after checking
+ *   out the code to test.
+ * - post_success: a closure to run with no argument after running the
+ *   script in Docker, if that script succeeds.
+ * - post_execution: a closure to run with no argument after running the
+ *   script in Docker, whether it succeeded or not. This closure can
+ *   check the job's status by querying gen_jobs.failed_builds[job_name],
+ *   which is true if the job failed and absent otherwise. This closure
+ *   should not throw an exception.
+ */
+Map<String, Callable<Void>> gen_docker_job(Map<String, Closure> hooks,
+                                           BranchInfo info,
+                                           String job_name,
+                                           String platform,
+                                           String script_in_docker) {
     return instrumented_node_job('container-host', job_name) {
         try {
             deleteDir()
             common.get_docker_image(platform)
             dir('src') {
                 checkout_repo.checkout_repo(info)
-                if (post_checkout) {
-                    post_checkout()
+                if (hooks.post_checkout) {
+                    hooks.post_checkout()
                 }
                 writeFile file: 'steps.sh', text: """\
 #!/bin/sh
@@ -123,8 +149,8 @@ fi
                                 platform, "/var/lib/build/steps.sh"
                         )
                     }
-                    if (post_success) {
-                        post_success()
+                    if (hooks.post_success) {
+                        hooks.post_success()
                     }
                 } finally {
                     dir('src/tests/') {
@@ -136,6 +162,9 @@ fi
             failed_builds[job_name] = true
             throw (err)
         } finally {
+            if (hooks.post_execution) {
+                hooks.post_execution()
+            }
             deleteDir()
         }
     }
@@ -406,10 +435,9 @@ scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
             sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile}\" git fetch origin ${CHANGE_TARGET}"
         }
     }
-    Closure post_success = null
 
     return gen_docker_job(info, job_name, platform, script_in_docker,
-                          post_checkout, post_success)
+                          post_checkout: post_checkout)
 }
 
 def gen_code_coverage_job(BranchInfo info, String platform) {
@@ -428,7 +456,6 @@ rm basic-build-test.log
 fi
 '''
 
-    Closure post_checkout = null
     Closure post_success = {
         dir('src') {
             String coverage_log = readFile('coverage-summary.txt')
@@ -439,7 +466,7 @@ fi
     }
 
     return gen_docker_job(info, job_name, platform, script_in_docker,
-                          post_checkout, post_success)
+                          post_success: post_success)
 }
 
 /* Mbed OS Example job generation */
