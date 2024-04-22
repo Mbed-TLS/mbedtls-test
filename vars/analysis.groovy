@@ -38,6 +38,7 @@ import jenkins.branch.MultiBranchProject
 import jenkins.util.BuildListenerAdapter
 import net.sf.json.JSONObject
 
+import org.mbed.tls.jenkins.BranchInfo
 import org.mbed.tls.jenkins.JobTimestamps
 
 // A static field has its content preserved across stages.
@@ -228,7 +229,7 @@ def stash_outcomes(job_name) {
 
 // In a directory with the source tree available, process the outcome files
 // from all the jobs.
-def process_outcomes() {
+def process_outcomes(BranchInfo info) {
     dir('csvs') {
         for (stash_name in outcome_stashes) {
             unstash(stash_name)
@@ -268,7 +269,7 @@ fi
     }
 }
 
-def gather_outcomes() {
+def gather_outcomes(BranchInfo info) {
     // After running on an old branch which doesn't have the outcome
     // file generation mechanism, or after running a partial run,
     // there may not be any outcome file. In this case, silently
@@ -280,8 +281,8 @@ def gather_outcomes() {
         dir('outcomes') {
             deleteDir()
             try {
-                checkout_repo.checkout_repo()
-                process_outcomes()
+                checkout_repo.checkout_repo(info)
+                process_outcomes(info)
             } finally {
                 deleteDir()
             }
@@ -289,9 +290,9 @@ def gather_outcomes() {
     }
 }
 
-void analyze_results() {
+void analyze_results(BranchInfo info) {
     try {
-        gather_outcomes()
+        gather_outcomes(info)
     } catch (err) {
         common.maybe_notify_github('FAILURE', 'Result analysis failed')
         throw (err)

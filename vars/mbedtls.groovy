@@ -132,7 +132,7 @@ def run_pr_job(is_production=true) {
             }
         } finally {
             stage('result-analysis') {
-                analysis.analyze_results()
+                analysis.analyze_results(info)
             }
         }
 
@@ -146,12 +146,13 @@ def run_job() {
 }
 
 void run_release_job() {
+    BranchInfo info
     analysis.main_record_timestamps('run_release_job') {
         try {
             environ.set_tls_release_environment()
             common.init_docker_images()
             stage('tls-testing') {
-                BranchInfo info = common.get_branch_information()
+                info = common.get_branch_information()
                 def jobs = common.wrap_report_errors(gen_jobs.gen_release_jobs(info))
                 jobs.failFast = false
                 try {
@@ -168,7 +169,7 @@ void run_release_job() {
         }
         finally {
             stage('result-analysis') {
-                analysis.analyze_results()
+                analysis.analyze_results(info)
             }
         }
     }
