@@ -273,10 +273,10 @@ tests/scripts/analyze_outcomes.py outcomes.csv
     def job_map = gen_jobs.gen_docker_job(info, job_name, 'ubuntu-22.04',
                                           script_in_docker,
                                           post_execution: post_execution)
-    job_map[job_name]()
+    common.report_errors(job_name, job_map[job_name])
 }
 
-def gather_outcomes(BranchInfo info) {
+def analyze_results(BranchInfo info) {
     // After running on an old branch which doesn't have the outcome
     // file generation mechanism, or after running a partial run,
     // there may not be any outcome file. In this case, silently
@@ -293,14 +293,5 @@ def gather_outcomes(BranchInfo info) {
                 deleteDir()
             }
         }
-    }
-}
-
-void analyze_results(BranchInfo info) {
-    try {
-        gather_outcomes(info)
-    } catch (err) {
-        common.maybe_notify_github('FAILURE', 'Result analysis failed')
-        throw (err)
     }
 }
