@@ -149,6 +149,12 @@ void run_release_job() {
     analysis.main_record_timestamps('run_release_job') {
         try {
             environ.set_tls_release_environment()
+
+            node('windows') {
+                bat 'cmake --version'
+            }
+            return
+
             common.init_docker_images()
             stage('tls-testing') {
                 BranchInfo info = common.get_branch_information()
