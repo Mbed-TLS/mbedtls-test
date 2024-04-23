@@ -150,6 +150,17 @@ void run_release_job() {
         try {
             environ.set_tls_release_environment()
             common.init_docker_images()
+            node('container-host') {
+                withCredentials([string(credentialsId: 'MBEDTLS_ARMCLANG_UBL_CODE', variable: 'MBEDTLS_ARMCLANG_UBL_CODE')]) {
+                    sh common.docker_script(
+                        'arm-compilers',
+                        '/bin/sh',
+                        '-c \'set -x && $ARMC6_BIN_DIR/armlm activate -code $MBEDTLS_ARMCLANG_UBL_CODE && $ARMC6_BIN_DIR/armlm inspect\'',
+                        ['MBEDTLS_ARMCLANG_UBL_CODE']
+                    )
+                }
+            }
+            return
             stage('tls-testing') {
                 BranchInfo info = common.get_branch_information()
                 def jobs = common.wrap_report_errors(gen_jobs.gen_release_jobs(info))
