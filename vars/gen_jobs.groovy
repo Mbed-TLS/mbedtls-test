@@ -703,7 +703,7 @@ aws s3 presign --expires-in 300 \
     s3://trustedfirmware-private/armclang/ARMCompiler6.21_standalone_linux-x86_64.tar.gz >armc6_url
 '''
                                     extra_build_args +=
-                                        ' --secret id=armc5_url,src=./armc5_url --secret id=armc6_url,src=./armc6_url'
+                                        ' --secret id=ARMC5_URL,src=./armc5_url --secret id=ARMC6_URL,src=./armc6_url'
                                 }
                             }
 
