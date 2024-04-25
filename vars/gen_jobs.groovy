@@ -105,16 +105,19 @@ def platform_lacks_tls_tools(platform) {
  * - platform: the name of the Docker image.
  * - script_in_docker: a shell script to run in the Docker image.
  *
- * Named parameters (all optional):
- * - post_checkout: a closure to run with no arguments after checking
- *   out the code to test.
- * - post_success: a closure to run with no argument after running the
- *   script in Docker, if that script succeeds.
- * - post_execution: a closure to run with no argument after running the
- *   script in Docker, whether it succeeded or not. This closure can
- *   check the job's status by querying gen_jobs.failed_builds[job_name],
- *   which is true if the job failed and absent otherwise. This closure
- *   should not throw an exception.
+ * Named parameters:
+ * - post_checkout: hook that runs after checking out the code to test.
+ * - post_success: hook that runs after running the script in Docker, if
+ *   that script succeeds.
+ * - post_execution: hook that runs after running the script in Docker,
+ *   whether it succeeded or not. It can check the job's status by querying
+ *   gen_jobs.failed_builds[job_name], which is true if the job failed and
+ *   absent otherwise. This hook should not throw an exception.
+ *
+ * All hook parameters are closures that are called with no arguments.
+ * They can be null, in which case the hook does nothing. The code runs
+ * on a 'container-host' executor, in the directory containing the
+ * source code.
  */
 Map<String, Callable<Void>> gen_docker_job(Map<String, Closure> hooks,
                                            BranchInfo info,
@@ -150,7 +153,9 @@ fi
                         )
                     }
                     if (hooks.post_success) {
-                        hooks.post_success()
+                        dir('src') {
+                            hooks.post_success()
+                        }
                     }
                 } finally {
                     dir('src/tests/') {
@@ -163,7 +168,9 @@ fi
             throw (err)
         } finally {
             if (hooks.post_execution) {
-                hooks.post_execution()
+                dir('src') {
+                    hooks.post_execution()
+                }
             }
             deleteDir()
         }
@@ -457,12 +464,10 @@ fi
 '''
 
     Closure post_success = {
-        dir('src') {
-            String coverage_log = readFile('coverage-summary.txt')
-            coverage_details['coverage'] = coverage_log.substring(
-                coverage_log.indexOf('\nCoverage\n') + 1
-            )
-        }
+        String coverage_log = readFile('coverage-summary.txt')
+        coverage_details['coverage'] = coverage_log.substring(
+            coverage_log.indexOf('\nCoverage\n') + 1
+        )
     }
 
     return gen_docker_job(info, job_name, platform, script_in_docker,
