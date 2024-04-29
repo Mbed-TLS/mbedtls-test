@@ -151,14 +151,20 @@ void run_release_job() {
             environ.set_tls_release_environment()
             common.init_docker_images()
             node('container-host') {
+                sh 'mkdir src && ls -la'
                 withCredentials([string(credentialsId: 'MBEDTLS_ARMCLANG_UBL_CODE', variable: 'MBEDTLS_ARMCLANG_UBL_CODE')]) {
                     sh common.docker_script(
                         'arm-compilers',
                         '/bin/sh',
-                        '-c \'set -x && $ARMC6_BIN_DIR/armlm activate -code $MBEDTLS_ARMCLANG_UBL_CODE && $ARMC6_BIN_DIR/armlm inspect\'',
+                        '-c \'set -x && ls -la && $ARMC6_BIN_DIR/armlm activate -code $MBEDTLS_ARMCLANG_UBL_CODE && $ARMC6_BIN_DIR/armlm inspect && echo "HOME=$HOME" && echo "PWD=$PWD" && ls -la\'',
                         ['MBEDTLS_ARMCLANG_UBL_CODE']
                     )
                 }
+                sh common.docker_script(
+                    'arm-compilers',
+                    '/bin/sh',
+                    '-c \'set -x && $ARMC6_BIN_DIR/armlm inspect && echo "HOME=$HOME" && echo "PWD=$PWD" && ls -la\'',
+                )
             }
             return
             stage('tls-testing') {
