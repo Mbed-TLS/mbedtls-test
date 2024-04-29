@@ -28,10 +28,6 @@ FROM ubuntu:16.04
 ARG DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt/src
 
-# Note: scripts/min_requirements.py need a writable
-# destination for installing python dependencies
-ENV HOME=/var/lib/builds
-
 # Support for 32-bit builds+tests of Mbed TLS
 RUN case "$(uname -m)" in \
         x86_64)  dpkg --add-architecture i386;; \
@@ -306,10 +302,13 @@ RUN locale && \
 RUN useradd -m user
 
 # Create workspace
-ARG AGENT_WORKDIR=/var/lib/builds
+ARG AGENT_WORKDIR=/var/lib/build
 RUN mkdir -p ${AGENT_WORKDIR} && chown user:user ${AGENT_WORKDIR}
 USER user
 ENV AGENT_WORKDIR=${AGENT_WORKDIR}
+# Note: scripts/min_requirements.py need a writable
+# destination for installing python dependencies
+ENV HOME=${AGENT_WORKDIR}
 
 WORKDIR ${AGENT_WORKDIR}
 

@@ -65,10 +65,6 @@ FROM ubuntu:20.04
 ARG DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt/src
 
-# Note: scripts/min_requirements.py need a writable
-# destination for installing python dependencies
-ENV HOME=/var/lib/builds
-
 # Support for i386:
 # - for 32-bit builds+tests of Mbed TLS
 # - required to install Arm Compiler 5.06 (armcc)
@@ -132,10 +128,13 @@ ENV ARMLMD_LICENSE_FILE=${ARMLMD_LICENSE_FILE}
 RUN useradd -m user
 
 # Create workspace
-ARG AGENT_WORKDIR=/var/lib/builds
+ARG AGENT_WORKDIR=/var/lib/build
 RUN mkdir -p ${AGENT_WORKDIR} && chown user:user ${AGENT_WORKDIR}
 USER user
 ENV AGENT_WORKDIR=${AGENT_WORKDIR}
+# Note: scripts/min_requirements.py need a writable
+# destination for installing python dependencies
+ENV HOME=${AGENT_WORKDIR}
 
 WORKDIR ${AGENT_WORKDIR}
 
