@@ -16,6 +16,7 @@ def run_job() {
             jobs += gen_job_for_action(DOCKER_IMAGE_18_04_ACTION, 'ubuntu-18.04-amd64')
             jobs += gen_job_for_action(DOCKER_IMAGE_20_04_ACTION, 'ubuntu-20.04-amd64')
             jobs += gen_job_for_action(DOCKER_IMAGE_22_04_ACTION, 'ubuntu-22.04-amd64')
+            jobs += gen_job_for_action(DOCKER_IMAGE_24_04_ACTION, 'ubuntu-24.04-amd64')
             jobs.failFast = false
             parallel jobs
         }

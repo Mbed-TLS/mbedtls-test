@@ -74,6 +74,7 @@ import org.mbed.tls.jenkins.BranchInfo
     'ubuntu-18.04-amd64', 'ubuntu-18.04-arm64',
     'ubuntu-20.04-amd64', 'ubuntu-20.04-arm64',
     'ubuntu-22.04-amd64', 'ubuntu-22.04-arm64',
+    'ubuntu-24.04-amd64', 'ubuntu-24.04-arm64',
     'arm-compilers-amd64',
 ]
 /* List of BSD platforms. They all run freebsd_all_sh_components. */
