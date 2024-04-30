@@ -277,16 +277,6 @@ BranchInfo get_branch_information() {
             }
         }
 
-        /* Temporary ad hoc assignment: at the time of writing,
-         * all.sh does not detect the presence of arm compilers, so
-         * it always reports build_armcc as available. Until
-         * https://github.com/Mbed-TLS/mbedtls/pull/7163 is merged
-         * and we no longer care about older pull requests, choose
-         * its dispatch manually.
-         */
-        info.all_all_sh_components['build_armcc'] = 'arm-compilers'
-        echo "Overriding all_all_sh_components['build_armcc'] = 'arm-compilers'"
-
         if (env.JOB_TYPE == 'PR') {
             // Do not run release components in PR jobs
             info.all_all_sh_components = info.all_all_sh_components.findAll {
