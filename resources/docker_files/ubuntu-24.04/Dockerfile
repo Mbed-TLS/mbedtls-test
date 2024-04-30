@@ -1,4 +1,4 @@
-# ubuntu-22.04/Dockerfile
+# ubuntu-24.04/Dockerfile
 #
 #  Copyright (c) 2018-2023, ARM Limited, All Rights Reserved
 #  SPDX-License-Identifier: Apache-2.0
@@ -20,10 +20,10 @@
 # Purpose
 # -------
 #
-# This docker file is for creating the ubuntu-22.04 image that is used in the
+# This docker file is for creating the ubuntu-24.04 image that is used in the
 # CI. It can also be used for reproducing and testing CI failures.
 
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt/src
@@ -46,9 +46,9 @@ RUN apt-get update -q && apt-get install -yq \
         # for Mbed TLS tests
         abi-compliance-checker \
         # Note that there is a known issue #5332 that stock abi tools
-        # in ubuntu22.04 do not fail as expected.
+        # in ubuntu24.04 do not fail as expected.
         # https://github.com/ARMmbed/mbedtls/issues/5332
-        # Do not activae 22.04 until that is resolved
+        # Do not activae 24.04 until that is resolved
         # to use with abi-compliance-tester
         abi-dumper \
         # to update the autoconf files in nettle 2.7 with support for aarch64
