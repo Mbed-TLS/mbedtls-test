@@ -1,0 +1,43 @@
+plugins {
+    id 'groovy'
+    id 'java-library'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation libs.groovy.all
+    implementation libs.objectweb.asm
+}
+
+// Apply a specific Java toolchain to ease working on different environments.
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+    }
+}
+
+compileGroovy {
+    groovyOptions.with {
+        configurationScript = file('gradle/config.groovy')
+        fileExtensions = ['java', 'groovy', 'gdsl']
+        /* Enable deep reflection for the following packages to silence the warnings produced by
+         * using Groovy 2.4 on Java 9+ */
+        forkOptions.jvmArgs = [
+            '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+            '--add-opens=java.base/java.security=ALL-UNNAMED',
+            '--add-opens=java.base/java.net=ALL-UNNAMED',
+        ]
+    }
+}
+
+
+sourceSets {
+    main {
+        groovy {
+            filter.include '**/*.gdsl'
+        }
+    }
+}

@@ -17,7 +17,6 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
-
 import hudson.model.Cause
 import hudson.model.Result
 import hudson.triggers.TimerTrigger

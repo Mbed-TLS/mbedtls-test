@@ -1,0 +1,13 @@
+# https://docs.gradle.org/current/userguide/platforms.html#sub::toml-dependencies-format
+
+[libraries]
+groovy-all                              = "org.codehaus.groovy:groovy-all:2.4.21"
+groovy-cps                              = "com.cloudbees:groovy-cps:3691.v28b_14c465a_b_b_"
+jakarta-servlet-api                     = "jakarta.servlet:jakarta.servlet-api:4.0.4"
+jenkins-core                            = "org.jenkins-ci.main:jenkins-core:2.387.2"
+jenkins-plugins-branch-api              = "org.jenkins-ci.plugins:branch-api:2.1128.v717130d4f816"
+jenkins-plugins-git                     = "org.jenkins-ci.plugins:git:5.2.1"
+jenkins-plugins-github-branch-source    = "org.jenkins-ci.plugins:github-branch-source:1734.v8a_ed3a_653490"
+jenkins-plugins-parameterized-scheduler = "org.jenkins-ci.plugins:parameterized-scheduler:255.v73827fcdf618"
+jenkins-plugins-workflow-step-api       = "org.jenkins-ci.plugins.workflow:workflow-step-api:639.v6eca_cd8c04a_a_"
+objectweb-asm                           = "org.ow2.asm:asm:9.4"

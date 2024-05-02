@@ -1,0 +1,66 @@
+/*
+ * For more details on building Java & JVM projects, please refer to https://docs.gradle.org/8.7/userguide/building_java_projects.html in the Gradle documentation.
+ */
+
+plugins {
+    // Apply the groovy Plugin to add support for Groovy.
+    id 'groovy'
+    id 'idea'
+}
+
+allprojects {
+    tasks.register('list') {
+        FileCollection compileClasspath = compileGroovy.classpath
+        dependsOn compileClasspath
+        doLast {
+            println "classpath: size = ${compileClasspath.size()}"
+            compileClasspath.each { File file -> println file.name }
+        }
+    }
+
+    tasks.register('jver') {
+        println java.toolchain.displayName
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://repo.jenkins-ci.org/public'
+    }
+}
+
+dependencies {
+    implementation libs.groovy.all
+    implementation libs.groovy.cps
+    implementation libs.jakarta.servlet.api
+    implementation libs.jenkins.core
+    implementation libs.jenkins.plugins.branch.api
+    implementation libs.jenkins.plugins.git
+    implementation libs.jenkins.plugins.github.branch.source
+    implementation libs.jenkins.plugins.parameterized.scheduler
+    implementation libs.jenkins.plugins.workflow.step.api
+
+    compileOnly project(':typing')
+}
+
+// Apply a specific Java toolchain to ease working on different environments.
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+    }
+}
+
+sourceSets {
+    main {
+        groovy {
+            srcDirs = ['src', 'vars']
+        }
+    }
+}
+
+idea {
+    module {
+        downloadJavadoc = true
+    }
+}

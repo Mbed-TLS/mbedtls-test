@@ -1,0 +1,28 @@
+/*
+ * The settings file is used to specify which projects to include in your build.
+ * For more detailed information on multi-project builds, please refer to https://docs.gradle.org/8.7/userguide/multi_project_builds.html in the Gradle documentation.
+ */
+
+plugins {
+    // Apply the foojay-resolver plugin to allow automatic download of JDKs
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
+}
+
+rootProject.name = 'mbedtls-test'
+include 'typing'
+
+/* Jenkins plugins export hpi files as their default artifact, which the groovy compiler can't handle correctly.
+ * Add a dependency resolution rule to download the jars instead. */
+dependencyResolutionManagement {
+    components {
+        all { ComponentMetadataDetails cmd, PomModuleDescriptor pom ->
+            if (pom.packaging == 'hpi') {
+                allVariants {
+                    withFiles {
+                        addFile("${id.name}-${id.version}.jar")
+                    }
+                }
+            }
+        }
+    }
+}
