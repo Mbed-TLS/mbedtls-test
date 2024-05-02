@@ -8,6 +8,9 @@ repositories {
     maven {
         url 'https://repo.jenkins-ci.org/public'
     }
+    maven {
+        url 'https://www.jetbrains.com/intellij-repository/releases'
+    }
 }
 
 dependencies {
@@ -24,6 +27,10 @@ dependencies {
     api libs.jenkins.plugins.workflow.cps
     api libs.jenkins.plugins.workflow.multibranch
     api libs.jenkins.plugins.workflow.step.api
+
+    compileOnly 'com.jetbrains.intellij.platform:core:241.15989.157'
+    compileOnly 'com.jetbrains.intellij.java:java-psi:241.15989.155'
+    compileOnly 'com.jetbrains.intellij.groovy:groovy-psi:241.15989.155'
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
