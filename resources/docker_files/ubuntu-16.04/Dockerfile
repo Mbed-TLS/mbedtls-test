@@ -58,6 +58,8 @@ RUN apt-get update -q && apt-get install -yq \
         clang-3.5 \
         # to build Mbed TLS
         cmake \
+        # to build Python
+        curl \
         # to build Mbed TLS's documentation
         doxygen \
         # to run tests in specific time.
@@ -70,12 +72,30 @@ RUN apt-get update -q && apt-get install -yq \
         graphviz \
         # to measure code coverage of Mbed TLS
         lcov \
+        # to build Python
+        libbz2-dev \
+        # to build Python
+        libffi-dev \
         # to build GnuTLS (nettle with public key support aka hogweed)
         libgmp-dev \
+        # to build Python
+        liblzma-dev \
+        # to build Python
+        libncursesw5-dev \
+        # to build Python
+        libreadline-dev \
+        # to build Python
+        libsqlite3-dev \
+        # to build Python
+        libssl-dev \
         # to build GnuTLS >= 3.6 (could also use --with-included-unistring)
         libunistring-dev \
         # to build GnuTLS (except 3.6 which uses --with-included-libtasn1)
         libtasn1-6-dev \
+        # to build Python
+        libxml2-dev \
+        # to build Python
+        libxmlsec1-dev \
         # to have a UTF-8 locale (see locale-gen below)
         locales \
         # used by compat.sh and ssl-opt.sh
@@ -88,15 +108,19 @@ RUN apt-get update -q && apt-get install -yq \
         pkg-config \
         # to install the preferred version of pylint
         python3-pip \
+        # to build Python
+        tk-dev \
         # for Mbed TLS tests
         valgrind \
         # for data files generating. xxd is provide by vim
         vim \
         # to download things installed from other places
         wget \
-        # to build Mbed TLS with MBEDTLS_ZILIB_SUPPORT (removed in 3.0)
+        # to build Python
+        xz-utils \
+        # to build Mbed TLS with MBEDTLS_ZILIB_SUPPORT (removed in 3.0), and to build Python
         zlib1g \
-        # to build Mbed TLS with MBEDTLS_ZILIB_SUPPORT (removed in 3.0)
+        # to build Mbed TLS with MBEDTLS_ZILIB_SUPPORT (removed in 3.0), and to build Python
         zlib1g-dev \
     && case "$(uname -m)" in \
         # x86_64 only packages
@@ -277,6 +301,19 @@ RUN wget -q https://github.com/lvc/abi-compliance-checker/archive/2.3.tar.gz && 
 # The version in Ubuntu 16.04 is too old, we want at least the version below
 RUN git clone --branch 1.1 https://github.com/lvc/abi-dumper.git && \
     cd abi-dumper && make install prefix=/usr && cd .. && rm -rf abi-dumper
+
+# Install Python 3.6 and make it the default `python3` in $PATH.
+# This is the minimum Python version that we declare as required for
+# Mbed TLS 2.28 LTS.
+RUN wget -q https://github.com/pyenv/pyenv/archive/refs/tags/v2.4.0.tar.gz && \
+    tar -xzf v2.4.0.tar.gz && \
+    rm v2.4.0.tar.gz && \
+    cd pyenv-*/ && \
+    bin/pyenv install 3.6 && \
+    ln -s ~/.pyenv/versions/3.6.*/bin/*3.6 /usr/local/bin/ && \
+    ln -s python3.6 /usr/local/bin/python3 && \
+    ln -s pip3.6 /usr/local/bin/pip3 && \
+    ln -s "$PWD/src/pyenv" /usr/local/bin/
 
 # Install Python pip packages
 #
