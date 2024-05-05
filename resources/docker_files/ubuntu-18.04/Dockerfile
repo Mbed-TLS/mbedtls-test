@@ -277,14 +277,17 @@ RUN git clone --branch uncrustify-0.75.1 https://github.com/uncrustify/uncrustif
 # outside the package manager, so invoke the module directly.
 #
 # Ubuntu 18.04's pip (9.0.1) doesn't support suppressing the progress bar,
-# which is annoying in CI logs. Install pip<21, same as on Ubuntu 16.04
-# (although we could use a later version if we wanted).
+# which is annoying in CI logs. Also, we want the ability to specify both
+# a versioned requirement and an unversioned requirement for the same
+# package (e.g. `pip install foo bar foo==42`), and this is only possible
+# since pip 20.3. So upgrade pip, to the last version that still supports
+# Python 3.6.
 #
 # Piping to cat suppresses the progress bar, but means that a failure
 # won't be caught (`stuff | cat` succeeds if cat succeeds, even if `stuff`
 # fails). The subsequent use of "pip config" (which requires pip >=10)
 # will however fail if the installation of a more recent pip failed.
-RUN python3 -m pip install pip --upgrade | cat && \
+RUN python3 -m pip install 'pip<22' --upgrade | cat && \
     python3 -m pip config set global.progress_bar off && \
     python3 -m pip install setuptools --upgrade && \
     true

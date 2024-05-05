@@ -315,22 +315,14 @@ RUN wget -q https://github.com/pyenv/pyenv/archive/refs/tags/v2.4.0.tar.gz && \
     ln -s pip3.6 /usr/local/bin/pip3 && \
     ln -s "$PWD/src/pyenv" /usr/local/bin/
 
-# Install Python pip packages
-#
-# The pip wrapper scripts can get out of sync with pip due to upgrading it
-# outside the package manager, so invoke the module directly.
-#
-# Ubuntu 16.04's pip (8.1) doesn't understand the Requires-Python
-# directive (introduced in pip 9.0), and tries to install the wrong versions
-# of pip and setuptools. Version 21 of pip drops support for Python 3.5 (the
-# latest in 16.04), so pick an earlier version.
-#
-# Piping to cat suppresses the progress bar, but means that a failure
-# won't be caught (`stuff | cat` succeeds if cat succeeds, even if `stuff`
-# fails). The subsequent use of "pip config" (which requires pip >=10)
-# will however fail if the installation of a more recent pip failed.
-RUN python3 -m pip install 'pip<21' --upgrade | cat && \
-    python3 -m pip config set global.progress_bar off && \
+RUN python3 -m pip config set global.progress_bar off && \
+    # Python 3.6 from pyenv comes with pip 18.1.
+    # We want the ability to specify both a versioned requirement and an
+    # unversioned requirement for the same package (e.g.
+    # `pip install foo bar foo==42`), and this is only possible since
+    # pip 20.3. So upgrade pip, to the last version that still supports
+    # Python 3.6.
+    python3 -m pip install 'pip<22' --upgrade && \
     python3 -m pip install setuptools --upgrade && \
     true
 
