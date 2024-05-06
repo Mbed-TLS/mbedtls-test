@@ -1,0 +1,1 @@
+scriptSuperClass([pattern: '\\.gdsl', superClass: 'org.mbed.tls.jenkins.typing.GDSLScript'])
