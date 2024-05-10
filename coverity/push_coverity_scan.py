@@ -152,7 +152,7 @@ def md5_hash(buffer: bytes) -> str:
 
     return hash_md5.hexdigest()
 
-def download_coverity_scan_tools(logger: logging.Logger, token: str, tools_dir: str):
+def download_coverity_scan_tools(logger: logging.Logger, token: str, tools_dir: str) -> None:
 
     """ Download the required coverity scan tools to the given directory, using the passed in token.
     """
@@ -248,7 +248,7 @@ def build_mbedtls(logger: logging.Logger, mbedtls_dir: pathlib.Path, tools_dir: 
         tar_file.add(str(cov_int_dir), recursive=True, arcname='cov-int')
         tar_file.close()
 
-def upload_build(logger: logging.Logger, token: str, email_address: str, tar_file_name: str):
+def upload_build(logger: logging.Logger, token: str, email_address: str, tar_file_name: str) -> None:
 
     """ Upload the build (tar file specified) to the url given by the project, using the passed in
         auth token
@@ -296,7 +296,7 @@ def upload_build(logger: logging.Logger, token: str, email_address: str, tar_fil
 
     trigger_request.raise_for_status()
 
-def main():
+def main() -> int:
 
     parser = argparse.ArgumentParser(description='Push MbedTLS build to Coverity Scan')
     parser.add_argument('-b', '--branch', help='Branch to check out in mbedtls project',
