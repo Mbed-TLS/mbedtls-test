@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
-""" Build mbedtls using the coverity toolset and upload said build to coverity.
+""" Build Mbed TLS using the coverity toolset and upload said build to coverity.
 
 A small script designed to be run both in the CI and on local users machines.
 
 Required:
 
-1. Path to mbedtls directory
+1. Path to Mbed TLS directory
 2. A project coverity token (got from the Coverity site / Project Settings
 3. An email address to send notifications to.
 
@@ -280,7 +280,7 @@ def upload_build(logger: logging.Logger, token: str, email_address: str, tar_fil
 
 def main() -> int:
 
-    parser = argparse.ArgumentParser(description='Push MbedTLS build to Coverity Scan')
+    parser = argparse.ArgumentParser(description='Push Mbed TLS build to Coverity Scan')
     parser.add_argument('-b', '--branch', help='Branch to check out in mbedtls project')
     parser.add_argument('-c', '--covtools',
                         help='Directory to store downloaded coverity tools in')
@@ -296,7 +296,7 @@ def main() -> int:
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Verbose logging to stdout')
 
-    parser.add_argument('mbedtlsdir', help='MbedTLS directory')
+    parser.add_argument('mbedtlsdir', help='Mbed TLS directory')
 
     args = parser.parse_args()
 
@@ -402,7 +402,7 @@ def main() -> int:
             tar_file_set = True
 
         if not mbedtls_path.is_dir():
-            raise ConfigError('MBedTLS directory specified does not exist.')
+            raise ConfigError('MBed TLS directory specified does not exist.')
 
         build_mbedtls(logger, mbedtls_path, tools_path, args.branch,
                       args.pre_build_step, args.build_step, tar_file)
