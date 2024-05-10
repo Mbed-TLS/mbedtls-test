@@ -54,6 +54,7 @@ import hashlib
 import logging
 import sys
 from multiprocessing import cpu_count
+from io import BytesIO
 
 import requests
 
@@ -150,18 +151,11 @@ def download_coverity_scan_tools(logger: logging.Logger, token: str, tools_dir: 
                                    timeout=60)
     package_request.raise_for_status()
 
-    # Write this to a temp file, as we need to extract it
-    temp_file_handle, temp_file_name = mkstemp()
-
     tools_hash = hashlib.md5(package_request.content).hexdigest()
 
-    with os.fdopen(temp_file_handle, "wb") as temp_file:
-        temp_file.write(package_request.content)
-
-    with tarfile.open(temp_file_name, "r:gz") as tar_file:
+    # Extract the (filtered) downloaded tar file to the target dir.
+    with tarfile.open(fileobj=BytesIO(package_request.content)) as tar_file:
         tar_file.extractall(path=tools_dir, members=filter_root_tar_dir(tar_file), filter='data')
-
-    os.unlink(temp_file_name)
 
     md5_path = pathlib.Path(tools_dir)
     md5_path = md5_path / 'coverity_tool.md5'
