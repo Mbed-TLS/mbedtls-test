@@ -53,6 +53,7 @@ import tarfile
 import hashlib
 import logging
 import sys
+from multiprocessing import cpu_count
 
 import requests
 
@@ -289,7 +290,7 @@ def main() -> int:
     parser.add_argument('-p', '--pre-build-step', help='Command to run pre-build',
                         default='make clean')
     parser.add_argument('-s', '--build-step', help='Command to run to build the project',
-                        default='make -j')
+                        default = 'make -j{}'.format(cpu_count()))
     parser.add_argument('-t', '--token', help='Coverity Scan Token')
     parser.add_argument('-l', '--log', help='File to log to')
     parser.add_argument('-m', '--backupdir', help='Directory to backup tar files to')
