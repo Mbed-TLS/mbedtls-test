@@ -133,25 +133,6 @@ def filter_root_tar_dir(tar_file: tarfile.TarFile) -> Iterable[tarfile.TarInfo]:
             tar_member.path = str(member_path.relative_to(*member_path.parts[:1]))
             yield tar_member
 
-def md5_hash(buffer: bytes) -> str:
-
-    """ Return the md5 hash of the passed in buffer in hex as a string """
-    hash_md5 = hashlib.md5()
-    bytes_len = len(buffer)
-    buffer_start = 0
-    buffer_end = 4096
-
-    while buffer_end < bytes_len:
-
-        hash_md5.update(buffer[buffer_start:buffer_end])
-
-        buffer_start += 4096
-        buffer_end += 4096
-
-    hash_md5.update(buffer[buffer_start:bytes_len])
-
-    return hash_md5.hexdigest()
-
 def download_coverity_scan_tools(logger: logging.Logger, token: str, tools_dir: str) -> None:
 
     """ Download the required coverity scan tools to the given directory, using the passed in token.
@@ -170,7 +151,7 @@ def download_coverity_scan_tools(logger: logging.Logger, token: str, tools_dir: 
     # Write this to a temp file, as we need to extract it
     temp_file_handle, temp_file_name = mkstemp()
 
-    tools_hash = md5_hash(package_request.content)
+    tools_hash = hashlib.md5(package_request.content).hexdigest()
 
     with os.fdopen(temp_file_handle, "wb") as temp_file:
         temp_file.write(package_request.content)
