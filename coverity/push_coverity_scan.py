@@ -68,9 +68,7 @@ class ConfigError(Exception):
 
 
 def do_shell_exec(exec_string: str, expected_result: int = 0) -> Tuple[bool, str, str]:
-
-    """ Execute the given string in a shell, try to ascertain success
-    """
+    """ Execute the given string in a shell, try to ascertain success. """
 
     shell_process = Popen(shlex.split(exec_string), stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
@@ -82,9 +80,9 @@ def do_shell_exec(exec_string: str, expected_result: int = 0) -> Tuple[bool, str
     return True, shell_stdout.decode("utf-8"), shell_stderr.decode("utf-8")
 
 def check_coverity_scan_tools_version(token: str, tools_dir: str) -> bool:
+    """ Get the md5 of the coverity tools package from coverity.
 
-    """ Get the md5 of the coverity tools package from coverity, so we can check we have the latest
-        version.
+    Enable us to check that we have the latest version, saving a potential large download.
     """
 
     post_data = [('token', token),
@@ -105,8 +103,7 @@ def check_coverity_scan_tools_version(token: str, tools_dir: str) -> bool:
     return tools_hash == md5_request.text
 
 def backup_config_files(mbedtls_dir: pathlib.Path, restore: bool) -> None:
-
-    """Backup / Restore config file."""
+    """Backup / Restore config file. """
 
     config_path = pathlib.Path(mbedtls_dir)
     config_path = config_path / 'include' / 'mbedtls' / 'mbedtls_config.h'
@@ -122,8 +119,10 @@ def backup_config_files(mbedtls_dir: pathlib.Path, restore: bool) -> None:
 
 def filter_root_tar_dir(tar_file: tarfile.TarFile) -> Iterable[tarfile.TarInfo]:
 
-    """ This function allows extraction of the contents of the first containing directory in the tar
-        directly to the target folder, by stripping the first containing folder from each path.
+    """ Filter the tar file root dir out.
+
+    This function allows extraction of the contents of the first containing directory in the tar
+    file directly to the target folder, by stripping the first containing folder from each path.
     """
 
     for tar_member in tar_file.getmembers():
@@ -136,7 +135,9 @@ def filter_root_tar_dir(tar_file: tarfile.TarFile) -> Iterable[tarfile.TarInfo]:
 
 def download_coverity_scan_tools(logger: logging.Logger, token: str, tools_dir: str) -> None:
 
-    """ Download the required coverity scan tools to the given directory, using the passed in token.
+    """ Download the coverity scan tools.
+
+    Download the required coverity scan tools to the given directory, using the passed in token.
     """
 
     post_data = [('token', token),
@@ -170,11 +171,12 @@ def download_coverity_scan_tools(logger: logging.Logger, token: str, tools_dir: 
 
 def build_mbedtls(logger: logging.Logger, mbedtls_dir: pathlib.Path, tools_dir: pathlib.Path,
                   branch: str, pre_build_step: str, build_step: str, tar_file_name: str) -> None:
+    """ Build Mbed TLS, using the coverity tools.
 
-
-    """ Build mbedtls located in the passed in dir, using the tools specified, using the given
-        pre-build and build commands. Tar the results up into the given file name, as required by
-        coverity. """
+    Build the MBed TLS source located in the passed in dir, using the tools specified, using the
+    given pre-build and build commands. Tar the results up into the given file name, as required by
+    coverity.
+    """
 
     os.chdir(mbedtls_dir)
 
@@ -232,8 +234,10 @@ def build_mbedtls(logger: logging.Logger, mbedtls_dir: pathlib.Path, tools_dir: 
 
 def upload_build(logger: logging.Logger, token: str, email_address: str, tar_file_name: str) -> None:
 
-    """ Upload the build (tar file specified) to the url given by the project, using the passed in
-        auth token
+    """ Upload build to coverity.
+
+    Upload the build (tar file specified) to the url given by the project, using the passed in auth
+    token.
     """
 
     base_url = 'https://scan.coverity.com/projects/4583/builds/'
