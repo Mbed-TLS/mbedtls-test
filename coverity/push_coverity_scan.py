@@ -187,7 +187,7 @@ def build_mbedtls(logger: logging.Logger, mbedtls_dir: pathlib.Path, tools_dir: 
         raise BuildError(std_err)
 
     # Switch to correct branch.
-    if branch != '':
+    if branch is not None:
         success, std_out, std_err = do_shell_exec('git checkout {}'.format(branch))
 
     logger.log(logging.INFO, std_out)
@@ -281,8 +281,7 @@ def upload_build(logger: logging.Logger, token: str, email_address: str, tar_fil
 def main() -> int:
 
     parser = argparse.ArgumentParser(description='Push MbedTLS build to Coverity Scan')
-    parser.add_argument('-b', '--branch', help='Branch to check out in mbedtls project',
-                        default='')
+    parser.add_argument('-b', '--branch', help='Branch to check out in mbedtls project')
     parser.add_argument('-c', '--covtools',
                         help='Directory to store downloaded coverity tools in')
     parser.add_argument('-e', '--email', help='Email address to send build notifications to',
