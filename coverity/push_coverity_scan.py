@@ -86,12 +86,12 @@ def check_coverity_scan_tools_version(token: str, tools_dir: str) -> bool:
     Enable us to check that we have the latest version, saving a potential large download.
     """
 
-    post_data = [('token', token),
-                 ('project', 'ARMmbed/mbedtls'),
-                 ('md5', '1')]
+    query_data = [('token', token),
+                  ('project', 'ARMmbed/mbedtls'),
+                  ('md5', '1')]
 
     # Presumption of linux here, could support other build types?
-    md5_request = requests.get('https://scan.coverity.com/download/linux64', data=post_data,
+    md5_request = requests.get('https://scan.coverity.com/download/linux64', data=query_data,
                                timeout=60)
     md5_request.raise_for_status()
 
@@ -141,13 +141,13 @@ def download_coverity_scan_tools(logger: logging.Logger, token: str, tools_dir: 
     Download the required coverity scan tools to the given directory, using the passed in token.
     """
 
-    post_data = [('token', token),
-                 ('project', 'ARMmbed/mbedtls')]
+    query_data = [('token', token),
+                  ('project', 'ARMmbed/mbedtls')]
 
     logger.log(logging.INFO, "Downloading Coverity Scan....")
 
     # Presumption of linux here, could support other build types?
-    package_request = requests.get('https://scan.coverity.com/download/linux64', data=post_data,
+    package_request = requests.get('https://scan.coverity.com/download/linux64', data=query_data,
                                    timeout=60)
     package_request.raise_for_status()
 
@@ -270,9 +270,9 @@ def upload_build(logger: logging.Logger, token: str, email_address: str, tar_fil
 
     logger.log(logging.INFO, 'Triggering coverity build')
 
-    trigger_post_data = [('token', token)]
+    trigger_query_data = [('token', token)]
     trigger_url = '{}/{}/enqueue'.format(base_url, build_response['build_id'])
-    trigger_request = requests.put(trigger_url, data=trigger_post_data, timeout=60)
+    trigger_request = requests.put(trigger_url, data=trigger_query_data, timeout=60)
 
     trigger_request.raise_for_status()
 
