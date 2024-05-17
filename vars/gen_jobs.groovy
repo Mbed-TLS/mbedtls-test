@@ -91,33 +91,47 @@ def platform_lacks_tls_tools(platform) {
     return ['freebsd'].contains(os)
 }
 
-/* gen_docker_job(info, job_name, platform, script_in_docker, ...)
- *
+// gen_docker_job(info, job_name, platform, script_in_docker, ...)
+/**
  * Construct a job that runs a script in Docker.
- * Return a one-element map mapping job_name to a closure that runs the job.
  *
- * Positional parameters:
- * - info: a BranchInfo object describing the branch to test.
- * - job_name: the name to use for the job. It is used as a key in
- *   the returned map, as a name in Jenkins reports and logs, to
- *   construct file names and anywhere else this function needs
- *   a presumed unique job name.
- * - platform: the name of the Docker image.
- * - script_in_docker: a shell script to run in the Docker image.
+ * @return
+ *     A one-element map mapping job_name to a closure that runs the job.
  *
- * Named parameters:
- * - post_checkout: hook that runs after checking out the code to test.
- * - post_success: hook that runs after running the script in Docker, if
- *   that script succeeds.
- * - post_execution: hook that runs after running the script in Docker,
- *   whether it succeeded or not. It can check the job's status by querying
- *   gen_jobs.failed_builds[job_name], which is true if the job failed and
- *   absent otherwise. This hook should not throw an exception.
+ * @param info
+ *     A BranchInfo object describing the branch to test.
+ * @param job_name
+ *     The name to use for the job. It is used as a key in
+ *     the returned map, as a name in Jenkins reports and logs, to
+ *     construct file names and anywhere else this function needs
+ *     a presumed unique job name.
+ * @param platform
+ *     The name of the Docker image.
+ * @param script_in_docker
+ *     A shell script to run in the Docker image.
  *
- * All hook parameters are closures that are called with no arguments.
- * They can be null, in which case the hook does nothing. The code runs
- * on a 'container-host' executor, in the directory containing the
- * source code.
+ * @param hooks
+ *     Named parameters
+ *     <dl>
+ *         <dt>{@code post_checkout}</dt><dd>
+ *             Hook that runs after checking out the code to test.
+ *         </dd>
+ *         <dt>{@code post_success}</dt><dd>
+ *             Hook that runs after running the script in Docker, if
+ *             that script succeeds.
+ *         </dd>
+ *         <dt>{@code post_execution}</dt><dd>
+ *             Hook that runs after running the script in Docker,
+ *             whether it succeeded or not. It can check the job's status by querying
+ *             {@code gen_jobs.failed_builds[job_name]}, which is true if the job failed and
+ *             absent otherwise. This hook should not throw an exception.
+ *         </dd>
+ *     </dl>
+ *
+ *     All hook parameters are closures that are called with no arguments.
+ *     They can be null, in which case the hook does nothing. The code runs
+ *     on a 'container-host' executor, in the directory containing the
+ *     source code.
  */
 Map<String, Callable<Void>> gen_docker_job(Map<String, Closure> hooks,
                                            BranchInfo info,
