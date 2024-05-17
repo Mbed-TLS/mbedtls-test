@@ -148,24 +148,28 @@ def run_job() {
 void run_release_job() {
     BranchInfo info
     analysis.main_record_timestamps('run_release_job') {
-        environ.set_tls_release_environment()
-        common.init_docker_images()
-        stage('tls-testing') {
-            info = common.get_branch_information()
-            def jobs = common.wrap_report_errors(gen_jobs.gen_release_jobs(info))
-            jobs.failFast = false
+        try {
+            environ.set_tls_release_environment()
+            common.init_docker_images()
+            stage('branch-info') {
+                info = common.get_branch_information()
+            }
             try {
-                try {
+                stage('tls-testing') {
+                    def jobs = common.wrap_report_errors(gen_jobs.gen_release_jobs(info))
+                    jobs.failFast = false
                     analysis.record_inner_timestamps('main', 'run_release_job') {
                         parallel jobs
                     }
                 }
-                finally {
-                    stage('result-analysis') {
-                        analysis.analyze_results(info)
-                    }
+            }
+            finally {
+                stage('result-analysis') {
+                    analysis.analyze_results(info)
                 }
-            } finally {
+            }
+        } finally {
+            stage('email-report') {
                 if (currentBuild.rawBuild.causes[0] instanceof ParameterizedTimerTriggerCause ||
                     currentBuild.rawBuild.causes[0] instanceof TimerTrigger.TimerTriggerCause) {
                     common.send_email('Mbed TLS nightly tests', env.MBED_TLS_BRANCH, gen_jobs.failed_builds, gen_jobs.coverage_details)
