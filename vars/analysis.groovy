@@ -38,6 +38,7 @@ import jenkins.branch.MultiBranchProject
 import jenkins.util.BuildListenerAdapter
 import net.sf.json.JSONObject
 
+import org.mbed.tls.jenkins.BranchInfo
 import org.mbed.tls.jenkins.JobTimestamps
 
 // A static field has its content preserved across stages.
@@ -228,47 +229,55 @@ def stash_outcomes(job_name) {
 
 // In a directory with the source tree available, process the outcome files
 // from all the jobs.
-def process_outcomes() {
-    dir('csvs') {
-        for (stash_name in outcome_stashes) {
-            unstash(stash_name)
-        }
-        sh 'cat *.csv >../outcomes.csv'
-        deleteDir()
-    }
+def process_outcomes(BranchInfo info) {
+    String job_name = 'outcome_analysis'
 
-    // The complete outcome file is 2.1GB uncompressed / 56MB compressed as I write.
-    // Often we just want the failures, so make an artifact with just those.
-    // Only produce a failure file if there was a failing job (otherwise
-    // we'd just waste time creating an empty file).
-    //
-    // Note that grep ';FAIL;' could pick up false positives, if another field such
-    // as test description or test suite was "FAIL".
-    if (gen_jobs.failed_builds) {
-        sh '''\
-LC_ALL=C grep ';FAIL;' outcomes.csv >"failures.csv" || [ $? -eq 1 ]
-# Compress the failure list if it is large (for some value of large)
-if [ "$(wc -c <failures.csv)" -gt 99999 ]; then
-    xz -0 -T0 failures.csv
-fi
-'''
-    }
-
-    try {
-        if (fileExists('tests/scripts/analyze_outcomes.py')) {
-            record_inner_timestamps('helper-container-host', 'result-analysis') {
-                sh 'tests/scripts/analyze_outcomes.py outcomes.csv'
+    Closure post_checkout = {
+        dir('csvs') {
+            for (stash_name in outcome_stashes) {
+                unstash(stash_name)
             }
+            sh 'cat *.csv >../outcomes.csv'
+            deleteDir()
         }
-    } finally {
+
+        // The complete outcome file is 2.1GB uncompressed / 56MB compressed as I write.
+        // Often we just want the failures, so make an artifact with just those.
+        // Only produce a failure file if there was a failing job (otherwise
+        // we'd just waste time creating an empty file).
+        //
+        // Note that grep ';FAIL;' could pick up false positives, if another field such
+        // as test description or test suite was "FAIL".
+        if (gen_jobs.failed_builds) {
+            sh '''\
+    LC_ALL=C grep ';FAIL;' outcomes.csv >"failures.csv" || [ $? -eq 1 ]
+    # Compress the failure list if it is large (for some value of large)
+    if [ "$(wc -c <failures.csv)" -gt 99999 ]; then
+        xz -0 -T0 failures.csv
+    fi
+    '''
+        }
+    }
+
+    String script_in_docker = '''\
+tests/scripts/analyze_outcomes.py outcomes.csv
+'''
+
+    Closure post_execution = {
         sh 'xz -0 -T0 outcomes.csv'
         archiveArtifacts(artifacts: 'outcomes.csv.xz, failures.csv*',
                          fingerprint: true,
                          allowEmptyArchive: true)
     }
+
+    def job_map = gen_jobs.gen_docker_job(info, job_name, 'ubuntu-22.04',
+                                          script_in_docker,
+                                          post_checkout: post_checkout,
+                                          post_execution: post_execution)
+    common.report_errors(job_name, job_map[job_name])
 }
 
-def gather_outcomes() {
+def analyze_results(BranchInfo info) {
     // After running on an old branch which doesn't have the outcome
     // file generation mechanism, or after running a partial run,
     // there may not be any outcome file. In this case, silently
@@ -280,20 +289,10 @@ def gather_outcomes() {
         dir('outcomes') {
             deleteDir()
             try {
-                checkout_repo.checkout_repo()
-                process_outcomes()
+                process_outcomes(info)
             } finally {
                 deleteDir()
             }
         }
-    }
-}
-
-void analyze_results() {
-    try {
-        gather_outcomes()
-    } catch (err) {
-        common.maybe_notify_github('FAILURE', 'Result analysis failed')
-        throw (err)
     }
 }

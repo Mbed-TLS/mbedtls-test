@@ -91,6 +91,106 @@ def platform_lacks_tls_tools(platform) {
     return ['freebsd'].contains(os)
 }
 
+// gen_docker_job(info, job_name, platform, script_in_docker, ...)
+/**
+ * Construct a job that runs a script in Docker.
+ *
+ * @return
+ *     A one-element map mapping job_name to a closure that runs the job.
+ *
+ * @param info
+ *     A BranchInfo object describing the branch to test.
+ * @param job_name
+ *     The name to use for the job. It is used as a key in
+ *     the returned map, as a name in Jenkins reports and logs, to
+ *     construct file names and anywhere else this function needs
+ *     a presumed unique job name.
+ * @param platform
+ *     The name of the Docker image.
+ * @param script_in_docker
+ *     A shell script to run in the Docker image.
+ *
+ * @param hooks
+ *     Named parameters
+ *     <dl>
+ *         <dt>{@code post_checkout}</dt><dd>
+ *             Hook that runs after checking out the code to test.
+ *         </dd>
+ *         <dt>{@code post_success}</dt><dd>
+ *             Hook that runs after running the script in Docker, if
+ *             that script succeeds.
+ *         </dd>
+ *         <dt>{@code post_execution}</dt><dd>
+ *             Hook that runs after running the script in Docker,
+ *             whether it succeeded or not. It can check the job's status by querying
+ *             {@code gen_jobs.failed_builds[job_name]}, which is true if the job failed and
+ *             absent otherwise. This hook should not throw an exception.
+ *         </dd>
+ *     </dl>
+ *
+ *     All hook parameters are closures that are called with no arguments.
+ *     They can be null, in which case the hook does nothing. The code runs
+ *     on a 'container-host' executor, in the directory containing the
+ *     source code.
+ */
+Map<String, Callable<Void>> gen_docker_job(Map<String, Closure> hooks,
+                                           BranchInfo info,
+                                           String job_name,
+                                           String platform,
+                                           String script_in_docker) {
+    return instrumented_node_job('container-host', job_name) {
+        try {
+            deleteDir()
+            common.get_docker_image(platform)
+            dir('src') {
+                checkout_repo.checkout_repo(info)
+                if (hooks.post_checkout) {
+                    hooks.post_checkout()
+                }
+                writeFile file: 'steps.sh', text: """\
+#!/bin/sh
+set -eux
+ulimit -f 20971520
+
+if [ -e scripts/min_requirements.py ]; then
+scripts/min_requirements.py --user ${info.python_requirements_override_file}
+fi
+""" + script_in_docker
+                sh 'chmod +x steps.sh'
+            }
+            timeout(time: common.perJobTimeout.time,
+                    unit: common.perJobTimeout.unit) {
+                try {
+                    analysis.record_inner_timestamps('container-host', job_name) {
+                        sh common.docker_script(
+                                platform, "/var/lib/build/steps.sh"
+                        )
+                    }
+                    if (hooks.post_success) {
+                        dir('src') {
+                            hooks.post_success()
+                        }
+                    }
+                } finally {
+                    dir('src/tests/') {
+                        common.archive_zipped_log_files(job_name)
+                    }
+                }
+            }
+        } catch (err) {
+            failed_builds[job_name] = true
+            throw (err)
+        } finally {
+            if (hooks.post_execution) {
+                dir('src') {
+                    hooks.post_execution()
+                }
+            }
+            deleteDir()
+        }
+    }
+}
+
 def gen_all_sh_jobs(BranchInfo info, platform, component, label_prefix='') {
     def shorthands = [
         "arm-compilers": "armcc",
@@ -342,67 +442,28 @@ def gen_windows_jobs(BranchInfo info, String label_prefix='') {
 }
 
 def gen_abi_api_checking_job(BranchInfo info, String platform) {
-    def job_name = 'ABI-API-checking'
-    def credentials_id = common.is_open_ci_env ? "mbedtls-github-ssh" : "742b7080-e1cc-41c6-bf55-efb72013bc28"
-
-    return instrumented_node_job('container-host', job_name) {
-        try {
-            deleteDir()
-            common.get_docker_image(platform)
-            dir('src') {
-                checkout_repo.checkout_repo(info)
-                /* The credentials here are the SSH credentials for accessing the repositories.
-                   They are defined at {JENKINS_URL}/credentials */
-                withCredentials([sshUserPrivateKey(credentialsId: credentials_id, keyFileVariable: 'keyfile')]) {
-                    sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile}\" git fetch origin ${CHANGE_TARGET}"
-                }
-                writeFile file: 'steps.sh', text: """\
-#!/bin/sh
-set -eux
-ulimit -f 20971520
-
-if [ -e scripts/min_requirements.py ]; then
-scripts/min_requirements.py --user ${info.python_requirements_override_file}
-fi
-
+    String job_name = 'ABI-API-checking'
+    String script_in_docker = '''
 tests/scripts/list-identifiers.sh --internal
 scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
-"""
-                sh 'chmod +x steps.sh'
-            }
-            timeout(time: common.perJobTimeout.time,
-                    unit: common.perJobTimeout.unit) {
-                analysis.record_inner_timestamps('container-host', job_name) {
-                    sh common.docker_script(
-                            platform, "/var/lib/build/steps.sh"
-                    )
-                }
-            }
-        } catch (err) {
-            failed_builds[job_name] = true
-            throw (err)
-        } finally {
-            deleteDir()
+'''
+
+    String credentials_id = common.is_open_ci_env ? "mbedtls-github-ssh" : "742b7080-e1cc-41c6-bf55-efb72013bc28"
+    Closure post_checkout = {
+        /* The credentials here are the SSH credentials for accessing the repositories.
+           They are defined at {JENKINS_URL}/credentials */
+        withCredentials([sshUserPrivateKey(credentialsId: credentials_id, keyFileVariable: 'keyfile')]) {
+            sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile}\" git fetch origin ${CHANGE_TARGET}"
         }
     }
+
+    return gen_docker_job(info, job_name, platform, script_in_docker,
+                          post_checkout: post_checkout)
 }
 
-def gen_code_coverage_job(BranchInfo info, platform) {
-    def job_name = 'code-coverage'
-    return instrumented_node_job('container-host', job_name) {
-        try {
-            deleteDir()
-            common.get_docker_image(platform)
-            dir('src') {
-                checkout_repo.checkout_repo(info)
-                writeFile file: 'steps.sh', text: '''#!/bin/sh
-set -eux
-ulimit -f 20971520
-
-if [ -e scripts/min_requirements.py ]; then
-scripts/min_requirements.py --user ''' + info.python_requirements_override_file + '''
-fi
-
+def gen_code_coverage_job(BranchInfo info, String platform) {
+    String job_name = 'code-coverage'
+    String script_in_docker = '''
 if grep -q -F coverage-summary.txt tests/scripts/basic-build-test.sh; then
 # New basic-build-test, generates coverage-summary.txt
 ./tests/scripts/basic-build-test.sh
@@ -415,35 +476,16 @@ sed -n '/^Test Report Summary/,$p' basic-build-test.log >coverage-summary.txt
 rm basic-build-test.log
 fi
 '''
-                sh 'chmod +x steps.sh'
-            }
-            timeout(time: common.perJobTimeout.time,
-                    unit: common.perJobTimeout.unit) {
-                try {
-                    analysis.record_inner_timestamps('container-host', job_name) {
-                        sh common.docker_script(
-                                platform, "/var/lib/build/steps.sh"
-                        )
-                    }
-                    dir('src') {
-                        String coverage_log = readFile('coverage-summary.txt')
-                        coverage_details['coverage'] = coverage_log.substring(
-                            coverage_log.indexOf('\nCoverage\n') + 1
-                        )
-                    }
-                } finally {
-                    dir('src/tests/') {
-                        common.archive_zipped_log_files(job_name)
-                    }
-                }
-            }
-        } catch (err) {
-            failed_builds[job_name] = true
-            throw (err)
-        } finally {
-            deleteDir()
-        }
+
+    Closure post_success = {
+        String coverage_log = readFile('coverage-summary.txt')
+        coverage_details['coverage'] = coverage_log.substring(
+            coverage_log.indexOf('\nCoverage\n') + 1
+        )
     }
+
+    return gen_docker_job(info, job_name, platform, script_in_docker,
+                          post_success: post_success)
 }
 
 /* Mbed OS Example job generation */
