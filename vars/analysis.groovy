@@ -278,20 +278,22 @@ tests/scripts/analyze_outcomes.py outcomes.csv
 }
 
 def analyze_results(BranchInfo info) {
-    // After running on an old branch which doesn't have the outcome
-    // file generation mechanism, or after running a partial run,
-    // there may not be any outcome file. In this case, silently
-    // do nothing.
-    if (outcome_stashes.isEmpty()) {
-        return
-    }
-    node_record_timestamps('helper-container-host', 'result-analysis') {
-        dir('outcomes') {
-            deleteDir()
-            try {
-                process_outcomes(info)
-            } finally {
+    stage('result-analysis') {
+        // After running on an old branch which doesn't have the outcome
+        // file generation mechanism, or after running a partial run,
+        // there may not be any outcome file. In this case, silently
+        // do nothing.
+        if (outcome_stashes.isEmpty()) {
+            return
+        }
+        node_record_timestamps('helper-container-host', 'result-analysis') {
+            dir('outcomes') {
                 deleteDir()
+                try {
+                    process_outcomes(info)
+                } finally {
+                    deleteDir()
+                }
             }
         }
     }
