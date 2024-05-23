@@ -234,8 +234,10 @@ def process_outcomes(BranchInfo info) {
 
     Closure post_checkout = {
         dir('csvs') {
-            for (stash_name in outcome_stashes) {
-                unstash(stash_name)
+            stage('unstash-outcomes') {
+                for (stash_name in outcome_stashes) {
+                    unstash(stash_name)
+                }
             }
             sh 'cat *.csv >../outcomes.csv'
             deleteDir()
