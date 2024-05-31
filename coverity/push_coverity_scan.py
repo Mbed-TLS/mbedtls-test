@@ -171,7 +171,7 @@ def build_mbedtls(logger: logging.Logger, mbedtls_dir: pathlib.Path, tools_dir: 
 
 
     # Do pre-build steps.
-    result = run(shlex.split(pre_build_step), capture_output=True, check=True)
+    result = run(pre_build_step, capture_output=True, check=True, shell=True)
     logger.log(logging.INFO, result.stdout.decode("utf-8"))
 
     # Build.
