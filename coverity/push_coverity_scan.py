@@ -47,7 +47,7 @@ from typing import Iterable
 import os
 import pathlib
 import shutil
-from tempfile import mkstemp, mkdtemp
+from tempfile import mkdtemp, NamedTemporaryFile
 from datetime import datetime
 import tarfile
 import hashlib
@@ -294,11 +294,9 @@ def main() -> int:
     logger.log(logging.INFO, "### Script starting.")
 
     tools_path_set = False
-    tar_file_set = False
 
     try:
         tools_path = pathlib.Path('')
-        tar_file = pathlib.Path('')
 
         mbedtls_path = pathlib.Path(args.mbedtlsdir)
         mbedtls_path = mbedtls_path.resolve()
@@ -351,29 +349,30 @@ def main() -> int:
 
         backup_config_files(mbedtls_path, False)
 
-        if args.backupdir is not None:
-            backup_path = pathlib.Path(args.backupdir)
+        with NamedTemporaryFile() as tar_file_handle:
 
-            if not backup_path.is_dir():
-                raise ConfigError('Backup dir specfied does not exist.')
+            tar_file = pathlib.Path(tar_file_handle.name)
 
-            backup_path = backup_path.resolve()
-            tar_file = backup_path / datetime.today().strftime('mbedtls-%y-%m-%d.tar.gz')
-            tar_file_set = True
+            if not mbedtls_path.is_dir():
+                raise ConfigError('MBed TLS directory specified does not exist.')
 
-        else:
-            tar_file_handle, tar_file_name = mkstemp()
-            tar_file = pathlib.Path(tar_file_name)
-            tar_file_set = True
+            build_mbedtls(logger, mbedtls_path, tools_path, args.branch,
+                          args.pre_build_step, args.build_step, tar_file)
 
-        if not mbedtls_path.is_dir():
-            raise ConfigError('MBed TLS directory specified does not exist.')
+            # send completed tar file to coverity
+            upload_build(logger, coverity_token, args.email, tar_file)
 
-        build_mbedtls(logger, mbedtls_path, tools_path, args.branch,
-                      args.pre_build_step, args.build_step, tar_file)
+            # If we want a backup of the tar file, then make one.
+            if args.backupdir is not None:
+                backup_path = pathlib.Path(args.backupdir)
 
-        # send completed tar file to coverity
-        upload_build(logger, coverity_token, args.email, tar_file)
+                if not backup_path.is_dir():
+                    raise ConfigError('Backup dir specfied does not exist.')
+
+                backup_path = backup_path.resolve()
+                backup_path = backup_path / datetime.today().strftime('mbedtls-%y-%m-%d.tar.gz')
+                shutil.copy(tar_file, backup_path)
+
 
     except requests.exceptions.RequestException as e:
         logger.log(logging.ERROR, format_exc())
@@ -389,9 +388,6 @@ def main() -> int:
 
     finally:
         # Clean up, if necessary
-        if args.backupdir is None and tar_file_set:
-            os.unlink(tar_file)
-
         if args.covtools is None and tools_path_set:
             shutil.rmtree(tools_path)
 
