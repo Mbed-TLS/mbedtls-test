@@ -38,11 +38,11 @@ Other options:
 # SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
 
 import argparse
-from subprocess import Popen, PIPE
+from subprocess import run, CalledProcessError
 import shlex
 from traceback import format_exc
 
-from typing import Tuple, Iterable
+from typing import Iterable
 
 import os
 import pathlib
@@ -58,27 +58,9 @@ from io import BytesIO
 
 import requests
 
-class BuildError(Exception):
-    """ Exception class for build errors """
-    pass
-
-
 class ConfigError(Exception):
     """ Exception class for configuration errors """
     pass
-
-
-def do_shell_exec(exec_string: str, expected_result: int = 0) -> Tuple[bool, str, str]:
-    """ Execute the given string in a shell, try to ascertain success. """
-
-    shell_process = Popen(shlex.split(exec_string), stdin=PIPE, stdout=PIPE, stderr=PIPE)
-
-    (shell_stdout, shell_stderr) = shell_process.communicate()
-
-    if shell_process.returncode != expected_result:
-        return False, shell_stdout.decode("utf-8"), shell_stderr.decode("utf-8")
-
-    return True, shell_stdout.decode("utf-8"), shell_stderr.decode("utf-8")
 
 def check_coverity_scan_tools_version(token: str, tools_dir: str) -> bool:
     """ Get the md5 of the coverity tools package from coverity.
@@ -175,49 +157,33 @@ def build_mbedtls(logger: logging.Logger, mbedtls_dir: pathlib.Path, tools_dir: 
     os.chdir(mbedtls_dir)
 
     # Ensure that given git directory is up to date.
-    success, std_out, std_err = do_shell_exec('git fetch --all')
-
-    logger.log(logging.INFO, std_out)
-
-    if not success:
-        raise BuildError(std_err)
+    result = run(['git', 'fetch', '--all'], capture_output=True, check=True)
+    logger.log(logging.INFO, result.stdout.decode("utf-8"))
 
     # Switch to correct branch.
     if branch is not None:
-        success, std_out, std_err = do_shell_exec('git checkout {}'.format(branch))
+        result = run(['git', 'checkout', branch], capture_output=True, check=True)
+        logger.log(logging.INFO, result.stdout.decode("utf-8"))
 
-    logger.log(logging.INFO, std_out)
-
-    if not success:
-        raise BuildError(std_err)
-
-    success, std_out, std_err = do_shell_exec('scripts/config.py full_no_platform')
-
-    logger.log(logging.INFO, std_out)
+    # Ensure correct library build configuration.
+    result = run(['scripts/config.py', 'full_no_platform'], capture_output=True, check=True)
+    logger.log(logging.INFO, result.stdout.decode("utf-8"))
 
 
-    # do pre-build steps
-    success, std_out, std_err = do_shell_exec(pre_build_step)
+    # Do pre-build steps.
+    result = run(shlex.split(pre_build_step), capture_output=True, check=True)
+    logger.log(logging.INFO, result.stdout.decode("utf-8"))
 
-    logger.log(logging.INFO, std_out)
-
-    if not success:
-        raise BuildError(std_err)
-
-    # build
+    # Build.
     coverity_tool = tools_dir / 'bin' / 'cov-build'
-
-    success, std_out, std_err = do_shell_exec('{} --dir cov-int {}'.format(str(coverity_tool),
-                                                                           build_step))
-
-    logger.log(logging.INFO, std_out)
-
-    if not success:
-        raise BuildError(std_err)
+    result = run([str(coverity_tool), '--dir', 'cov-int'] + shlex.split(build_step),
+                 capture_output=True,
+                 check=True)
+    logger.log(logging.INFO, result.stdout.decode("utf-8"))
 
     # TODO, ensure enough units were compiled..
 
-    # tar up the results
+    # Tar up the results...
     cov_int_dir = mbedtls_dir / 'cov-int' / ''
 
     logger.log(logging.INFO, 'Writing {} to tar file : {}'.format(cov_int_dir, tar_file_name))
@@ -410,6 +376,11 @@ def main() -> int:
 
     except requests.exceptions.RequestException as e:
         logger.log(logging.ERROR, format_exc())
+        ret_code = 1
+    except CalledProcessError as e:
+        logger.log(logging.ERROR, 'Command {} returned {}\n Output : {}'.format(e.cmd,
+                                                                                e.returncode,
+                                                                                e.stderr.decode("utf-8")))
         ret_code = 1
     except:
         logger.log(logging.ERROR, 'Exception occurred: {}'.format(format_exc()))
