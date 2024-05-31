@@ -162,7 +162,8 @@ def build_mbedtls(logger: logging.Logger, mbedtls_dir: pathlib.Path, tools_dir: 
 
     # Switch to correct branch.
     if branch is not None:
-        result = run(['git', 'checkout', branch], capture_output=True, check=True)
+        result = run(['git', 'checkout', '--recurse-submodules', branch], capture_output=True,
+                     check=True)
         logger.log(logging.INFO, result.stdout.decode("utf-8"))
 
     # Ensure correct library build configuration.
@@ -251,7 +252,7 @@ def main() -> int:
     parser.add_argument('-e', '--email', help='Email address to send build notifications to',
                         required=True)
     parser.add_argument('-p', '--pre-build-step', help='Command to run pre-build',
-                        default='make clean')
+                        default='make clean && tests/scripts/check-generated-files.sh -u')
     parser.add_argument('-s', '--build-step', help='Command to run to build the project',
                         default = 'make -j{}'.format(cpu_count()))
     parser.add_argument('-t', '--token', help='Coverity Scan Token')
