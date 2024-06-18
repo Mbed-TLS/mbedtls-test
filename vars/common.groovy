@@ -402,3 +402,11 @@ boolean pr_author_has_write_access(String repo_name, int pr) {
     def repo = github.getRepository(repo_name)
     return repo.getPermission(repo.getPullRequest(pr).user) in [GHPermissionType.ADMIN, GHPermissionType.WRITE]
 }
+
+@NonCPS
+String get_rate_limit() {
+    String credentials = is_open_ci_env ? 'mbedtls-github-token' : 'd015f9b1-4800-4a81-86b3-9dbadc18ee00'
+    def github = Connector.connect(null, Connector.lookupScanCredentials(currentBuild.rawBuild.parent, null, credentials))
+    def rateLimit = github.rateLimit
+    return "Rate limit: $rateLimit.limit, Remaining: $rateLimit.remaining"
+}

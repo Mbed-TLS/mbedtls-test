@@ -148,6 +148,8 @@ def run_job() {
 void run_release_job() {
     BranchInfo info
     analysis.main_record_timestamps('run_release_job') {
+        println common.get_rate_limit()
+        return
         try {
             environ.set_tls_release_environment()
             common.init_docker_images()
