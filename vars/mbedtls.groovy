@@ -131,9 +131,7 @@ def run_pr_job(is_production=true) {
                 run_tls_tests(info)
             }
         } finally {
-            stage('result-analysis') {
-                analysis.analyze_results(info)
-            }
+            analysis.analyze_results(info)
         }
 
         common.maybe_notify_github('SUCCESS', 'All tests passed')
@@ -164,9 +162,7 @@ void run_release_job() {
                 }
             }
             finally {
-                stage('result-analysis') {
-                    analysis.analyze_results(info)
-                }
+                analysis.analyze_results(info)
             }
         } finally {
             stage('email-report') {
