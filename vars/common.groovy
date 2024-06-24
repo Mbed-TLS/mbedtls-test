@@ -219,12 +219,13 @@ docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS -e VERBOSE_LOGS --rm --entrypoint
 /* Gather information about the branch that determines how to set up the
  * test environment.
  * In particular, get components of all.sh for Linux platforms. */
-BranchInfo get_branch_information() {
+BranchInfo get_branch_information(String branch) {
     BranchInfo info = new BranchInfo()
+    info.branch = branch
     node('container-host') {
         dir('src') {
             deleteDir()
-            checkout_repo.checkout_tls_repo()
+            checkout_repo.checkout_tls_repo(branch)
 
             info.has_min_requirements = fileExists('scripts/min_requirements.py')
 

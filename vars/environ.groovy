@@ -35,7 +35,6 @@ def set_tls_pr_environment(is_production) {
     env.TARGET_REPO = 'tls'
     if (is_production) {
         set_common_pr_production_environment()
-        set_tls_pr_production_environment()
     } else {
         env.CHECKOUT_METHOD = 'parametrized'
     }
@@ -59,10 +58,6 @@ def set_common_pr_production_environment() {
         env.GITHUB_ORG = org
         env.GITHUB_REPO = repo
     }
-}
-
-def set_tls_pr_production_environment() {
-    env.MBED_TLS_BRANCH = env.CHANGE_BRANCH
 }
 
 def set_tls_release_environment() {

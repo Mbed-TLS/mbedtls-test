@@ -1,6 +1,9 @@
 package org.mbed.tls.jenkins
 
 class BranchInfo {
+    /** The name of the branch */
+    public String branch
+
     /* Map from component name to chosen platform to run it, or to null
      * if no platform has been chosen yet. */
     public Map<String, String> all_all_sh_components
