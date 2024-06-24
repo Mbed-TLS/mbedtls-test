@@ -224,7 +224,7 @@ BranchInfo get_branch_information() {
     node('container-host') {
         dir('src') {
             deleteDir()
-            checkout_repo.checkout_repo()
+            checkout_repo.checkout_tls_repo()
 
             info.has_min_requirements = fileExists('scripts/min_requirements.py')
 
