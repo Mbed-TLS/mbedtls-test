@@ -33,7 +33,6 @@ def set_tls_pr_environment(is_production) {
     set_common_environment()
     env.JOB_TYPE = 'PR'
     env.TARGET_REPO = 'tls'
-    env.REPO_TO_CHECKOUT = 'tls'
     if (is_production) {
         set_common_pr_production_environment()
         set_tls_pr_production_environment()
@@ -70,7 +69,6 @@ def set_tls_release_environment() {
     set_common_environment()
     env.JOB_TYPE = 'release'
     env.TARGET_REPO = 'tls'
-    env.REPO_TO_CHECKOUT = 'tls'
     env.CHECKOUT_METHOD = 'parametrized'
 }
 
