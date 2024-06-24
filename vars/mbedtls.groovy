@@ -53,7 +53,7 @@ void run_tls_tests(BranchInfo info, String label_prefix='') {
 }
 
 /* main job */
-def run_pr_job(is_production=true) {
+void run_pr_job(boolean is_production, String branch) {
     analysis.main_record_timestamps('run_pr_job') {
         if (is_production) {
             // Cancel in-flight jobs for the same PR when a new job is launched
@@ -114,7 +114,7 @@ def run_pr_job(is_production=true) {
             common.init_docker_images()
 
             stage('pre-test-checks') {
-                info = common.get_branch_information()
+                info = common.get_branch_information(branch)
                 common.check_every_all_sh_component_will_be_run(info)
             }
         } catch (err) {
@@ -142,17 +142,17 @@ def run_pr_job(is_production=true) {
 
 /* main job */
 def run_job() {
-    run_pr_job()
+    run_pr_job(true, env.CHANGE_BRANCH)
 }
 
-void run_release_job() {
+void run_release_job(String branch) {
     BranchInfo info
     analysis.main_record_timestamps('run_release_job') {
         try {
             environ.set_tls_release_environment()
             common.init_docker_images()
             stage('branch-info') {
-                info = common.get_branch_information()
+                info = common.get_branch_information(branch)
             }
             try {
                 stage('tls-testing') {
@@ -172,7 +172,7 @@ void run_release_job() {
             stage('email-report') {
                 if (currentBuild.rawBuild.causes[0] instanceof ParameterizedTimerTriggerCause ||
                     currentBuild.rawBuild.causes[0] instanceof TimerTrigger.TimerTriggerCause) {
-                    common.send_email('Mbed TLS nightly tests', env.MBED_TLS_BRANCH, gen_jobs.failed_builds, gen_jobs.coverage_details)
+                    common.send_email('Mbed TLS nightly tests', branch, gen_jobs.failed_builds, gen_jobs.coverage_details)
                 }
             }
         }

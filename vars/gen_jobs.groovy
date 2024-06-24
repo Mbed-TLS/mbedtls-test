@@ -486,7 +486,7 @@ fi
 }
 
 /* Mbed OS Example job generation */
-def gen_all_example_jobs() {
+def gen_all_example_jobs(BranchInfo info = null) {
     def jobs = [:]
 
     examples.examples.each { example ->
@@ -495,6 +495,7 @@ def gen_all_example_jobs() {
                 for (platform in example.value['platforms']()) {
                     if (examples.raas_for_platform[platform]) {
                         jobs = jobs + gen_mbed_os_example_job(
+                            info,
                             example.value['repo'],
                             example.value['branch'],
                             example.key, compiler, platform,
@@ -508,7 +509,7 @@ def gen_all_example_jobs() {
     return jobs
 }
 
-def gen_mbed_os_example_job(repo, branch, example, compiler, platform, raas) {
+def gen_mbed_os_example_job(BranchInfo info, repo, branch, example, compiler, platform, raas) {
     def jobs = [:]
     def job_name = "mbed-os-${example}-${platform}-${compiler}"
 
@@ -551,7 +552,7 @@ mbed deploy -vv
 """
                         dir('mbed-os') {
                             deleteDir()
-                            checkout_repo.checkout_mbed_os()
+                            checkout_repo.checkout_mbed_os(info)
 /* Check that python requirements are up to date */
                             sh """\
 ulimit -f 20971520
@@ -609,16 +610,16 @@ mbedhtrun -m ${platform} ${tag_filter} \
     }
 }
 
-def gen_coverity_push_jobs() {
+def gen_coverity_push_jobs(BranchInfo info) {
     def jobs = [:]
     def job_name = 'coverity-push'
 
-    if (env.MBED_TLS_BRANCH == "development") {
+    if (info.branch == "development") {
         jobs << instrumented_node_job('container-host', job_name) {
             try {
                 dir("src") {
                     deleteDir()
-                    checkout_repo.checkout_tls_repo()
+                    checkout_repo.checkout_tls_repo(info)
                     sshagent([env.GIT_CREDENTIALS_ID]) {
                         analysis.record_inner_timestamps('container-host', job_name) {
                             sh 'git push origin HEAD:coverity_scan'
@@ -664,11 +665,11 @@ def gen_release_jobs(BranchInfo info, String label_prefix='', boolean run_exampl
     }
 
     if (run_examples) {
-        jobs = jobs + gen_all_example_jobs()
+        jobs = jobs + gen_all_example_jobs(info)
     }
 
     if (env.PUSH_COVERITY == "true") {
-        jobs = jobs + gen_coverity_push_jobs()
+        jobs = jobs + gen_coverity_push_jobs(info)
     }
 
     return jobs
