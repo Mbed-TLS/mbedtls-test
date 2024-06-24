@@ -48,7 +48,7 @@ Map<String, Callable<Void>> gen_simple_windows_jobs(BranchInfo info, String labe
         try {
             dir('src') {
                 deleteDir()
-                checkout_repo.checkout_repo(info)
+                checkout_repo.checkout_tls_repo(info)
                 timeout(time: common.perJobTimeout.time,
                         unit: common.perJobTimeout.unit) {
                     analysis.record_inner_timestamps('windows', label) {
@@ -136,7 +136,7 @@ Map<String, Callable<Void>> gen_docker_job(Map<String, Closure> hooks,
             deleteDir()
             common.get_docker_image(platform)
             dir('src') {
-                checkout_repo.checkout_repo(info)
+                checkout_repo.checkout_tls_repo(info)
                 if (hooks.post_checkout) {
                     hooks.post_checkout()
                 }
@@ -258,7 +258,7 @@ scripts/min_requirements.py --user ${info.python_requirements_override_file}
                 common.get_docker_image(platform)
             }
             dir('src') {
-                checkout_repo.checkout_repo(info)
+                checkout_repo.checkout_tls_repo(info)
                 writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
@@ -345,7 +345,7 @@ def gen_windows_testing_job(BranchInfo info, String toolchain, String label_pref
                 stage('checkout') {
                     dir("src") {
                         deleteDir()
-                        checkout_repo.checkout_repo(info)
+                        checkout_repo.checkout_tls_repo(info)
                     }
                     /* The empty files are created to re-create the directory after it
                      * and its contents have been removed by deleteDir. */
@@ -618,7 +618,7 @@ def gen_coverity_push_jobs() {
             try {
                 dir("src") {
                     deleteDir()
-                    checkout_repo.checkout_repo()
+                    checkout_repo.checkout_tls_repo()
                     sshagent([env.GIT_CREDENTIALS_ID]) {
                         analysis.record_inner_timestamps('container-host', job_name) {
                             sh 'git push origin HEAD:coverity_scan'

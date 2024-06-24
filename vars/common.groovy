@@ -230,7 +230,7 @@ BranchInfo get_branch_information() {
 
                 dir('src') {
                     deleteDir()
-                    checkout_repo.checkout_repo()
+                    checkout_repo.checkout_tls_repo()
 
                     info.has_min_requirements = fileExists('scripts/min_requirements.py')
 
@@ -280,7 +280,7 @@ BranchInfo get_branch_information() {
                 try {
                     dir('src') {
                         deleteDir()
-                        checkout_repo.checkout_repo()
+                        checkout_repo.checkout_tls_repo()
                     }
                     get_docker_image(platform)
                     def all_sh_help = sh(

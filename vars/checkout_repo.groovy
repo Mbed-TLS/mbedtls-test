@@ -59,7 +59,7 @@ Map<String, String> checkout_report_errors(scm_config) {
     }
 }
 
-Map<String, String> checkout_repo() {
+Map<String, String> checkout_tls_repo() {
     def scm_config
     if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
         scm_config = scm
@@ -85,8 +85,8 @@ git submodule foreach --recursive git config url.git@github.com:.insteadOf https
     }
 }
 
-Map<String, String> checkout_repo(BranchInfo info) {
-    Map<String, String> m = checkout_repo()
+Map<String, String> checkout_tls_repo(BranchInfo info) {
+    Map<String, String> m = checkout_tls_repo()
     write_overrides(info)
     return m
 }
@@ -135,7 +135,7 @@ def checkout_mbed_os() {
             dir('TARGET_IGNORE/mbedtls')
             {
                 deleteDir()
-                checkout_repo()
+                checkout_tls_repo()
             }
             sh """\
 ulimit -f 20971520
