@@ -34,7 +34,7 @@ void run_tls_tests(BranchInfo info, String label_prefix='') {
         jobs = jobs + gen_jobs.gen_release_jobs(info, label_prefix, false)
 
         if (env.RUN_ABI_CHECK == "true") {
-            jobs = jobs + gen_jobs.gen_abi_api_checking_job(info, 'ubuntu-18.04')
+            jobs = jobs + gen_jobs.gen_abi_api_checking_job(info, 'ubuntu-18.04', label_prefix)
         }
 
         jobs = common.wrap_report_errors(jobs)
@@ -54,6 +54,10 @@ void run_tls_tests(BranchInfo info, String label_prefix='') {
 
 /* main job */
 void run_pr_job(boolean is_production, String branch) {
+    run_pr_job(is_production, [branch])
+}
+
+void run_pr_job(boolean is_production, List<String> branches) {
     analysis.main_record_timestamps('run_pr_job') {
         if (is_production) {
             // Cancel in-flight jobs for the same PR when a new job is launched
@@ -94,8 +98,6 @@ void run_pr_job(boolean is_production, String branch) {
             }
         }
 
-        BranchInfo info
-
         try {
             common.maybe_notify_github('PENDING', 'In progress')
 
@@ -112,29 +114,43 @@ void run_pr_job(boolean is_production, String branch) {
             }
 
             common.init_docker_images()
-
-            stage('pre-test-checks') {
-                info = common.get_branch_information(branch)
-                common.check_every_all_sh_component_will_be_run(info)
-            }
         } catch (err) {
-            def description = 'Pre-test checks failed.'
-            if (err.message?.startsWith('Pre-test checks')) {
-                description = err.message
-            }
-            common.maybe_notify_github('FAILURE', description)
+            common.maybe_notify_github('FAILURE', 'Test initialization failed.')
             throw (err)
         }
 
-        try {
-            stage('tls-testing') {
-                run_tls_tests(info)
-            }
-        } finally {
-            stage('result-analysis') {
-                analysis.analyze_results(info)
+        def branch_jobs = branches.collectEntries {
+            branch -> gen_jobs.job(branch) {
+                String prefix = branches.size() > 1 ? "$branch-" : ''
+                BranchInfo info
+                try {
+                    stage('pre-test-checks') {
+                        info = common.get_branch_information(branch)
+                        common.check_every_all_sh_component_will_be_run(info)
+                    }
+                } catch (err) {
+                    def description = 'Pre-test checks failed.'
+                    if (err.message?.startsWith('Pre-test checks')) {
+                        description = err.message
+                    }
+                    common.maybe_notify_github('FAILURE', description)
+                    throw (err)
+                }
+
+                try {
+                    stage('tls-testing') {
+                        run_tls_tests(info, prefix)
+                    }
+                } finally {
+                    stage('result-analysis') {
+                        analysis.analyze_results(info)
+                    }
+                }
             }
         }
+
+        branch_jobs.failFast = false
+        parallel branch_jobs
 
         common.maybe_notify_github('SUCCESS', 'All tests passed')
     }
@@ -146,33 +162,45 @@ def run_job() {
 }
 
 void run_release_job(String branch) {
-    BranchInfo info
+    run_release_job([branch])
+}
+
+@TypeChecked(extensions=['org.mbed.tls.jenkins.typing.JenkinsTypingExtension'])
+void run_release_job(List<String> branches) {
     analysis.main_record_timestamps('run_release_job') {
         try {
             environ.set_tls_release_environment()
             common.init_docker_images()
-            stage('branch-info') {
-                info = common.get_branch_information(branch)
-            }
-            try {
-                stage('tls-testing') {
-                    def jobs = common.wrap_report_errors(gen_jobs.gen_release_jobs(info))
-                    jobs.failFast = false
-                    analysis.record_inner_timestamps('main', 'run_release_job') {
-                        parallel jobs
+            def branch_jobs = branches.collectEntries {
+                branch -> gen_jobs.job(branch) {
+                    String prefix = branches.size() > 1 ? "$branch-" : ''
+                    BranchInfo info
+                    stage('branch-info') {
+                        info = common.get_branch_information(branch)
+                    }
+                    try {
+                        stage('tls-testing') {
+                            def jobs = common.wrap_report_errors(gen_jobs.gen_release_jobs(info, prefix))
+                            jobs.failFast = false
+                            analysis.record_inner_timestamps('main', 'run_release_job') {
+                                parallel jobs
+                            }
+                        }
+                    }
+                    finally {
+                        stage('result-analysis') {
+                            analysis.analyze_results(info)
+                        }
                     }
                 }
             }
-            finally {
-                stage('result-analysis') {
-                    analysis.analyze_results(info)
-                }
-            }
+            branch_jobs.failFast = false
+            parallel branch_jobs
         } finally {
             stage('email-report') {
                 if (currentBuild.rawBuild.causes[0] instanceof ParameterizedTimerTriggerCause ||
                     currentBuild.rawBuild.causes[0] instanceof TimerTrigger.TimerTriggerCause) {
-                    common.send_email('Mbed TLS nightly tests', branch, gen_jobs.failed_builds, gen_jobs.coverage_details)
+                    common.send_email('Mbed TLS nightly tests', branches.toString(), gen_jobs.failed_builds, gen_jobs.coverage_details)
                 }
             }
         }

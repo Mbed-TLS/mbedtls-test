@@ -33,7 +33,7 @@ import org.mbed.tls.jenkins.BranchInfo
 //Record coverage details for reporting
 @Field coverage_details = ['coverage': 'Code coverage job did not run']
 
-private Map<String, Callable<Void>> job(String label, Callable<Void> body) {
+Map<String, Closure> job(String label, Closure body) {
     return Collections.singletonMap(label, body)
 }
 
@@ -441,8 +441,8 @@ def gen_windows_jobs(BranchInfo info, String label_prefix='') {
     return jobs
 }
 
-def gen_abi_api_checking_job(BranchInfo info, String platform) {
-    String job_name = 'ABI-API-checking'
+def gen_abi_api_checking_job(BranchInfo info, String platform, String label_prefix = '') {
+    String job_name = "${label_prefix}ABI-API-checking"
     String script_in_docker = '''
 tests/scripts/list-identifiers.sh --internal
 scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
@@ -461,8 +461,8 @@ scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
                           post_checkout: post_checkout)
 }
 
-def gen_code_coverage_job(BranchInfo info, String platform) {
-    String job_name = 'code-coverage'
+def gen_code_coverage_job(BranchInfo info, String platform, String label_prefix='') {
+    String job_name = "${label_prefix}code-coverage"
     String script_in_docker = '''
 if grep -q -F coverage-summary.txt tests/scripts/basic-build-test.sh; then
 # New basic-build-test, generates coverage-summary.txt
@@ -645,7 +645,7 @@ def gen_release_jobs(BranchInfo info, String label_prefix='', boolean run_exampl
     def jobs = [:]
 
     if (env.RUN_BASIC_BUILD_TEST == "true") {
-        jobs = jobs + gen_code_coverage_job(info, 'ubuntu-16.04');
+        jobs = jobs + gen_code_coverage_job(info, 'ubuntu-16.04', label_prefix);
     }
 
     if (env.RUN_ALL_SH == "true") {
