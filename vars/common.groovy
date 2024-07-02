@@ -466,7 +466,6 @@ void run_pr_job(boolean is_production, List<String> branches) {
             ])
         }
 
-        environ.set_tls_pr_environment(is_production)
         boolean is_merge_queue = env.BRANCH_NAME ==~ /gh-readonly-queue\/.*/
 
         if (!is_merge_queue && currentBuild.rawBuild.getCause(Cause.UserIdCause) == null) {
@@ -537,7 +536,6 @@ void run_pr_job(boolean is_production, List<String> branches) {
 void run_release_job(List<String> branches) {
     analysis.main_record_timestamps('run_release_job') {
         try {
-            environ.set_tls_release_environment()
             init_docker_images()
             def branch_jobs = branches.collectEntries {
                 branch -> gen_jobs.job(branch) {

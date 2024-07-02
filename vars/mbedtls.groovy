@@ -19,6 +19,7 @@
 
 /* main job */
 void run_pr_job(boolean is_production, String branch) {
+    environ.set_tls_pr_environment(is_production)
     common.run_pr_job(is_production, [branch])
 }
 
@@ -28,5 +29,6 @@ def run_job() {
 }
 
 void run_release_job(String branch) {
+    environ.set_tls_release_environment()
     common.run_release_job([branch])
 }
