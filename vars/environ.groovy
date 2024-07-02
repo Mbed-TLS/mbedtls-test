@@ -40,6 +40,17 @@ def set_tls_pr_environment(is_production) {
     }
 }
 
+void set_framework_pr_environment(boolean is_production) {
+    set_common_environment()
+    env.JOB_TYPE = 'PR'
+    env.TARGET_REPO = 'framework'
+    if (is_production) {
+        set_common_pr_production_environment()
+    } else {
+        env.CHECKOUT_METHOD = 'parametrized'
+    }
+}
+
 def set_common_pr_production_environment() {
     env.CHECKOUT_METHOD = 'scm'
     if (env.BRANCH_NAME ==~ /PR-\d+-merge/) {
@@ -64,6 +75,13 @@ def set_tls_release_environment() {
     set_common_environment()
     env.JOB_TYPE = 'release'
     env.TARGET_REPO = 'tls'
+    env.CHECKOUT_METHOD = 'parametrized'
+}
+
+void set_framework_release_environment() {
+    set_common_environment()
+    env.JOB_TYPE = 'release'
+    env.TARGET_REPO = 'framework'
     env.CHECKOUT_METHOD = 'parametrized'
 }
 

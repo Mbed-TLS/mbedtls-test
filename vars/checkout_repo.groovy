@@ -66,7 +66,18 @@ Map<String, String> checkout_tls_repo(String branch) {
     } else {
         scm_config = parametrized_repo(env.MBED_TLS_REPO, branch)
     }
-    return checkout_report_errors(scm_config)
+    def result = checkout_report_errors(scm_config)
+
+    if (env.TARGET_REPO == 'framework') {
+        dir('framework') {
+            if (env.CHECKOUT_METHOD == 'scm') {
+                checkout_report_errors(scm)
+            } else {
+                checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, env.FRAMEWORK_BRANCH))
+            }
+        }
+    }
+    return result
 }
 
 Map<String, String> checkout_tls_repo(BranchInfo info) {
