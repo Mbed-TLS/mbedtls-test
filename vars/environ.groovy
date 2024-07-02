@@ -29,11 +29,14 @@ def set_common_environment() {
     env.VERBOSE_LOGS=1
 }
 
-def set_tls_pr_environment(is_production) {
+void set_pr_environment(String target_repo, boolean is_production) {
     set_common_environment()
     env.JOB_TYPE = 'PR'
-    env.TARGET_REPO = 'tls'
+    env.TARGET_REPO = target_repo
     if (is_production) {
+        if (target_repo == 'framework') {
+            env.MBED_TLS_REPO = 'git@github.com:Mbed-TLS/mbedtls.git'
+        }
         set_common_pr_production_environment()
     } else {
         env.CHECKOUT_METHOD = 'parametrized'

@@ -25,6 +25,8 @@
  * Repos and branches
  *  - MBED_TLS_REPO
  *  - MBED_TLS_BRANCH
+ *  - FRAMEWORK_REPO
+ *  - FRAMEWORK_BRANCH
  *
  * Test options
  *  - RUN_BASIC_BUILD_TEST

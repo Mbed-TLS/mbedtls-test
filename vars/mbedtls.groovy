@@ -56,11 +56,11 @@ void run_tls_tests(Collection<BranchInfo> infos) {
 }
 
 /* main job */
-void run_pr_job(boolean is_production, String branches) {
-    run_pr_job(is_production, branches.split(',') as List)
+void run_pr_job(String target_repo, boolean is_production, String branches) {
+    run_pr_job(target_repo, is_production, branches.split(',') as List)
 }
 
-void run_pr_job(boolean is_production, List<String> branches) {
+void run_pr_job(String target_repo, boolean is_production, List<String> branches) {
     analysis.main_record_timestamps('run_pr_job') {
         if (is_production) {
             // Cancel in-flight jobs for the same PR when a new job is launched
@@ -91,7 +91,7 @@ void run_pr_job(boolean is_production, List<String> branches) {
             ])
         }
 
-        environ.set_tls_pr_environment(is_production)
+        environ.set_pr_environment(target_repo, is_production)
         boolean is_merge_queue = env.BRANCH_NAME ==~ /gh-readonly-queue\/.*/
 
         if (!is_merge_queue && currentBuild.rawBuild.getCause(Cause.UserIdCause) == null) {
@@ -155,8 +155,12 @@ void run_pr_job(boolean is_production, List<String> branches) {
 }
 
 /* main job */
-def run_job() {
-    run_pr_job(true, env.CHANGE_BRANCH)
+void run_job() {
+    run_pr_job('tls', true, env.CHANGE_BRANCH)
+}
+
+void run_framework_pr_job() {
+    run_pr_job('framework', true, ['development', 'mbedtls-3.6'])
 }
 
 void run_release_job(String branches) {

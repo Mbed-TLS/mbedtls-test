@@ -73,6 +73,17 @@ Map<String, String> checkout_tls_repo(String branch) {
     sh_or_bat 'git config --global url.git@github.com:.insteadOf https://github.com/'
     try {
         def result = checkout_report_errors(scm_config)
+
+        dir('framework') {
+            if (env.TARGET_REPO == 'framework' && env.CHECKOUT_METHOD == 'scm') {
+                checkout_report_errors(scm)
+            } else if (env.FRAMEWORK_REPO && env.FRAMEWORK_BRANCH) {
+                checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, env.FRAMEWORK_BRANCH))
+            } else {
+                echo 'Using default framework version'
+            }
+        }
+
         // After the clone, replicate it in the local config, so it is effective when running inside docker
         sh_or_bat '''
 git config url.git@github.com:.insteadOf https://github.com/ && \
