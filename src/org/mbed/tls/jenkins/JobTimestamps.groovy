@@ -55,7 +55,7 @@ class JobTimestamps {
 
     private static void set(String name, AtomicLong var, long val) {
         if (!var.compareAndSet(-1, val)) {
-            throw new IllegalAccessError("$name set twice")
+            throw new IllegalStateException("$name set twice")
         }
     }
 
