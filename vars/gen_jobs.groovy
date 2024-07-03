@@ -445,11 +445,8 @@ tests/scripts/list-identifiers.sh --internal
 scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
 '''
 
-    String credentials_id = common.is_open_ci_env ? "mbedtls-github-ssh" : "742b7080-e1cc-41c6-bf55-efb72013bc28"
     Closure post_checkout = {
-        /* The credentials here are the SSH credentials for accessing the repositories.
-           They are defined at {JENKINS_URL}/credentials */
-        sshagent([credentials_id]) {
+        sshagent([env.GIT_CREDENTIALS_ID]) {
             sh "git fetch --depth 1 origin ${CHANGE_TARGET}"
         }
     }

@@ -45,6 +45,10 @@ void set_pr_environment(String target_repo, boolean is_production) {
 
 def set_common_pr_production_environment() {
     env.CHECKOUT_METHOD = 'scm'
+    /* The credentials here are the SSH credentials for accessing the repositories.
+       They are defined at {JENKINS_URL}/credentials
+       This is a temporary workaround, this should really be set in the Jenkins job configs */
+    env.GIT_CREDENTIALS_ID = common.is_open_ci_env ? "mbedtls-github-ssh" : "742b7080-e1cc-41c6-bf55-efb72013bc28"
     if (env.BRANCH_NAME ==~ /PR-\d+-merge/) {
         env.RUN_ABI_CHECK = 'true'
     } else {
