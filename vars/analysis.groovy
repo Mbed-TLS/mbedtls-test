@@ -227,9 +227,16 @@ def stash_outcomes(job_name) {
     }
 }
 
-// In a directory with the source tree available, process the outcome files
-// from all the jobs.
-def process_outcomes(BranchInfo info) {
+/** Process the outcome files from all the jobs */
+def analyze_results(BranchInfo info) {
+    // After running on an old branch which doesn't have the outcome
+    // file generation mechanism, or after running a partial run,
+    // there may not be any outcome file. In this case, silently
+    // do nothing.
+    if (outcome_stashes.isEmpty()) {
+        return
+    }
+
     String job_name = 'result-analysis'
 
     Closure post_checkout = {
@@ -278,15 +285,4 @@ tests/scripts/analyze_outcomes.py outcomes.csv
                                           post_checkout: post_checkout,
                                           post_execution: post_execution)
     common.report_errors(job_name, job_map[job_name])
-}
-
-def analyze_results(BranchInfo info) {
-    // After running on an old branch which doesn't have the outcome
-    // file generation mechanism, or after running a partial run,
-    // there may not be any outcome file. In this case, silently
-    // do nothing.
-    if (outcome_stashes.isEmpty()) {
-        return
-    }
-    process_outcomes(info)
 }
