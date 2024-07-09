@@ -47,7 +47,7 @@ void run_tls_tests(Collection<BranchInfo> infos) {
             parallel jobs
         }
     } catch (err) {
-        def failed_names = gen_jobs.failed_builds.keySet().sort().join(" ")
+        def failed_names = infos.collectMany({ info -> info.failed_builds}).sort().join(" ")
         echo "Caught: ${err}"
         echo "Failed jobs: ${failed_names}"
         common.maybe_notify_github('FAILURE', "Failures: ${failed_names}")
@@ -146,7 +146,7 @@ void run_pr_job(String target_repo, boolean is_production, List<String> branches
             }
         } finally {
             stage('result-analysis') {
-                analysis.analyze_results(info)
+                analysis.analyze_results(infos.values())
             }
         }
 
@@ -169,11 +169,11 @@ void run_release_job(String branches) {
 
 void run_release_job(List<String> branches) {
     analysis.main_record_timestamps('run_release_job') {
+        Map<String, BranchInfo> infos
         try {
             environ.set_tls_release_environment()
             common.init_docker_images()
 
-            Map<String, BranchInfo> infos
             stage('branch-info') {
                 def branch_info_jobs = branches.collectEntries {
                     branch -> gen_jobs.job(branch) {
@@ -198,14 +198,18 @@ void run_release_job(List<String> branches) {
             }
             finally {
                 stage('result-analysis') {
-                    analysis.analyze_results(info)
+                    analysis.analyze_results(infos.values())
                 }
             }
         } finally {
             stage('email-report') {
                 if (currentBuild.rawBuild.causes[0] instanceof ParameterizedTimerTriggerCause ||
                     currentBuild.rawBuild.causes[0] instanceof TimerTrigger.TimerTriggerCause) {
-                    common.send_email('Mbed TLS nightly tests', branches.join(','), gen_jobs.failed_builds, gen_jobs.coverage_details)
+                    common.send_email('Mbed TLS nightly tests',
+                                      branches.join(','),
+                                      infos.values().collectMany { info -> info.failed_builds },
+                                      gen_jobs.coverage_details
+                    )
                 }
             }
         }

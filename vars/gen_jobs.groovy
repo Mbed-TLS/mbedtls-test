@@ -26,10 +26,6 @@ import hudson.AbortException
 
 import org.mbed.tls.jenkins.BranchInfo
 
-// Keep track of builds that fail.
-// Use static field, so the is content preserved across stages.
-@Field static failed_builds = [:]
-
 //Record coverage details for reporting
 @Field coverage_details = ['coverage': 'Code coverage job did not run']
 
@@ -57,7 +53,7 @@ Map<String, Callable<Void>> gen_simple_windows_jobs(BranchInfo info, String labe
                 }
             }
         } catch (err) {
-            failed_builds[label] = true
+            info.failed_builds << label
             throw (err)
         } finally {
             deleteDir()
@@ -115,8 +111,8 @@ def platform_lacks_tls_tools(platform) {
  *         <dt>{@code post_execution}</dt><dd>
  *             Hook that runs after running the script in Docker,
  *             whether it succeeded or not. It can check the job's status by querying
- *             {@code gen_jobs.failed_builds[job_name]}, which is true if the job failed and
- *             absent otherwise. This hook should not throw an exception.
+ *             {@link BranchInfo#failed_builds}, which contains {@code job_name}
+ *             if the job failed. This hook should not throw an exception.
  *         </dd>
  *     </dl>
  *
@@ -171,7 +167,7 @@ fi
                 }
             }
         } catch (err) {
-            failed_builds[job_name] = true
+            info.failed_builds << job_name
             throw (err)
         } finally {
             if (hooks.post_execution) {
@@ -287,7 +283,7 @@ ${extra_setup_code}
                     }
                 } finally {
                     dir('src') {
-                        analysis.stash_outcomes(job_name)
+                        analysis.stash_outcomes(info, job_name)
                     }
                     dir('src/tests/') {
                         common.archive_zipped_log_files(job_name)
@@ -295,7 +291,7 @@ ${extra_setup_code}
                 }
             }
         } catch (err) {
-            failed_builds[job_name] = true
+            info.failed_builds << job_name
             throw (err)
         } finally {
             deleteDir()
@@ -396,7 +392,7 @@ def gen_windows_testing_job(BranchInfo info, String toolchain, String label_pref
                                 }
                             }
                         } catch (exception) {
-                            failed_builds[job_name] = true
+                            info.failed_builds << job_name
                             return exception
                         }
                         return null
@@ -599,7 +595,7 @@ mbedhtrun -m ${platform} ${tag_filter} \
                 }
             }
         } catch (err) {
-            failed_builds[job_name] = true
+            info.failed_builds << job_name
             throw (err)
         } finally {
             deleteDir()
@@ -624,7 +620,7 @@ def gen_coverity_push_jobs(BranchInfo info) {
                     }
                 }
             } catch (err) {
-                failed_builds[job_name]= true
+                info.failed_builds << job_name
                 throw (err)
             } finally {
                 deleteDir()

@@ -407,10 +407,9 @@ done
     )
 }
 
-def send_email(name, branch, failed_builds, coverage_details) {
+void send_email(String name, String branch, Collection<String> failed_builds, Map<String, String> coverage_details) {
     if (failed_builds) {
-        keys = failed_builds.keySet()
-        failures = keys.join(", ")
+        failures = failed_builds.join(", ")
         emailbody = """
 ${coverage_details['coverage']}
 

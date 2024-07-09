@@ -27,10 +27,16 @@ class BranchInfo {
      *  done. */
     public String python_requirements_override_file
 
+    /** Keep track of builds that fail */
+    final Set<String> failed_builds
+    final Set<String> outcome_stashes
+
     BranchInfo() {
         this.all_all_sh_components = [:]
         this.has_min_requirements = false
         this.python_requirements_override_content = ''
         this.python_requirements_override_file = ''
+        this.failed_builds = []
+        this.outcome_stashes = []
     }
 }
