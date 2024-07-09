@@ -31,6 +31,9 @@ class BranchInfo {
     final Set<String> failed_builds
     final Set<String> outcome_stashes
 
+    /** Record coverage details for reporting */
+    String coverage_details
+
     BranchInfo() {
         this.all_all_sh_components = [:]
         this.has_min_requirements = false
@@ -38,5 +41,6 @@ class BranchInfo {
         this.python_requirements_override_file = ''
         this.failed_builds = []
         this.outcome_stashes = []
+        this.coverage_details = 'Code coverage job did not run'
     }
 }

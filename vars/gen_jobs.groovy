@@ -19,15 +19,10 @@
 
 import java.util.concurrent.Callable
 
-import groovy.transform.Field
-
 import net.sf.json.JSONObject
 import hudson.AbortException
 
 import org.mbed.tls.jenkins.BranchInfo
-
-//Record coverage details for reporting
-@Field coverage_details = ['coverage': 'Code coverage job did not run']
 
 static <T> Map<String, Closure<T>> job(String label, Closure<T> body) {
     return Collections.singletonMap(label, body)
@@ -469,7 +464,7 @@ fi
 
     Closure post_success = {
         String coverage_log = readFile('coverage-summary.txt')
-        coverage_details['coverage'] = coverage_log.substring(
+        info.coverage_details = coverage_log.substring(
             coverage_log.indexOf('\nCoverage\n') + 1
         )
     }

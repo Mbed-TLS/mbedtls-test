@@ -407,13 +407,14 @@ done
     )
 }
 
-void send_email(String name, Collection<BranchInfo> infos, Map<String, String> coverage_details) {
+void send_email(String name, Collection<BranchInfo> infos) {
     String branches = infos*.branch.join(',')
     def failed_builds = infos.collectMany { info -> info.failed_builds}
+    String coverage_details = infos.collect({info -> "$info.branch:\n$info.coverage_details"}).join('\n\n')
     if (failed_builds) {
         failures = failed_builds.join(", ")
         emailbody = """
-${coverage_details['coverage']}
+$coverage_details
 
 Logs: ${env.BUILD_URL}
 
@@ -422,7 +423,7 @@ Failures: ${failures}
         recipients = env.TEST_FAIL_EMAIL_ADDRESS
     } else {
         emailbody = """
-${coverage_details['coverage']}
+$coverage_details
 
 Logs: ${env.BUILD_URL}
 """
