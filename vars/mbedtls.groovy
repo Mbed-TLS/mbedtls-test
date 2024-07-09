@@ -206,8 +206,7 @@ void run_release_job(List<String> branches) {
                 if (currentBuild.rawBuild.causes[0] instanceof ParameterizedTimerTriggerCause ||
                     currentBuild.rawBuild.causes[0] instanceof TimerTrigger.TimerTriggerCause) {
                     common.send_email('Mbed TLS nightly tests',
-                                      branches.join(','),
-                                      infos.values().collectMany { info -> info.failed_builds },
+                                      infos.values(),
                                       gen_jobs.coverage_details
                     )
                 }

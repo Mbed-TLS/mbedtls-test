@@ -407,7 +407,9 @@ done
     )
 }
 
-void send_email(String name, String branch, Collection<String> failed_builds, Map<String, String> coverage_details) {
+void send_email(String name, Collection<BranchInfo> infos, Map<String, String> coverage_details) {
+    String branches = infos*.branch.join(',')
+    def failed_builds = infos.collectMany { info -> info.failed_builds}
     if (failed_builds) {
         failures = failed_builds.join(", ")
         emailbody = """
@@ -427,7 +429,7 @@ Logs: ${env.BUILD_URL}
         recipients = env.TEST_PASS_EMAIL_ADDRESS
     }
     subject = ((is_open_ci_env ? "TF Open CI" : "Internal CI") + " ${name} " + \
-           (failed_builds ? "failed" : "passed") + "! (branch: ${branch})")
+           (failed_builds ? "failed" : "passed") + "! (branches: ${branches})")
     echo subject
     echo emailbody
     emailext body: emailbody,
