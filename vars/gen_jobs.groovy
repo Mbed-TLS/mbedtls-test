@@ -128,9 +128,10 @@ def platform_lacks_tls_tools(platform) {
 Map<String, Callable<Void>> gen_docker_job(Map<String, Closure> hooks,
                                            BranchInfo info,
                                            String job_name,
+                                           String node_label = 'container-host',
                                            String platform,
                                            String script_in_docker) {
-    return instrumented_node_job('container-host', job_name) {
+    return instrumented_node_job(node_label, job_name) {
         try {
             deleteDir()
             common.get_docker_image(platform)
@@ -153,7 +154,7 @@ fi
             timeout(time: common.perJobTimeout.time,
                     unit: common.perJobTimeout.unit) {
                 try {
-                    analysis.record_inner_timestamps('container-host', job_name) {
+                    analysis.record_inner_timestamps(node_label, job_name) {
                         sh common.docker_script(
                                 platform, "/var/lib/build/steps.sh"
                         )

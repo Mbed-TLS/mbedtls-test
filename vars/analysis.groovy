@@ -230,7 +230,7 @@ def stash_outcomes(job_name) {
 // In a directory with the source tree available, process the outcome files
 // from all the jobs.
 def process_outcomes(BranchInfo info) {
-    String job_name = 'outcome_analysis'
+    String job_name = 'result-analysis'
 
     Closure post_checkout = {
         dir('csvs') {
@@ -270,7 +270,10 @@ tests/scripts/analyze_outcomes.py outcomes.csv
                          allowEmptyArchive: true)
     }
 
-    def job_map = gen_jobs.gen_docker_job(info, job_name, 'ubuntu-22.04-amd64',
+    def job_map = gen_jobs.gen_docker_job(info,
+                                          job_name,
+                                          'helper-container-host',
+                                          'ubuntu-22.04-amd64',
                                           script_in_docker,
                                           post_checkout: post_checkout,
                                           post_execution: post_execution)
@@ -285,14 +288,5 @@ def analyze_results(BranchInfo info) {
     if (outcome_stashes.isEmpty()) {
         return
     }
-    node_record_timestamps('helper-container-host', 'result-analysis') {
-        dir('outcomes') {
-            deleteDir()
-            try {
-                process_outcomes(info)
-            } finally {
-                deleteDir()
-            }
-        }
-    }
+    process_outcomes(info)
 }
