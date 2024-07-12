@@ -69,10 +69,9 @@ import org.mbed.tls.jenkins.BranchInfo
 
 /* List of Linux platforms. When a job can run on multiple Linux platforms,
  * it runs on the first element of the list that supports this job. */
-@Field linux_platforms = [
-    'ubuntu-16.04-amd64', 'ubuntu-18.04-amd64', 'ubuntu-20.04-amd64', 'ubuntu-22.04-amd64', 'arm-compilers-amd64',
-    'ubuntu-16.04-arm64', 'ubuntu-18.04-arm64', 'ubuntu-20.04-arm64', 'ubuntu-22.04-arm64'
-]
+@Field linux_platforms =
+    ['ubuntu-16.04-amd64', 'ubuntu-18.04-amd64', 'ubuntu-20.04-amd64', 'ubuntu-22.04-amd64', 'arm-compilers-amd64'] +
+    (is_open_ci_env ? [] : ['ubuntu-16.04-arm64', 'ubuntu-18.04-arm64', 'ubuntu-20.04-arm64', 'ubuntu-22.04-arm64'])
 /* List of BSD platforms. They all run freebsd_all_sh_components. */
 @Field bsd_platforms = ["freebsd"]
 
@@ -263,6 +262,9 @@ BranchInfo get_branch_information() {
                         returnStdout: true
                     ).trim().split('\n')
                     for (element in all) {
+                        if (is_open_ci_env && element ==~ /test_(arm_linux_gnueabi|aarch64_linux_gnu).*/) {
+                            continue
+                        }
                         info.all_all_sh_components[element] = null
                     }
                 }
