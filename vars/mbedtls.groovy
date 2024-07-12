@@ -34,7 +34,7 @@ void run_tls_tests(BranchInfo info, String label_prefix='') {
         jobs = jobs + gen_jobs.gen_release_jobs(info, label_prefix, false)
 
         if (env.RUN_ABI_CHECK == "true") {
-            jobs = jobs + gen_jobs.gen_abi_api_checking_job(info, 'ubuntu-18.04')
+            jobs = jobs + gen_jobs.gen_abi_api_checking_job(info, 'ubuntu-18.04-amd64')
         }
 
         jobs = common.wrap_report_errors(jobs)

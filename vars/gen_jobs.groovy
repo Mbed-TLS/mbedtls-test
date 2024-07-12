@@ -185,11 +185,11 @@ fi
 
 def gen_all_sh_jobs(BranchInfo info, platform, component, label_prefix='') {
     def shorthands = [
-        "arm-compilers": "armcc",
-        "ubuntu-16.04": "u16",
-        "ubuntu-18.04": "u18",
-        "ubuntu-20.04": "u20",
-        "ubuntu-22.04": "u22",
+        "arm-compilers-amd64": "armcc",
+        "ubuntu-16.04-amd64": "u16",
+        "ubuntu-18.04-amd64": "u18",
+        "ubuntu-20.04-amd64": "u20",
+        "ubuntu-22.04-amd64": "u22",
         "freebsd": "fbsd",
     ]
     /* Default to the full platform hame is a shorthand is not found */
@@ -636,7 +636,7 @@ def gen_release_jobs(BranchInfo info, String label_prefix='', boolean run_exampl
     def jobs = [:]
 
     if (env.RUN_BASIC_BUILD_TEST == "true") {
-        jobs = jobs + gen_code_coverage_job(info, 'ubuntu-16.04');
+        jobs = jobs + gen_code_coverage_job(info, 'ubuntu-16.04-amd64');
     }
 
     if (env.RUN_ALL_SH == "true") {

@@ -270,7 +270,7 @@ tests/scripts/analyze_outcomes.py outcomes.csv
                          allowEmptyArchive: true)
     }
 
-    def job_map = gen_jobs.gen_docker_job(info, job_name, 'ubuntu-22.04',
+    def job_map = gen_jobs.gen_docker_job(info, job_name, 'ubuntu-22.04-amd64',
                                           script_in_docker,
                                           post_checkout: post_checkout,
                                           post_execution: post_execution)
