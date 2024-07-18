@@ -291,9 +291,9 @@ class MbedWindowsTesting(object):
         are present, and if not, creates them."""
         seed_filename = os.path.join(git_worktree_path, "tests/seedfile")
         self.generate_seedfile(seed_filename)
-        if os.path.isdir(os.path.join(git_worktree_path, "crypto")):
+        if os.path.isdir(os.path.join(git_worktree_path, "tf-psa-crypto/tests")):
             crypto_seed_filename = os.path.join(git_worktree_path,
-                "crypto/tests/seedfile")
+                "tf-psa-crypto/tests/seedfile")
             self.generate_seedfile(crypto_seed_filename)
 
     def test_mingw_built_code(self):
