@@ -33,7 +33,7 @@ import org.mbed.tls.jenkins.BranchInfo
 //Record coverage details for reporting
 @Field coverage_details = ['coverage': 'Code coverage job did not run']
 
-private Map<String, Callable<Void>> job(String label, Callable<Void> body) {
+static <T> Map<String, Closure<T>> job(String label, Closure<T> body) {
     return Collections.singletonMap(label, body)
 }
 
