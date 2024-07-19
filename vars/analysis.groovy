@@ -233,29 +233,45 @@ def process_outcomes(BranchInfo info) {
     String job_name = 'outcome_analysis'
 
     Closure post_checkout = {
-        dir('csvs') {
-            for (stash_name in outcome_stashes) {
-                unstash(stash_name)
+        // Put the unstash steps in their own stage. We do this because
+        // BlueOcean displays each unstash as a separate step, but it
+        // stops at 100 steps, and we have more than 100 unstash steps.
+        // If there were any subsequent steps in the same stage, they would
+        // be invisible in the BlueOcean view. Even the unstash steps after
+        // the 100th one are invisible on BlueOcean, but those unstash steps
+        // shouldn't fail, so that's not a big deal.
+        stage('unstash-outcomes') {
+            dir('csvs') {
+                for (stash_name in outcome_stashes) {
+                    unstash(stash_name)
+                }
             }
-            sh 'cat *.csv >../outcomes.csv'
-            deleteDir()
         }
 
-        // The complete outcome file is 2.1GB uncompressed / 56MB compressed as I write.
-        // Often we just want the failures, so make an artifact with just those.
-        // Only produce a failure file if there was a failing job (otherwise
-        // we'd just waste time creating an empty file).
-        //
-        // Note that grep ';FAIL;' could pick up false positives, if another field such
-        // as test description or test suite was "FAIL".
-        if (gen_jobs.failed_builds) {
-            sh '''\
-    LC_ALL=C grep ';FAIL;' outcomes.csv >"failures.csv" || [ $? -eq 1 ]
-    # Compress the failure list if it is large (for some value of large)
-    if [ "$(wc -c <failures.csv)" -gt 99999 ]; then
-        xz -0 -T0 failures.csv
-    fi
-    '''
+        stage('cat-outcomes') {
+            dir('csvs') {
+                sh 'cat *.csv >../outcomes.csv'
+                deleteDir()
+            }
+        }
+
+        stage('grep-failures') {
+            // The complete outcome file is 2.1GB uncompressed / 56MB compressed as I write.
+            // Often we just want the failures, so make an artifact with just those.
+            // Only produce a failure file if there was a failing job (otherwise
+            // we'd just waste time creating an empty file).
+            //
+            // Note that grep ';FAIL;' could pick up false positives, if another field such
+            // as test description or test suite was "FAIL".
+            if (gen_jobs.failed_builds) {
+                sh '''\
+        LC_ALL=C grep ';FAIL;' outcomes.csv >"failures.csv" || [ $? -eq 1 ]
+        # Compress the failure list if it is large (for some value of large)
+        if [ "$(wc -c <failures.csv)" -gt 99999 ]; then
+            xz -0 -T0 failures.csv
+        fi
+        '''
+            }
         }
     }
 
@@ -270,11 +286,13 @@ tests/scripts/analyze_outcomes.py outcomes.csv
                          allowEmptyArchive: true)
     }
 
-    def job_map = gen_jobs.gen_docker_job(info, job_name, 'ubuntu-22.04',
-                                          script_in_docker,
-                                          post_checkout: post_checkout,
-                                          post_execution: post_execution)
-    common.report_errors(job_name, job_map[job_name])
+    stage('process-outcomes') {
+        def job_map = gen_jobs.gen_docker_job(info, job_name, 'ubuntu-22.04',
+                                              script_in_docker,
+                                              post_checkout: post_checkout,
+                                              post_execution: post_execution)
+        common.report_errors(job_name, job_map[job_name])
+    }
 }
 
 def analyze_results(BranchInfo info) {
@@ -289,7 +307,16 @@ def analyze_results(BranchInfo info) {
         dir('outcomes') {
             deleteDir()
             try {
-                process_outcomes(info)
+                Closure analyze_outcomes = {
+                    process_outcomes(info)
+                }
+                // Even though there is a single analysis task,
+                // declare a parallel stage. This helps with the BlueOcean
+                // view: it allows the task to be broken into multiple
+                // sub-stages which are shown separately.
+                parallel [
+                    'analyze_outcomes': analyze_outcomes,
+                ]
             } finally {
                 deleteDir()
             }
