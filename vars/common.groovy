@@ -69,7 +69,7 @@ import org.mbed.tls.jenkins.BranchInfo
 
 /* List of Linux platforms. When a job can run on multiple Linux platforms,
  * it runs on the first element of the list that supports this job. */
-@Field linux_platforms =
+@Field final List<String> linux_platforms =
     ['ubuntu-16.04-amd64',  'ubuntu-18.04-amd64', 'ubuntu-20.04-amd64', 'ubuntu-22.04-amd64', 'arm-compilers-amd64'] +
     (is_open_ci_env ? [] : ['ubuntu-18.04-arm64', 'ubuntu-20.04-arm64', 'ubuntu-22.04-arm64'])
 /* List of BSD platforms. They all run freebsd_all_sh_components. */
@@ -220,40 +220,37 @@ docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS -e VERBOSE_LOGS --rm --entrypoint
  * In particular, get components of all.sh for Linux platforms. */
 BranchInfo get_branch_information() {
     BranchInfo info = new BranchInfo()
-    node('container-host') {
-        dir('src') {
-            deleteDir()
-            checkout_repo.checkout_repo()
+    Map<String, Object> jobs = [:]
 
-            info.has_min_requirements = fileExists('scripts/min_requirements.py')
+    jobs << gen_jobs.job('all-platforms') {
+        node('container-host') {
+            try {
+                // Log the environment for debugging purposes
+                sh script: 'export'
 
-            if (info.has_min_requirements) {
-                info.python_requirements_override_content = construct_python_requirements_override()
-                if (info.python_requirements_override_content) {
-                    info.python_requirements_override_file = 'override.requirements.txt'
+                dir('src') {
+                    deleteDir()
+                    checkout_repo.checkout_repo()
+
+                    info.has_min_requirements = fileExists('scripts/min_requirements.py')
+
+                    if (info.has_min_requirements) {
+                        info.python_requirements_override_content = construct_python_requirements_override()
+                        if (info.python_requirements_override_content) {
+                            info.python_requirements_override_file = 'override.requirements.txt'
+                        }
+                    }
                 }
-            }
-        }
 
-        // Log the environment for debugging purposes
-        sh script: 'export'
-    }
-
-    for (platform in linux_platforms) {
-        node(gen_jobs.node_label_for_platform(platform)) {
-            dir('src') {
-                deleteDir()
-                checkout_repo.checkout_repo()
-            }
-            get_docker_image(platform)
-            def all_sh_help = sh(
-                script: docker_script(
-                    platform, "./tests/scripts/all.sh", "--help"
-                ),
-                returnStdout: true
-            )
-            if (all_sh_help.contains('list-components')) {
-                if (!info.all_all_sh_components) {
+                String platform = linux_platforms[0]
+                get_docker_image(platform)
+                def all_sh_help = sh(
+                    script: docker_script(
+                        platform, "./tests/scripts/all.sh", "--help"
+                    ),
+                    returnStdout: true
+                )
+                if (all_sh_help.contains('list-components')) {
                     def all = sh(
                         script: docker_script(
                             platform, "./tests/scripts/all.sh",
@@ -261,29 +258,64 @@ BranchInfo get_branch_information() {
                         ),
                         returnStdout: true
                     ).trim().split('\n')
-                    for (element in all) {
+                    echo "All all.sh components: ${all.join(" ")}"
+                    return all.collectEntries { element ->
                         if (is_open_ci_env && element ==~ /test_(arm_linux_gnueabi|aarch64_linux_gnu).*/) {
-                            continue
+                            return [:]
                         }
-                        info.all_all_sh_components[element] = null
+                        return [(element): null]
                     }
+                } else {
+                    error('Pre Test Checks failed: Base branch out of date. Please rebase')
                 }
-                def available = sh(
-                    script: docker_script(
-                        platform, "./tests/scripts/all.sh", "--list-components"
-                    ),
-                    returnStdout: true
-                ).trim().split('\n')
-                echo "Available all.sh components on ${platform}: ${available.join(" ")}"
-                for (element in available) {
-                    if (!info.all_all_sh_components[element]) {
-                        info.all_all_sh_components[element] = platform
-                    }
-                }
-            } else {
-                error('Pre Test Checks failed: Base branch out of date. Please rebase')
+            } finally {
+                deleteDir()
             }
         }
+    }
+
+    linux_platforms.reverseEach { platform ->
+        jobs << gen_jobs.job(platform) {
+            node(gen_jobs.node_label_for_platform(platform)) {
+                try {
+                    dir('src') {
+                        deleteDir()
+                        checkout_repo.checkout_repo()
+                    }
+                    get_docker_image(platform)
+                    def all_sh_help = sh(
+                        script: docker_script(
+                            platform, "./tests/scripts/all.sh", "--help"
+                        ),
+                        returnStdout: true
+                    )
+                    if (all_sh_help.contains('list-components')) {
+                        def available = sh(
+                            script: docker_script(
+                                platform, "./tests/scripts/all.sh", "--list-components"
+                            ),
+                            returnStdout: true
+                        ).trim().split('\n')
+                        echo "Available all.sh components on ${platform}: ${available.join(" ")}"
+                        return available.collectEntries { element ->
+                            return [(element): platform]
+                        }
+                    } else {
+                        error('Pre Test Checks failed: Base branch out of date. Please rebase')
+                    }
+                } finally {
+                    deleteDir()
+                }
+            }
+        }
+    }
+
+    jobs.failFast = true
+    def results = (Map<String, Map<String, String>>) parallel(jobs)
+
+    info.all_all_sh_components = results['all-platforms']
+    linux_platforms.reverseEach { platform ->
+        info.all_all_sh_components << results[platform]
     }
 
     if (env.JOB_TYPE == 'PR') {
