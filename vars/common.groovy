@@ -274,7 +274,7 @@ BranchInfo get_branch_information() {
         }
     }
 
-    linux_platforms.reverseEach { platform ->
+    linux_platforms.each { platform ->
         jobs << gen_jobs.job(platform) {
             node(gen_jobs.node_label_for_platform(platform)) {
                 try {
