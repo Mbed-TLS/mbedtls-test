@@ -70,8 +70,7 @@ import org.mbed.tls.jenkins.BranchInfo
 /* List of Linux platforms. When a job can run on multiple Linux platforms,
  * it runs on the first element of the list that supports this job. */
 @Field final List<String> linux_platforms =
-    ['ubuntu-16.04-amd64',  'ubuntu-18.04-amd64', 'ubuntu-20.04-amd64', 'ubuntu-22.04-amd64', 'arm-compilers-amd64'] +
-    (is_open_ci_env ? [] : ['ubuntu-18.04-arm64', 'ubuntu-20.04-arm64', 'ubuntu-22.04-arm64'])
+    ['ubuntu-18.04-arm64', 'ubuntu-20.04-arm64', 'ubuntu-22.04-arm64']
 /* List of BSD platforms. They all run freebsd_all_sh_components. */
 @Field bsd_platforms = ["freebsd"]
 
@@ -223,7 +222,8 @@ BranchInfo get_branch_information() {
     Map<String, Object> jobs = [:]
 
     jobs << gen_jobs.job('all-platforms') {
-        node('container-host') {
+        String platform = linux_platforms[0]
+        node(gen_jobs.node_label_for_platform(platform)) {
             try {
                 // Log the environment for debugging purposes
                 sh script: 'export'
@@ -242,7 +242,6 @@ BranchInfo get_branch_information() {
                     }
                 }
 
-                String platform = linux_platforms[0]
                 get_docker_image(platform)
                 def all_sh_help = sh(
                     script: docker_script(
@@ -316,6 +315,10 @@ BranchInfo get_branch_information() {
     info.all_all_sh_components = results['all-platforms']
     linux_platforms.reverseEach { platform ->
         info.all_all_sh_components << results[platform]
+    }
+
+    info.all_all_sh_components = info.all_all_sh_components.findAll {
+        component, platform -> component ==~ /test_(arm_linux_gnueabi|aarch64_linux_gnu).*/
     }
 
     if (env.JOB_TYPE == 'PR') {

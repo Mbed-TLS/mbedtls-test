@@ -130,7 +130,8 @@ Map<String, Callable<Void>> gen_docker_job(Map<String, Closure> hooks,
                                            String job_name,
                                            String platform,
                                            String script_in_docker) {
-    return instrumented_node_job('container-host', job_name) {
+    String node_label = node_label_for_platform(platform)
+    return instrumented_node_job(node_label, job_name) {
         try {
             deleteDir()
             common.get_docker_image(platform)
@@ -153,7 +154,7 @@ fi
             timeout(time: common.perJobTimeout.time,
                     unit: common.perJobTimeout.unit) {
                 try {
-                    analysis.record_inner_timestamps('container-host', job_name) {
+                    analysis.record_inner_timestamps(node_label, job_name) {
                         sh common.docker_script(
                                 platform, "/var/lib/build/steps.sh"
                         )
@@ -640,7 +641,7 @@ def gen_release_jobs(BranchInfo info, String label_prefix='', boolean run_exampl
     def jobs = [:]
 
     if (env.RUN_BASIC_BUILD_TEST == "true") {
-        jobs = jobs + gen_code_coverage_job(info, 'ubuntu-16.04-amd64');
+        jobs = jobs + gen_code_coverage_job(info, common.linux_platforms[0]);
     }
 
     if (env.RUN_ALL_SH == "true") {
