@@ -201,7 +201,7 @@ class MbedWindowsTesting(object):
 
     def get_clean_worktree_for_git_reference(self, logger):
         logger.info("Checking out git worktree")
-        git_worktree_path = os.path.abspath(tempfile.mkdtemp(dir="worktrees"))
+        git_worktree_path = os.path.abspath(tempfile.mkdtemp())
         try:
             worktree_output = subprocess.run(
                 [self.git_command, "worktree", "add", "--detach",
