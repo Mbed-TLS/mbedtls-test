@@ -66,7 +66,23 @@ Map<String, String> checkout_repo() {
     } else {
         scm_config = parametrized_repo(env.MBED_TLS_REPO, env.MBED_TLS_BRANCH)
     }
-    return checkout_report_errors(scm_config)
+
+    // Use bilingual scripts when manipulating the git config
+    def sh_or_bat = isUnix() ? {args -> sh(args)} : {args -> bat(args)}
+    // Set global config so its picked up when cloning submodules
+    sh_or_bat 'git config --global "url.git@github.com:.insteadOf" "https://github.com/"'
+    try {
+        def result = checkout_report_errors(scm_config)
+        // After the clone, replicate it in the local config, so it is effective when running inside docker
+        sh_or_bat '''
+git config "url.git@github.com:.insteadOf" "https://github.com/" && \
+git submodule foreach --recursive git config "url.git@github.com:.insteadOf" "https://github.com/"
+'''
+        return result
+    } finally {
+        // Clean up global config
+        sh_or_bat 'git config --global --unset "url.git@github.com:.insteadOf"'
+    }
 }
 
 Map<String, String> checkout_repo(BranchInfo info) {
@@ -96,7 +112,7 @@ Map<String, Object> parametrized_repo(String repo, String branch) {
         branches: [[name: branch]],
         extensions: [
             [$class: 'CloneOption', timeout: 60],
-            [$class: 'SubmoduleOption', recursiveSubmodules: true],
+            [$class: 'SubmoduleOption', recursiveSubmodules: true, parentCredentials: true],
             [$class: 'LocalBranch', localBranch: '**'],
         ],
     ]
