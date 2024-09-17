@@ -110,7 +110,7 @@ Map<String, Object> parametrized_repo(String repo, String branch) {
         ]],
         branches: [[name: branch]],
         extensions: [
-            [$class: 'CloneOption', timeout: 60, honorRefspec: true, noTags: true, shallow: true],
+            [$class: 'CloneOption', timeout: 60, honorRefspec: true, shallow: true],
             [$class: 'SubmoduleOption', recursiveSubmodules: true, parentCredentials: true, shallow: true],
             [$class: 'LocalBranch', localBranch: '**'],
         ],
@@ -126,7 +126,7 @@ def checkout_mbed_os() {
             ],
             branches: [[name: MBED_OS_BRANCH]],
             extensions: [
-                [$class: 'CloneOption', timeout: 60, honorRefspec: true, noTags: true, shallow: true],
+                [$class: 'CloneOption', timeout: 60, honorRefspec: true, shallow: true],
             ],
         ]
     ])
