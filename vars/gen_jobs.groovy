@@ -449,7 +449,7 @@ scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
         /* The credentials here are the SSH credentials for accessing the repositories.
            They are defined at {JENKINS_URL}/credentials */
         withCredentials([sshUserPrivateKey(credentialsId: credentials_id, keyFileVariable: 'keyfile')]) {
-            sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile}\" git fetch origin ${CHANGE_TARGET}"
+            sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile}\" git fetch --depth 1 origin ${CHANGE_TARGET}"
         }
     }
 

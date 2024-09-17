@@ -106,13 +106,12 @@ Map<String, Object> parametrized_repo(String repo, String branch) {
         $class: 'GitSCM',
         userRemoteConfigs: [[
             url: repo,
-            refspec: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*:refs/pull/*',
             credentialsId: env.GIT_CREDENTIALS_ID
         ]],
         branches: [[name: branch]],
         extensions: [
-            [$class: 'CloneOption', timeout: 60],
-            [$class: 'SubmoduleOption', recursiveSubmodules: true, parentCredentials: true],
+            [$class: 'CloneOption', timeout: 60, honorRefspec: true, noTags: true, shallow: true],
+            [$class: 'SubmoduleOption', recursiveSubmodules: true, parentCredentials: true, shallow: true],
             [$class: 'LocalBranch', localBranch: '**'],
         ],
     ]
@@ -127,7 +126,7 @@ def checkout_mbed_os() {
             ],
             branches: [[name: MBED_OS_BRANCH]],
             extensions: [
-                [$class: 'CloneOption', timeout: 60, shallow: true],
+                [$class: 'CloneOption', timeout: 60, honorRefspec: true, noTags: true, shallow: true],
             ],
         ]
     ])
