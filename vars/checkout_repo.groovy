@@ -70,18 +70,18 @@ Map<String, String> checkout_repo() {
     // Use bilingual scripts when manipulating the git config
     def sh_or_bat = isUnix() ? {args -> sh(args)} : {args -> bat(args)}
     // Set global config so its picked up when cloning submodules
-    sh_or_bat 'git config --global "url.git@github.com:.insteadOf" "https://github.com/"'
+    sh_or_bat 'git config --global url.git@github.com:.insteadOf https://github.com/'
     try {
         def result = checkout_report_errors(scm_config)
         // After the clone, replicate it in the local config, so it is effective when running inside docker
         sh_or_bat '''
-git config "url.git@github.com:.insteadOf" "https://github.com/" && \
-git submodule foreach --recursive git config "url.git@github.com:.insteadOf" "https://github.com/"
+git config url.git@github.com:.insteadOf https://github.com/ && \
+git submodule foreach --recursive git config url.git@github.com:.insteadOf https://github.com/
 '''
         return result
     } finally {
         // Clean up global config
-        sh_or_bat 'git config --global --unset "url.git@github.com:.insteadOf"'
+        sh_or_bat 'git config --global --unset url.git@github.com:.insteadOf'
     }
 }
 
