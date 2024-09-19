@@ -214,8 +214,9 @@ class MbedWindowsTesting(object):
             )
             logger.info(worktree_output.stdout)
             submodule_output = subprocess.run(
-                [self.git_command, "submodule", "update", "--init"],
-                cwd=git_worktree_path,
+                [self.git_command, "submodule", "foreach", "--recursive",
+                 'git worktree add --detach "{}/$displaypath" HEAD'.format(git_worktree_path)],
+                cwd=self.repository_path,
                 encoding=sys.stdout.encoding,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -240,6 +241,15 @@ class MbedWindowsTesting(object):
                 check=True
             )
             logger.info(worktree_output.stdout)
+            submodule_output = subprocess.run(
+                [self.git_command, "submodule", "foreach", "--recursive", "git worktree prune"],
+                cwd=self.repository_path,
+                encoding=sys.stdout.encoding,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=True
+            )
+            logger.info(submodule_output.stdout)
         except subprocess.CalledProcessError as error:
             self.set_return_code(2)
             logger.error(error.output)
