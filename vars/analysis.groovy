@@ -229,11 +229,10 @@ def stash_outcomes(job_name) {
 
 /** Process the outcome files from all the jobs */
 def analyze_results(BranchInfo info) {
-    // After running on an old branch which doesn't have the outcome
-    // file generation mechanism, or after running a partial run,
-    // there may not be any outcome file. In this case, silently
-    // do nothing.
+    // After running a partial run, there may not be any outcome file.
+    // In this case do nothing.
     if (outcome_stashes.isEmpty()) {
+        echo 'outcome_stashes is empty, skipping result-analysis.'
         return
     }
 
