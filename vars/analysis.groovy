@@ -227,10 +227,16 @@ def stash_outcomes(job_name) {
     }
 }
 
-// In a directory with the source tree available, process the outcome files
-// from all the jobs.
-def process_outcomes(BranchInfo info) {
-    String job_name = 'outcome_analysis'
+/** Process the outcome files from all the jobs */
+def analyze_results(BranchInfo info) {
+    // After running a partial run, there may not be any outcome file.
+    // In this case do nothing.
+    if (outcome_stashes.isEmpty()) {
+        echo 'outcome_stashes is empty, skipping result-analysis.'
+        return
+    }
+
+    String job_name = 'result-analysis'
 
     Closure post_checkout = {
         dir('csvs') {
@@ -270,29 +276,12 @@ tests/scripts/analyze_outcomes.py outcomes.csv
                          allowEmptyArchive: true)
     }
 
-    def job_map = gen_jobs.gen_docker_job(info, job_name, 'ubuntu-22.04-amd64',
+    def job_map = gen_jobs.gen_docker_job(info,
+                                          job_name,
+                                          'helper-container-host',
+                                          'ubuntu-22.04-amd64',
                                           script_in_docker,
                                           post_checkout: post_checkout,
                                           post_execution: post_execution)
     common.report_errors(job_name, job_map[job_name])
-}
-
-def analyze_results(BranchInfo info) {
-    // After running on an old branch which doesn't have the outcome
-    // file generation mechanism, or after running a partial run,
-    // there may not be any outcome file. In this case, silently
-    // do nothing.
-    if (outcome_stashes.isEmpty()) {
-        return
-    }
-    node_record_timestamps('helper-container-host', 'result-analysis') {
-        dir('outcomes') {
-            deleteDir()
-            try {
-                process_outcomes(info)
-            } finally {
-                deleteDir()
-            }
-        }
-    }
 }
