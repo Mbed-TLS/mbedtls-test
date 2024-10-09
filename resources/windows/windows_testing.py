@@ -157,12 +157,12 @@ class MbedWindowsTesting(object):
         self.mingw_result = None
         self.solution_file_pattern = r"(?i)mbed *TLS\.sln\Z"
         self.visual_studio_build_success_patterns = [
-            "Build succeeded.", "\d+ Warning\(s\)", "0 Error\(s\)"
+            r"Build succeeded\.", r"\d+ Warning\(s\)", r"0 Error\(s\)"
         ]
         self.visual_studio_build_zero_warnings_string = "0 Warning(s)"
-        self.selftest_success_pattern = "\[ All tests (PASS|passed) \]"
-        self.test_suites_success_pattern = "100% tests passed, 0 tests failed"
-        self.mingw_success_pattern = "PASSED \(\d+ suites, \d+ tests run\)"
+        self.selftest_success_pattern = r"\[ All tests (PASS|passed) \]"
+        self.test_suites_success_pattern = r"100% tests passed, 0 tests failed"
+        self.mingw_success_pattern = r"PASSED \(\d+ suites, \d+ tests run\)"
         self.config_pl_location = os.path.join("scripts", "config.pl")
         self.selftest_exe = "selftest.exe"
         self.mingw_command = "mingw32-make"
@@ -227,7 +227,7 @@ class MbedWindowsTesting(object):
         except subprocess.CalledProcessError as error:
             self.set_return_code(2)
             logger.error(error.output)
-            raise Exception("Checking out worktree failed, aborting")
+            raise Exception("Checking out worktree failed, aborting") from error
 
     def cleanup_git_worktree(self, git_worktree_path, logger):
         shutil.rmtree(git_worktree_path)
@@ -253,7 +253,7 @@ class MbedWindowsTesting(object):
         except subprocess.CalledProcessError as error:
             self.set_return_code(2)
             logger.error(error.output)
-            raise Exception("Worktree cleanup failed, aborting")
+            raise Exception("Worktree cleanup failed, aborting") from error
 
     def set_config_on_code(self, git_worktree_path, logger):
         """Enables all config specified in config.pl, then disables config
@@ -285,7 +285,7 @@ class MbedWindowsTesting(object):
         except subprocess.CalledProcessError as error:
             self.set_return_code(2)
             logger.error(error.output)
-            raise Exception("Setting config failed, aborting")
+            raise Exception("Setting config failed, aborting") from error
 
     def generate_seedfile(self, filename):
         """This tests if a file exists, and if not, creates it with 64 bytes
@@ -326,7 +326,7 @@ class MbedWindowsTesting(object):
             )
             if not self.mingw_result:
                 self.set_return_code(1)
-        except Exception as error:
+        except Exception as error: #pylint: disable=broad-except
             self.set_return_code(2)
             mingw_logger.error(error)
             traceback.print_exc()
@@ -444,7 +444,7 @@ class MbedWindowsTesting(object):
 
     def get_environment_containing_VSCMD_START_DIR(self, solution_dir):
         """This is done to bypass a 'feature' added in Visual Studio 2017.
-         If the %USERPROFILE%\Source directory exists, then running
+         If the %USERPROFILE%\\Source directory exists, then running
          vcvarsall.bat will silently change the directory to that directory.
          Setting the VSCMD_START_DIR environment variable causes it to change
          to that directory instead"""
@@ -498,7 +498,11 @@ class MbedWindowsTesting(object):
             "msbuild /nodeReuse:false /t:Rebuild /p:Configuration={},Platform={},"
             "PlatformToolset={} /m \"{}\"\n".format(
                 test_run.configuration, test_run.architecture,
-                retarget, solution_file
+                retarget,
+                # The `for solution_file ...` loop has an else clause with
+                # an unconditional return, so solution_file is always defined
+                # by this point. Pylint doesn't realize that.
+                solution_file #pylint: disable=undefined-loop-variable
             )
         )
         msbuild_process.stdin.close()
@@ -542,7 +546,7 @@ class MbedWindowsTesting(object):
         except subprocess.CalledProcessError as error:
             self.set_return_code(2)
             logger.error(error.output)
-            raise Exception("Building solution using Cmake failed, aborting")
+            raise Exception("Building solution using Cmake failed, aborting") from error
 
     def generate_source_files(self, git_worktree_path, logger):
         """Generate configuration-independent source files if required."""
@@ -569,7 +573,7 @@ class MbedWindowsTesting(object):
         except subprocess.CalledProcessError as error:
             self.set_return_code(2)
             logger.error(error.output)
-            raise Exception("{} failed, aborting".format(batch_script))
+            raise Exception("{} failed, aborting".format(batch_script)) from error
 
     def test_visual_studio_built_code(self, test_run, solution_type):
         log_name = "VS{} {} {}{} {}".format(
@@ -635,7 +639,7 @@ class MbedWindowsTesting(object):
                     selftest_code_path, vs_logger
                 )
                 test_run.results[solution_type + " selftest"] = selftest_result
-        except Exception as error:
+        except Exception as error: #pylint: disable=broad-except
             vs_logger.error(error)
             traceback.print_exc()
             self.set_return_code(2)
@@ -719,7 +723,7 @@ class MbedWindowsTesting(object):
                         self.test_visual_studio_built_code(
                             vs_test_run, solution_type
                         )
-        except Exception:
+        except Exception: #pylint: disable=broad-except
             traceback.print_exc()
             self.set_return_code(2)
         finally:
