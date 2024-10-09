@@ -59,12 +59,12 @@ Map<String, String> checkout_report_errors(scm_config) {
     }
 }
 
-Map<String, String> checkout_repo() {
+Map<String, String> checkout_tls_repo(String branch) {
     def scm_config
     if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
         scm_config = scm
     } else {
-        scm_config = parametrized_repo(env.MBED_TLS_REPO, env.MBED_TLS_BRANCH)
+        scm_config = parametrized_repo(env.MBED_TLS_REPO, branch)
     }
 
     // Use bilingual scripts when manipulating the git config
@@ -73,6 +73,17 @@ Map<String, String> checkout_repo() {
     sh_or_bat 'git config --global url.git@github.com:.insteadOf https://github.com/'
     try {
         def result = checkout_report_errors(scm_config)
+
+        dir('framework') {
+            if (env.TARGET_REPO == 'framework' && env.CHECKOUT_METHOD == 'scm') {
+                checkout_report_errors(scm)
+            } else if (env.FRAMEWORK_REPO && env.FRAMEWORK_BRANCH) {
+                checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, env.FRAMEWORK_BRANCH))
+            } else {
+                echo 'Using default framework version'
+            }
+        }
+
         // After the clone, replicate it in the local config, so it is effective when running inside docker
         sh_or_bat '''
 git config url.git@github.com:.insteadOf https://github.com/ && \
@@ -85,8 +96,8 @@ git submodule foreach --recursive git config url.git@github.com:.insteadOf https
     }
 }
 
-Map<String, String> checkout_repo(BranchInfo info) {
-    Map<String, String> m = checkout_repo()
+Map<String, String> checkout_tls_repo(BranchInfo info) {
+    Map<String, String> m = checkout_tls_repo(info.branch)
     write_overrides(info)
     return m
 }
@@ -117,7 +128,7 @@ Map<String, Object> parametrized_repo(String repo, String branch) {
     ]
 }
 
-def checkout_mbed_os() {
+def checkout_mbed_os(BranchInfo info) {
     checkout_report_errors([
         scm: [
             $class: 'GitSCM',
@@ -130,12 +141,12 @@ def checkout_mbed_os() {
             ],
         ]
     ])
-    if (env.MBED_TLS_BRANCH) {
+    if (info != null) {
         dir('features/mbedtls/importer') {
             dir('TARGET_IGNORE/mbedtls')
             {
                 deleteDir()
-                checkout_repo()
+                checkout_tls_repo(info)
             }
             sh """\
 ulimit -f 20971520

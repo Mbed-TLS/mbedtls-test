@@ -19,19 +19,10 @@
 
 import java.util.concurrent.Callable
 
-import groovy.transform.Field
-
 import net.sf.json.JSONObject
 import hudson.AbortException
 
 import org.mbed.tls.jenkins.BranchInfo
-
-// Keep track of builds that fail.
-// Use static field, so the is content preserved across stages.
-@Field static failed_builds = [:]
-
-//Record coverage details for reporting
-@Field coverage_details = ['coverage': 'Code coverage job did not run']
 
 static <T> Map<String, Closure<T>> job(String label, Closure<T> body) {
     return Collections.singletonMap(label, body)
@@ -48,7 +39,7 @@ Map<String, Callable<Void>> gen_simple_windows_jobs(BranchInfo info, String labe
         try {
             dir('src') {
                 deleteDir()
-                checkout_repo.checkout_repo(info)
+                checkout_repo.checkout_tls_repo(info)
                 timeout(time: common.perJobTimeout.time,
                         unit: common.perJobTimeout.unit) {
                     analysis.record_inner_timestamps('windows', label) {
@@ -57,7 +48,7 @@ Map<String, Callable<Void>> gen_simple_windows_jobs(BranchInfo info, String labe
                 }
             }
         } catch (err) {
-            failed_builds[label] = true
+            info.failed_builds << label
             throw (err)
         } finally {
             deleteDir()
@@ -115,8 +106,8 @@ def platform_lacks_tls_tools(platform) {
  *         <dt>{@code post_execution}</dt><dd>
  *             Hook that runs after running the script in Docker,
  *             whether it succeeded or not. It can check the job's status by querying
- *             {@code gen_jobs.failed_builds[job_name]}, which is true if the job failed and
- *             absent otherwise. This hook should not throw an exception.
+ *             {@link BranchInfo#failed_builds}, which contains {@code job_name}
+ *             if the job failed. This hook should not throw an exception.
  *         </dd>
  *     </dl>
  *
@@ -136,7 +127,7 @@ Map<String, Callable<Void>> gen_docker_job(Map<String, Closure> hooks,
             deleteDir()
             common.get_docker_image(platform)
             dir('src') {
-                checkout_repo.checkout_repo(info)
+                checkout_repo.checkout_tls_repo(info)
                 if (hooks.post_checkout) {
                     hooks.post_checkout()
                 }
@@ -171,7 +162,7 @@ fi
                 }
             }
         } catch (err) {
-            failed_builds[job_name] = true
+            info.failed_builds << job_name
             throw (err)
         } finally {
             if (hooks.post_execution) {
@@ -258,7 +249,7 @@ scripts/min_requirements.py --user ${info.python_requirements_override_file}
                 common.get_docker_image(platform)
             }
             dir('src') {
-                checkout_repo.checkout_repo(info)
+                checkout_repo.checkout_tls_repo(info)
                 writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
@@ -287,7 +278,7 @@ ${extra_setup_code}
                     }
                 } finally {
                     dir('src') {
-                        analysis.stash_outcomes(job_name)
+                        analysis.stash_outcomes(info, job_name)
                     }
                     dir('src/tests/') {
                         common.archive_zipped_log_files(job_name)
@@ -295,7 +286,7 @@ ${extra_setup_code}
                 }
             }
         } catch (err) {
-            failed_builds[job_name] = true
+            info.failed_builds << job_name
             throw (err)
         } finally {
             deleteDir()
@@ -345,7 +336,7 @@ def gen_windows_testing_job(BranchInfo info, String toolchain, String label_pref
                 stage('checkout') {
                     dir("src") {
                         deleteDir()
-                        checkout_repo.checkout_repo(info)
+                        checkout_repo.checkout_tls_repo(info)
                     }
                     /* The empty files are created to re-create the directory after it
                      * and its contents have been removed by deleteDir. */
@@ -396,7 +387,7 @@ def gen_windows_testing_job(BranchInfo info, String toolchain, String label_pref
                                 }
                             }
                         } catch (exception) {
-                            failed_builds[job_name] = true
+                            info.failed_builds << job_name
                             return exception
                         }
                         return null
@@ -438,18 +429,15 @@ def gen_windows_jobs(BranchInfo info, String label_prefix='') {
     return jobs
 }
 
-def gen_abi_api_checking_job(BranchInfo info, String platform) {
-    String job_name = 'ABI-API-checking'
+def gen_abi_api_checking_job(BranchInfo info, String platform, String label_prefix = '') {
+    String job_name = "${label_prefix}ABI-API-checking"
     String script_in_docker = '''
 tests/scripts/list-identifiers.sh --internal
 scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
 '''
 
-    String credentials_id = common.is_open_ci_env ? "mbedtls-github-ssh" : "742b7080-e1cc-41c6-bf55-efb72013bc28"
     Closure post_checkout = {
-        /* The credentials here are the SSH credentials for accessing the repositories.
-           They are defined at {JENKINS_URL}/credentials */
-        sshagent([credentials_id]) {
+        sshagent([env.GIT_CREDENTIALS_ID]) {
             sh "git fetch --depth 1 origin ${CHANGE_TARGET}"
         }
     }
@@ -458,8 +446,8 @@ scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
                           post_checkout: post_checkout)
 }
 
-def gen_code_coverage_job(BranchInfo info, String platform) {
-    String job_name = 'code-coverage'
+def gen_code_coverage_job(BranchInfo info, String platform, String label_prefix='') {
+    String job_name = "${label_prefix}code-coverage"
     String script_in_docker = '''
 if grep -q -F coverage-summary.txt tests/scripts/basic-build-test.sh; then
 # New basic-build-test, generates coverage-summary.txt
@@ -476,7 +464,7 @@ fi
 
     Closure post_success = {
         String coverage_log = readFile('coverage-summary.txt')
-        coverage_details['coverage'] = coverage_log.substring(
+        info.coverage_details = coverage_log.substring(
             coverage_log.indexOf('\nCoverage\n') + 1
         )
     }
@@ -486,7 +474,7 @@ fi
 }
 
 /* Mbed OS Example job generation */
-def gen_all_example_jobs() {
+def gen_all_example_jobs(BranchInfo info = null) {
     def jobs = [:]
 
     examples.examples.each { example ->
@@ -495,6 +483,7 @@ def gen_all_example_jobs() {
                 for (platform in example.value['platforms']()) {
                     if (examples.raas_for_platform[platform]) {
                         jobs = jobs + gen_mbed_os_example_job(
+                            info,
                             example.value['repo'],
                             example.value['branch'],
                             example.key, compiler, platform,
@@ -508,7 +497,7 @@ def gen_all_example_jobs() {
     return jobs
 }
 
-def gen_mbed_os_example_job(repo, branch, example, compiler, platform, raas) {
+def gen_mbed_os_example_job(BranchInfo info, repo, branch, example, compiler, platform, raas) {
     def jobs = [:]
     def job_name = "mbed-os-${example}-${platform}-${compiler}"
 
@@ -551,7 +540,7 @@ mbed deploy -vv
 """
                         dir('mbed-os') {
                             deleteDir()
-                            checkout_repo.checkout_mbed_os()
+                            checkout_repo.checkout_mbed_os(info)
 /* Check that python requirements are up to date */
                             sh """\
 ulimit -f 20971520
@@ -601,7 +590,7 @@ mbedhtrun -m ${platform} ${tag_filter} \
                 }
             }
         } catch (err) {
-            failed_builds[job_name] = true
+            info.failed_builds << job_name
             throw (err)
         } finally {
             deleteDir()
@@ -609,16 +598,16 @@ mbedhtrun -m ${platform} ${tag_filter} \
     }
 }
 
-def gen_coverity_push_jobs() {
+def gen_coverity_push_jobs(BranchInfo info) {
     def jobs = [:]
     def job_name = 'coverity-push'
 
-    if (env.MBED_TLS_BRANCH == "development") {
+    if (info.branch == "development") {
         jobs << instrumented_node_job('container-host', job_name) {
             try {
                 dir("src") {
                     deleteDir()
-                    checkout_repo.checkout_repo()
+                    checkout_repo.checkout_tls_repo(info)
                     sshagent([env.GIT_CREDENTIALS_ID]) {
                         analysis.record_inner_timestamps('container-host', job_name) {
                             sh 'git push origin HEAD:coverity_scan'
@@ -626,7 +615,7 @@ def gen_coverity_push_jobs() {
                     }
                 }
             } catch (err) {
-                failed_builds[job_name]= true
+                info.failed_builds << job_name
                 throw (err)
             } finally {
                 deleteDir()
@@ -641,7 +630,7 @@ def gen_release_jobs(BranchInfo info, String label_prefix='', boolean run_exampl
     def jobs = [:]
 
     if (env.RUN_BASIC_BUILD_TEST == "true") {
-        jobs = jobs + gen_code_coverage_job(info, 'ubuntu-16.04-amd64');
+        jobs = jobs + gen_code_coverage_job(info, 'ubuntu-16.04-amd64', label_prefix);
     }
 
     if (env.RUN_ALL_SH == "true") {
@@ -664,11 +653,11 @@ def gen_release_jobs(BranchInfo info, String label_prefix='', boolean run_exampl
     }
 
     if (run_examples) {
-        jobs = jobs + gen_all_example_jobs()
+        jobs = jobs + gen_all_example_jobs(info)
     }
 
     if (env.PUSH_COVERITY == "true") {
-        jobs = jobs + gen_coverity_push_jobs()
+        jobs = jobs + gen_coverity_push_jobs(info)
     }
 
     return jobs

@@ -41,9 +41,6 @@ import net.sf.json.JSONObject
 import org.mbed.tls.jenkins.BranchInfo
 import org.mbed.tls.jenkins.JobTimestamps
 
-// A static field has its content preserved across stages.
-@Field static outcome_stashes = []
-
 @Field private static ConcurrentMap<String, ConcurrentMap<String, JobTimestamps>> timestamps =
         new ConcurrentHashMap<String, ConcurrentMap<String, JobTimestamps>>();
 
@@ -217,71 +214,79 @@ void gather_timestamps() {
     }
 }
 
-def stash_outcomes(job_name) {
+void stash_outcomes(BranchInfo info, String job_name) {
     def stash_name = job_name + '-outcome'
     if (findFiles(glob: '*-outcome.csv')) {
         stash(name: stash_name,
               includes: '*-outcome.csv',
               allowEmpty: true)
-        outcome_stashes.add(stash_name)
+        info.outcome_stashes.add(stash_name)
     }
 }
 
 /** Process the outcome files from all the jobs */
-def analyze_results(BranchInfo info) {
-    // After running a partial run, there may not be any outcome file.
-    // In this case do nothing.
-    if (outcome_stashes.isEmpty()) {
-        echo 'outcome_stashes is empty, skipping result-analysis.'
-        return
-    }
+void  analyze_results(Collection<BranchInfo> infos) {
+    def job_map = infos.collectEntries { info ->
+        // After running a partial run, there may not be any outcome file.
+        // In this case do nothing.
+        // Set.isEmpty() seems bugged, use Groovy truth instead
+        if (!info.outcome_stashes) {
+            echo "outcome_stashes for branch $info.branch is empty, skipping result-analysis."
+            return [:]
+        }
 
-    String job_name = 'result-analysis'
+        String prefix = infos.size() > 1 ? "$info.branch-" : ''
+        String job_name = "${prefix}result-analysis"
+        String outcomes_csv = "${prefix}outcomes.csv"
+        String failures_csv = "${prefix}failures.csv"
 
-    Closure post_checkout = {
-        dir('csvs') {
-            for (stash_name in outcome_stashes) {
-                unstash(stash_name)
+        Closure post_checkout = {
+            dir('csvs') {
+                for (stash_name in info.outcome_stashes) {
+                    unstash(stash_name)
+                }
+                sh "cat *.csv >'../$outcomes_csv'"
+                deleteDir()
             }
-            sh 'cat *.csv >../outcomes.csv'
-            deleteDir()
+
+            // The complete outcome file is 2.1GB uncompressed / 56MB compressed as I write.
+            // Often we just want the failures, so make an artifact with just those.
+            // Only produce a failure file if there was a failing job (otherwise
+            // we'd just waste time creating an empty file).
+            //
+            // Note that grep ';FAIL;' could pick up false positives, if another field such
+            // as test description or test suite was "FAIL".
+            if (info.failed_builds) {
+                sh """\
+LC_ALL=C grep ';FAIL;' outcomes.csv >'$failures_csv' || [ \$? -eq 1 ]
+# Compress the failure list if it is large (for some value of large)
+if [ "\$(wc -c <'$failures_csv')" -gt 99999 ]; then
+    xz -0 -T0 '$failures_csv'
+fi
+"""
+            }
         }
 
-        // The complete outcome file is 2.1GB uncompressed / 56MB compressed as I write.
-        // Often we just want the failures, so make an artifact with just those.
-        // Only produce a failure file if there was a failing job (otherwise
-        // we'd just waste time creating an empty file).
-        //
-        // Note that grep ';FAIL;' could pick up false positives, if another field such
-        // as test description or test suite was "FAIL".
-        if (gen_jobs.failed_builds) {
-            sh '''\
-    LC_ALL=C grep ';FAIL;' outcomes.csv >"failures.csv" || [ $? -eq 1 ]
-    # Compress the failure list if it is large (for some value of large)
-    if [ "$(wc -c <failures.csv)" -gt 99999 ]; then
-        xz -0 -T0 failures.csv
-    fi
-    '''
+        String script_in_docker = """\
+tests/scripts/analyze_outcomes.py '$outcomes_csv'
+"""
+
+        Closure post_execution = {
+            sh "xz -0 -T0 '$outcomes_csv'"
+            archiveArtifacts(artifacts: "${outcomes_csv}.xz, ${failures_csv}*",
+                             fingerprint: true,
+                             allowEmptyArchive: true)
         }
+
+        return gen_jobs.gen_docker_job(info,
+                                       job_name,
+                                       'helper-container-host',
+                                       'ubuntu-22.04',
+                                       script_in_docker,
+                                       post_checkout: post_checkout,
+                                       post_execution: post_execution)
     }
-
-    String script_in_docker = '''\
-tests/scripts/analyze_outcomes.py outcomes.csv
-'''
-
-    Closure post_execution = {
-        sh 'xz -0 -T0 outcomes.csv'
-        archiveArtifacts(artifacts: 'outcomes.csv.xz, failures.csv*',
-                         fingerprint: true,
-                         allowEmptyArchive: true)
-    }
-
-    def job_map = gen_jobs.gen_docker_job(info,
-                                          job_name,
-                                          'helper-container-host',
-                                          'ubuntu-22.04-amd64',
-                                          script_in_docker,
-                                          post_checkout: post_checkout,
-                                          post_execution: post_execution)
-    common.report_errors(job_name, job_map[job_name])
+    job_map = common.wrap_report_errors(job_map)
+    job_map.failFast = false
+    parallel(job_map)
 }

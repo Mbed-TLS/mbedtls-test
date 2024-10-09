@@ -27,14 +27,17 @@ import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
 import org.mbed.tls.jenkins.BranchInfo
 
-void run_tls_tests(BranchInfo info, String label_prefix='') {
+void run_tls_tests(Collection<BranchInfo> infos) {
     try {
         def jobs = [:]
 
-        jobs = jobs + gen_jobs.gen_release_jobs(info, label_prefix, false)
+        infos.each { info ->
+            def label_prefix = infos.size() > 1 ? "$info.branch-" : ''
+            jobs << gen_jobs.gen_release_jobs(info, label_prefix, false)
 
-        if (env.RUN_ABI_CHECK == "true") {
-            jobs = jobs + gen_jobs.gen_abi_api_checking_job(info, 'ubuntu-18.04-amd64')
+            if (env.RUN_ABI_CHECK == "true") {
+                jobs << gen_jobs.gen_abi_api_checking_job(info, 'ubuntu-18.04-amd64', label_prefix)
+            }
         }
 
         jobs = common.wrap_report_errors(jobs)
@@ -44,7 +47,7 @@ void run_tls_tests(BranchInfo info, String label_prefix='') {
             parallel jobs
         }
     } catch (err) {
-        def failed_names = gen_jobs.failed_builds.keySet().sort().join(" ")
+        def failed_names = infos.collectMany({ info -> info.failed_builds}).sort().join(" ")
         echo "Caught: ${err}"
         echo "Failed jobs: ${failed_names}"
         common.maybe_notify_github('FAILURE', "Failures: ${failed_names}")
@@ -53,7 +56,11 @@ void run_tls_tests(BranchInfo info, String label_prefix='') {
 }
 
 /* main job */
-def run_pr_job(is_production=true) {
+void run_pr_job(String target_repo, boolean is_production, String branches) {
+    run_pr_job(target_repo, is_production, branches.split(',') as List)
+}
+
+void run_pr_job(String target_repo, boolean is_production, List<String> branches) {
     analysis.main_record_timestamps('run_pr_job') {
         if (is_production) {
             // Cancel in-flight jobs for the same PR when a new job is launched
@@ -84,7 +91,7 @@ def run_pr_job(is_production=true) {
             ])
         }
 
-        environ.set_tls_pr_environment(is_production)
+        environ.set_pr_environment(target_repo, is_production)
         boolean is_merge_queue = env.BRANCH_NAME ==~ /gh-readonly-queue\/.*/
 
         if (!is_merge_queue && currentBuild.rawBuild.getCause(Cause.UserIdCause) == null) {
@@ -94,7 +101,7 @@ def run_pr_job(is_production=true) {
             }
         }
 
-        BranchInfo info
+        Map<String, BranchInfo> infos
 
         try {
             common.maybe_notify_github('PENDING', 'In progress')
@@ -114,8 +121,15 @@ def run_pr_job(is_production=true) {
             common.init_docker_images()
 
             stage('pre-test-checks') {
-                info = common.get_branch_information()
-                common.check_every_all_sh_component_will_be_run(info)
+                def pre_test_checks = branches.collectEntries {
+                    branch -> gen_jobs.job(branch) {
+                        BranchInfo info = common.get_branch_information(branch)
+                        common.check_every_all_sh_component_will_be_run(info)
+                        return info
+                    }
+                }
+                pre_test_checks.failFast = false
+                infos = parallel(pre_test_checks)
             }
         } catch (err) {
             def description = 'Pre-test checks failed.'
@@ -128,11 +142,11 @@ def run_pr_job(is_production=true) {
 
         try {
             stage('tls-testing') {
-                run_tls_tests(info)
+                run_tls_tests(infos.values())
             }
         } finally {
             stage('result-analysis') {
-                analysis.analyze_results(info)
+                analysis.analyze_results(infos.values())
             }
         }
 
@@ -141,22 +155,41 @@ def run_pr_job(is_production=true) {
 }
 
 /* main job */
-def run_job() {
-    run_pr_job()
+void run_job() {
+    run_pr_job('tls', true, env.CHANGE_BRANCH)
 }
 
-void run_release_job() {
-    BranchInfo info
+void run_framework_pr_job() {
+    run_pr_job('framework', true, ['development', 'mbedtls-3.6'])
+}
+
+void run_release_job(String branches) {
+    run_release_job(branches.split(',') as List)
+}
+
+void run_release_job(List<String> branches) {
     analysis.main_record_timestamps('run_release_job') {
+        Map<String, BranchInfo> infos
         try {
             environ.set_tls_release_environment()
             common.init_docker_images()
+
             stage('branch-info') {
-                info = common.get_branch_information()
+                def branch_info_jobs = branches.collectEntries {
+                    branch -> gen_jobs.job(branch) {
+                        return common.get_branch_information(branch)
+                    }
+                }
+                branch_info_jobs.failFast = false
+                infos = parallel(branch_info_jobs)
             }
             try {
                 stage('tls-testing') {
-                    def jobs = common.wrap_report_errors(gen_jobs.gen_release_jobs(info))
+                    def jobs = infos.collectEntries { branch, info ->
+                        String prefix = branches.size() > 1 ? "$branch-" : ''
+                        return gen_jobs.gen_release_jobs(info, prefix)
+                    }
+                    jobs = common.wrap_report_errors(jobs)
                     jobs.failFast = false
                     analysis.record_inner_timestamps('main', 'run_release_job') {
                         parallel jobs
@@ -165,14 +198,17 @@ void run_release_job() {
             }
             finally {
                 stage('result-analysis') {
-                    analysis.analyze_results(info)
+                    analysis.analyze_results(infos.values())
                 }
             }
         } finally {
             stage('email-report') {
                 if (currentBuild.rawBuild.causes[0] instanceof ParameterizedTimerTriggerCause ||
                     currentBuild.rawBuild.causes[0] instanceof TimerTrigger.TimerTriggerCause) {
-                    common.send_email('Mbed TLS nightly tests', env.MBED_TLS_BRANCH, gen_jobs.failed_builds, gen_jobs.coverage_details)
+                    common.send_email('Mbed TLS nightly tests',
+                                      infos.values(),
+                                      gen_jobs.coverage_details
+                    )
                 }
             }
         }

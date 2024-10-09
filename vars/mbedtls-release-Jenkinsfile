@@ -25,6 +25,8 @@
  * Repos and branches
  *  - MBED_TLS_REPO
  *  - MBED_TLS_BRANCH
+ *  - FRAMEWORK_REPO
+ *  - FRAMEWORK_BRANCH
  *
  * Test options
  *  - RUN_BASIC_BUILD_TEST
@@ -41,4 +43,4 @@
 
 /* main job */
 library identifier: 'mbedtls-test@master', retriever: legacySCM(scm)
-mbedtls.run_release_job()
+mbedtls.run_release_job(env.MBED_TLS_BRANCH)
