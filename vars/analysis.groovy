@@ -272,7 +272,7 @@ tests/scripts/analyze_outcomes.py '$outcomes_csv'
 """
 
         Closure post_execution = {
-            sh "xz -0 -T0 '$outcomes_csv'"
+            sh "[ -f '$outcomes_csv' ] && xz -0 -T0 '$outcomes_csv'"
             archiveArtifacts(artifacts: "${outcomes_csv}.xz, ${failures_csv}*",
                              fingerprint: true,
                              allowEmptyArchive: true)
