@@ -621,7 +621,8 @@ def gen_coverity_push_jobs() {
                     checkout_repo.checkout_repo()
                     sshagent([env.GIT_CREDENTIALS_ID]) {
                         analysis.record_inner_timestamps('container-host', job_name) {
-                            sh 'git push origin HEAD:coverity_scan'
+                            // Git complains about non-fast-forward operations when trying to push a shallow commit
+                            sh 'git fetch --unshallow && git push origin HEAD:coverity_scan'
                         }
                     }
                 }
