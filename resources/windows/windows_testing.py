@@ -163,11 +163,11 @@ class MbedWindowsTesting(object):
         self.selftest_success_pattern = "\[ All tests (PASS|passed) \]"
         self.test_suites_success_pattern = "100% tests passed, 0 tests failed"
         self.mingw_success_pattern = "PASSED \(\d+ suites, \d+ tests run\)"
-        self.config_pl_location = os.path.join("scripts", "config.pl")
+        self.config_py_location = os.path.join("scripts", "config.py")
         self.selftest_exe = "selftest.exe"
         self.mingw_command = "mingw32-make"
         self.git_command = "git"
-        self.perl_command = "perl"
+        self.python_command = "python.exe"
 
     def this_version_forbids_c99(self, path):
         # If CMakeLists.txt contains -Wdeclaration-after-statement,
@@ -259,11 +259,11 @@ class MbedWindowsTesting(object):
         """Enables all config specified in config.pl, then disables config
          based on the version being tested."""
         logger.info("Enabling as much of {} as possible".format(
-                self.config_pl_location
+                self.config_py_location
         ))
         try:
             enable_output = subprocess.run(
-                [self.perl_command, self.config_pl_location, "full"],
+                [self.python_command, self.config_py_location, "full"],
                 cwd=git_worktree_path,
                 encoding=sys.stdout.encoding,
                 stdout=subprocess.PIPE,
@@ -273,7 +273,7 @@ class MbedWindowsTesting(object):
             logger.info(enable_output.stdout)
             for option in self.config_to_disable:
                 disable_output = subprocess.run(
-                    [self.perl_command, self.config_pl_location,
+                    [self.python_command, self.config_py_location,
                      "unset", option],
                     cwd=git_worktree_path,
                     encoding=sys.stdout.encoding,
