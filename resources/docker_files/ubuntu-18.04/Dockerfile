@@ -30,6 +30,7 @@ WORKDIR /opt/src
 
 # Note: scripts/min_requirements.py need a writable
 # destination for installing python dependencies
+# FIXME: this houls be /var/lib/build to use the host src directory as HOME
 ENV HOME=/var/lib/builds
 
 # Support for 32-bit builds+tests of Mbed TLS
