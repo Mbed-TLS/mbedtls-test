@@ -274,6 +274,16 @@ ${extra_setup_code}
                 try {
                     if (use_docker) {
                         analysis.record_inner_timestamps(node_label, job_name) {
+                            if (common.is_open_ci_env && platform.startsWith('arm-compilers')) {
+                                withCredentials([string(credentialsId: 'MBEDTLS_ARMCLANG_UBL_CODE', variable:'MBEDTLS_ARMCLANG_UBL_CODE')]) {
+                                    sh common.docker_script(
+                                        platform,
+                                        '/bin/sh',
+                                        '-c \'exec $ARMC6_BIN_DIR/armlm activate -code "$MBEDTLS_ARMCLANG_UBL_CODE"\'',
+                                        ['MBEDTLS_ARMCLANG_UBL_CODE']
+                                    )
+                                }
+                            }
                             sh common.docker_script(
                                 platform, "/var/lib/build/steps.sh"
                             )
@@ -701,14 +711,13 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
                 if (overwrite || !image_exists) {
                     dir('docker') {
                         deleteDir()
-                        writeFile file: 'Dockerfile', text: dockerfile
-                        def extra_build_args = ''
+                        try {
+                            writeFile file: 'Dockerfile', text: dockerfile
+                            def extra_build_args = ''
 
-                        if (common.is_open_ci_env) {
-                            extra_build_args = '--build-arg ARMLMD_LICENSE_FILE=27000@flexnet.trustedfirmware.org'
-
-                            withCredentials([string(credentialsId: 'DOCKER_AUTH', variable: 'TOKEN')]) {
-                                sh """\
+                            if (common.is_open_ci_env) {
+                                withCredentials([string(credentialsId: 'DOCKER_AUTH', variable: 'TOKEN')]) {
+                                    sh """\
 mkdir -p ${env.HOME}/.docker
 cat > ${env.HOME}/.docker/config.json << EOF
 {
@@ -721,30 +730,44 @@ cat > ${env.HOME}/.docker/config.json << EOF
 EOF
 chmod 0600 ${env.HOME}/.docker/config.json
 """
-                            }
-                        } else {
-                            sh """\
+                                }
+                            } else {
+                                sh """\
 aws ecr get-login-password | docker login --username AWS --password-stdin $common.docker_ecr
 """
-                        }
+                            }
 
-                        analysis.record_inner_timestamps(node_label, platform) {
-                            sh """\
+                            // Generate download URL for armclang
+                            if (platform.startsWith('arm-compilers')) {
+                                withCredentials(common.is_open_ci_env ? [] : [aws(credentialsId: 'armclang-readonly-keys')]) {
+                                    sh '''
+aws s3 presign s3://trustedfirmware-private/armclang/ARMCompiler6.21_standalone_linux-x86_64.tar.gz >armc6_url
+'''
+                                    extra_build_args +=
+                                        ' --secret id=armc6_url,src=./armc6_url'
+                                }
+                            }
+
+                            analysis.record_inner_timestamps(node_label, platform) {
+                                sh """\
 # Use BuildKit and a remote build cache to pull only the reuseable layers
 # from the last successful build for this platform
 DOCKER_BUILDKIT=1 docker build \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
-    --build-arg DOCKER_REPO=$common.docker_repo \
     $extra_build_args \
     --cache-from $common.docker_repo:$cache \
     --cache-from $common.docker_repo:$image-cache \
     -t $common.docker_repo:$tag \
-    -t $common.docker_repo:$cache .
+    -t $common.docker_repo:$cache \
+    - <Dockerfile
 
 # Push the image with its unique tag, as well as the build cache tag
 docker push $common.docker_repo:$tag
 docker push $common.docker_repo:$cache
 """
+                            }
+                        } finally {
+                            deleteDir()
                         }
                     }
                 }
