@@ -156,7 +156,7 @@ void run_pr_job(String target_repo, boolean is_production, List<String> branches
 
 /* main job */
 void run_job() {
-    run_pr_job('tls', true, env.CHANGE_BRANCH)
+    run_pr_job('tls', true, env.CHANGE_BRANCH ?: env.BRANCH_NAME)
 }
 
 void run_framework_pr_job() {
