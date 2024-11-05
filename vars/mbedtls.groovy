@@ -156,6 +156,7 @@ void run_pr_job(String target_repo, boolean is_production, List<String> branches
 
 /* main job */
 void run_job() {
+    // CHANGE_BRANCH is not set in "branch" jobs, eg. in the merge queue
     run_pr_job('tls', true, env.CHANGE_BRANCH ?: env.BRANCH_NAME)
 }
 
