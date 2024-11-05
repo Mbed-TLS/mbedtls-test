@@ -29,14 +29,15 @@ def set_common_environment() {
     env.VERBOSE_LOGS=1
 }
 
-def set_tls_pr_environment(is_production) {
+void set_pr_environment(String target_repo, boolean is_production) {
     set_common_environment()
     env.JOB_TYPE = 'PR'
-    env.TARGET_REPO = 'tls'
-    env.REPO_TO_CHECKOUT = 'tls'
+    env.TARGET_REPO = target_repo
     if (is_production) {
+        if (target_repo == 'framework') {
+            env.MBED_TLS_REPO = 'git@github.com:Mbed-TLS/mbedtls.git'
+        }
         set_common_pr_production_environment()
-        set_tls_pr_production_environment()
     } else {
         env.CHECKOUT_METHOD = 'parametrized'
     }
@@ -44,6 +45,10 @@ def set_tls_pr_environment(is_production) {
 
 def set_common_pr_production_environment() {
     env.CHECKOUT_METHOD = 'scm'
+    /* The credentials here are the SSH credentials for accessing the repositories.
+       They are defined at {JENKINS_URL}/credentials
+       This is a temporary workaround, this should really be set in the Jenkins job configs */
+    env.GIT_CREDENTIALS_ID = common.is_open_ci_env ? "mbedtls-github-ssh" : "742b7080-e1cc-41c6-bf55-efb72013bc28"
     if (env.BRANCH_NAME ==~ /PR-\d+-merge/) {
         env.RUN_ABI_CHECK = 'true'
     } else {
@@ -62,15 +67,10 @@ def set_common_pr_production_environment() {
     }
 }
 
-def set_tls_pr_production_environment() {
-    env.MBED_TLS_BRANCH = env.CHANGE_BRANCH
-}
-
 def set_tls_release_environment() {
     set_common_environment()
     env.JOB_TYPE = 'release'
     env.TARGET_REPO = 'tls'
-    env.REPO_TO_CHECKOUT = 'tls'
     env.CHECKOUT_METHOD = 'parametrized'
 }
 
