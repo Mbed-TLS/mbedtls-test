@@ -204,7 +204,13 @@ void run_release_job(List<String> branches) {
             }
         } finally {
             stage('email-report') {
-                common.maybe_send_email('Mbed TLS nightly tests', infos.values())
+                String type
+                if (currentBuild.rawBuild.getCause(TimerTrigger.TimerTriggerCause) != null) {
+                    type = 'nightly'
+                } else {
+                    type = 'release'
+                }
+                common.maybe_send_email("Mbed TLS $type tests", infos.values())
             }
         }
     }
