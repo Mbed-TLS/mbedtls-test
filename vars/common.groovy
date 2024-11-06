@@ -441,6 +441,7 @@ Logs: ${env.BUILD_URL}
     String subject = ((is_open_ci_env ? "TF Open CI" : "Internal CI") + " ${name} " + \
            (failed ? "failed" : "passed") + "! (branches: ${branches})")
     echo """\
+To: $recipients
 Subject: $subject
 
 $emailbody
