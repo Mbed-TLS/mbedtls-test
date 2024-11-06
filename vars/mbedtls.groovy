@@ -22,7 +22,6 @@ import hudson.model.Cause
 import hudson.model.Result
 import hudson.triggers.TimerTrigger
 import jenkins.model.CauseOfInterruption
-import org.jenkinsci.plugins.parameterizedscheduler.ParameterizedTimerTriggerCause
 import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
 import org.mbed.tls.jenkins.BranchInfo
