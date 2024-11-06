@@ -204,10 +204,7 @@ void run_release_job(List<String> branches) {
             }
         } finally {
             stage('email-report') {
-                if (currentBuild.rawBuild.causes[0] instanceof ParameterizedTimerTriggerCause ||
-                    currentBuild.rawBuild.causes[0] instanceof TimerTrigger.TimerTriggerCause) {
-                    common.send_email('Mbed TLS nightly tests', infos.values())
-                }
+                common.send_email('Mbed TLS nightly tests', infos.values())
             }
         }
     }

@@ -437,12 +437,17 @@ Logs: ${env.BUILD_URL}
     }
     subject = ((is_open_ci_env ? "TF Open CI" : "Internal CI") + " ${name} " + \
            (failed_builds ? "failed" : "passed") + "! (branches: ${branches})")
-    echo subject
-    echo emailbody
-    emailext body: emailbody,
-             subject: subject,
-             to: recipients,
-             mimeType: 'text/plain'
+    echo """\
+Subject: $subject
+
+$emailbody
+"""
+    if (recipients) {
+        emailext body: emailbody,
+                 subject: subject,
+                 to: recipients,
+                 mimeType: 'text/plain'
+    }
 }
 
 @NonCPS
