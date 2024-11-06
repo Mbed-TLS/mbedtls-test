@@ -413,7 +413,7 @@ done
     )
 }
 
-void send_email(String name, Collection<BranchInfo> infos) {
+void maybe_send_email(String name, Collection<BranchInfo> infos) {
     String branches = infos*.branch.join(',')
     def failed_builds = infos.collectMany { info -> info.failed_builds}
     String coverage_details = infos.collect({info -> "$info.branch:\n$info.coverage_details"}).join('\n\n')

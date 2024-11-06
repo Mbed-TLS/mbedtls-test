@@ -204,7 +204,7 @@ void run_release_job(List<String> branches) {
             }
         } finally {
             stage('email-report') {
-                common.send_email('Mbed TLS nightly tests', infos.values())
+                common.maybe_send_email('Mbed TLS nightly tests', infos.values())
             }
         }
     }
