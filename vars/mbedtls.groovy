@@ -22,7 +22,6 @@ import hudson.model.Cause
 import hudson.model.Result
 import hudson.triggers.TimerTrigger
 import jenkins.model.CauseOfInterruption
-import org.jenkinsci.plugins.parameterizedscheduler.ParameterizedTimerTriggerCause
 import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
 import org.mbed.tls.jenkins.BranchInfo
@@ -170,7 +169,7 @@ void run_release_job(String branches) {
 
 void run_release_job(List<String> branches) {
     analysis.main_record_timestamps('run_release_job') {
-        Map<String, BranchInfo> infos
+        Map<String, BranchInfo> infos = [:]
         try {
             environ.set_tls_release_environment()
             common.init_docker_images()
@@ -204,13 +203,13 @@ void run_release_job(List<String> branches) {
             }
         } finally {
             stage('email-report') {
-                if (currentBuild.rawBuild.causes[0] instanceof ParameterizedTimerTriggerCause ||
-                    currentBuild.rawBuild.causes[0] instanceof TimerTrigger.TimerTriggerCause) {
-                    common.send_email('Mbed TLS nightly tests',
-                                      infos.values(),
-                                      gen_jobs.coverage_details
-                    )
+                String type
+                if (currentBuild.rawBuild.getCause(TimerTrigger.TimerTriggerCause) != null) {
+                    type = 'nightly'
+                } else {
+                    type = 'release'
                 }
+                common.maybe_send_email("Mbed TLS $type tests", infos.values())
             }
         }
     }

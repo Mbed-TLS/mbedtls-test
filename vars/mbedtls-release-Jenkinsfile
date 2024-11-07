@@ -34,8 +34,8 @@
  *  - RUN_WINDOWS_TEST
  *
  * Other parameters
- *  - TEST_FAIL_EMAIL_ADDRESS - (only in nightly jobs)
- *  - TEST_PASS_EMAIL_ADDRESS - (only in nightly jobs)
+ *  - TEST_FAIL_EMAIL_ADDRESS
+ *  - TEST_PASS_EMAIL_ADDRESS
  *
  * Environment variables:
  *  - GIT_CREDENTIALS_ID
