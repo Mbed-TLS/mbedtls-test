@@ -124,14 +124,19 @@ Map<String, Callable<Void>> gen_docker_job(Map<String, Closure> hooks,
                                            String script_in_docker) {
     return instrumented_node_job(node_label, job_name) {
         try {
-            deleteDir()
-            common.get_docker_image(platform)
-            dir('src') {
-                checkout_repo.checkout_tls_repo(info)
-                if (hooks.post_checkout) {
-                    hooks.post_checkout()
+            stage('checkout') {
+                deleteDir()
+                common.get_docker_image(platform)
+                dir('src') {
+                    checkout_repo.checkout_tls_repo(info)
+                    if (hooks.post_checkout) {
+                        hooks.post_checkout()
+                    }
                 }
-                writeFile file: 'steps.sh', text: """\
+            }
+            stage(job_name) {
+                dir('src') {
+                    writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
 ulimit -f 20971520
@@ -140,24 +145,25 @@ if [ -e scripts/min_requirements.py ]; then
 scripts/min_requirements.py --user ${info.python_requirements_override_file}
 fi
 """ + script_in_docker
-                sh 'chmod +x steps.sh'
-            }
-            timeout(time: common.perJobTimeout.time,
+                    sh 'chmod +x steps.sh'
+                }
+                timeout(time: common.perJobTimeout.time,
                     unit: common.perJobTimeout.unit) {
-                try {
-                    analysis.record_inner_timestamps(node_label, job_name) {
-                        sh common.docker_script(
+                    try {
+                        analysis.record_inner_timestamps(node_label, job_name) {
+                            sh common.docker_script(
                                 platform, "/var/lib/build/steps.sh"
-                        )
-                    }
-                    if (hooks.post_success) {
-                        dir('src') {
-                            hooks.post_success()
+                            )
                         }
-                    }
-                } finally {
-                    dir('src/tests/') {
-                        common.archive_zipped_log_files(job_name)
+                        if (hooks.post_success) {
+                            dir('src') {
+                                hooks.post_success()
+                            }
+                        }
+                    } finally {
+                        dir('src/tests/') {
+                            common.archive_zipped_log_files(job_name)
+                        }
                     }
                 }
             }
@@ -166,8 +172,10 @@ fi
             throw (err)
         } finally {
             if (hooks.post_execution) {
-                dir('src') {
-                    hooks.post_execution()
+                stage('post-execution') {
+                    dir('src') {
+                        hooks.post_execution()
+                    }
                 }
             }
             deleteDir()
