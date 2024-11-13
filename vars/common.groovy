@@ -333,8 +333,9 @@ BranchInfo get_branch_information(String branch) {
 }
 
 def check_every_all_sh_component_will_be_run(BranchInfo info) {
-    def untested_all_sh_components = info.all_all_sh_components.collectMany(
-        {name, platform -> platform ? [] : [name]})
+    def untested_all_sh_components = info.all_all_sh_components.findResults {
+        name, platform -> platform ? null : name
+    }
     if (untested_all_sh_components != []) {
         error(
             "Pre-test checks failed: Unable to run all.sh components: \
