@@ -100,7 +100,7 @@ void run_pr_job(String target_repo, boolean is_production, List<String> branches
             }
         }
 
-        Map<String, BranchInfo> infos
+        List<BranchInfo> infos
 
         try {
             common.maybe_notify_github('PENDING', 'In progress')
@@ -128,7 +128,7 @@ void run_pr_job(String target_repo, boolean is_production, List<String> branches
                     }
                 }
                 pre_test_checks.failFast = false
-                infos = parallel(pre_test_checks)
+                infos = parallel(pre_test_checks).values()
             }
         } catch (err) {
             def description = 'Pre-test checks failed.'
@@ -141,11 +141,11 @@ void run_pr_job(String target_repo, boolean is_production, List<String> branches
 
         try {
             stage('tls-testing') {
-                run_tls_tests(infos.values())
+                run_tls_tests(infos)
             }
         } finally {
             stage('result-analysis') {
-                analysis.analyze_results(infos.values())
+                analysis.analyze_results(infos)
             }
         }
 
@@ -169,7 +169,7 @@ void run_release_job(String branches) {
 
 void run_release_job(List<String> branches) {
     analysis.main_record_timestamps('run_release_job') {
-        Map<String, BranchInfo> infos = [:]
+        List<BranchInfo> infos = []
         try {
             environ.set_tls_release_environment()
             common.init_docker_images()
@@ -181,12 +181,12 @@ void run_release_job(List<String> branches) {
                     }
                 }
                 branch_info_jobs.failFast = false
-                infos = parallel(branch_info_jobs)
+                infos = parallel(branch_info_jobs).values()
             }
             try {
                 stage('tls-testing') {
-                    def jobs = infos.collectEntries { branch, info ->
-                        String prefix = branches.size() > 1 ? "$branch-" : ''
+                    def jobs = infos.collectEntries { info ->
+                        String prefix = branches.size() > 1 ? "$info.branch-" : ''
                         return gen_jobs.gen_release_jobs(info, prefix)
                     }
                     jobs = common.wrap_report_errors(jobs)
@@ -198,7 +198,7 @@ void run_release_job(List<String> branches) {
             }
             finally {
                 stage('result-analysis') {
-                    analysis.analyze_results(infos.values())
+                    analysis.analyze_results(infos)
                 }
             }
         } finally {
@@ -209,7 +209,7 @@ void run_release_job(List<String> branches) {
                 } else {
                     type = 'release'
                 }
-                common.maybe_send_email("Mbed TLS $type tests", infos.values())
+                common.maybe_send_email("Mbed TLS $type tests", infos)
             }
         }
     }
