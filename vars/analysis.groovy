@@ -258,7 +258,7 @@ void  analyze_results(Collection<BranchInfo> infos) {
             // as test description or test suite was "FAIL".
             if (info.failed_builds) {
                 sh """\
-LC_ALL=C grep ';FAIL;' outcomes.csv >'$failures_csv' || [ \$? -eq 1 ]
+LC_ALL=C grep ';FAIL;' $outcomes_csv >'$failures_csv' || [ \$? -eq 1 ]
 # Compress the failure list if it is large (for some value of large)
 if [ "\$(wc -c <'$failures_csv')" -gt 99999 ]; then
     xz -0 -T0 '$failures_csv'
