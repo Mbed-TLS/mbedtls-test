@@ -199,6 +199,7 @@ def gen_all_sh_jobs(BranchInfo info, platform, component, label_prefix='') {
     /* Default to the full platform hame is a shorthand is not found */
     def shortplat = shorthands.getOrDefault(platform, platform)
     def job_name = "${label_prefix}all_${shortplat}-${component}"
+    def outcome_file = "${job_name.replace((char) '/', (char) '_')}-outcome.csv"
     def use_docker = platform_has_docker(platform)
     def extra_setup_code = ''
     def node_label = node_label_for_platform(platform)
@@ -262,7 +263,7 @@ scripts/min_requirements.py --user ${info.python_requirements_override_file}
 #!/bin/sh
 set -eux
 ulimit -f 20971520
-export MBEDTLS_TEST_OUTCOME_FILE='${job_name}-outcome.csv'
+export MBEDTLS_TEST_OUTCOME_FILE='$outcome_file'
 ${extra_setup_code}
 ./tests/scripts/all.sh --seed 4 --keep-going $component
 """

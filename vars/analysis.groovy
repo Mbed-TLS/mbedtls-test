@@ -215,7 +215,7 @@ void gather_timestamps() {
 }
 
 void stash_outcomes(BranchInfo info, String job_name) {
-    def stash_name = job_name + '-outcome'
+    def stash_name = job_name.replace((char) '/', (char) '_') + '-outcome'
     if (findFiles(glob: '*-outcome.csv')) {
         stash(name: stash_name,
               includes: '*-outcome.csv',
@@ -237,8 +237,10 @@ void  analyze_results(Collection<BranchInfo> infos) {
 
         String prefix = infos.size() > 1 ? "$info.branch-" : ''
         String job_name = "${prefix}result-analysis"
-        String outcomes_csv = "${prefix}outcomes.csv"
-        String failures_csv = "${prefix}failures.csv"
+
+        String file_prefix = prefix.replace((char) '/', (char) '_')
+        String outcomes_csv = "${file_prefix}outcomes.csv"
+        String failures_csv = "${file_prefix}failures.csv"
 
         Closure post_checkout = {
             dir('csvs') {
