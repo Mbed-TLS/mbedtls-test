@@ -120,15 +120,8 @@ void run_pr_job(String target_repo, boolean is_production, List<String> branches
             common.init_docker_images()
 
             stage('pre-test-checks') {
-                def pre_test_checks = branches.collectEntries {
-                    branch -> gen_jobs.job(branch) {
-                        BranchInfo info = common.get_branch_information(branch)
-                        common.check_every_all_sh_component_will_be_run(info)
-                        return info
-                    }
-                }
-                pre_test_checks.failFast = false
-                infos = parallel(pre_test_checks).values()
+                infos = common.get_branch_information(branches)
+                common.check_every_all_sh_component_will_be_run(infos)
             }
         } catch (err) {
             def description = 'Pre-test checks failed.'
@@ -175,13 +168,7 @@ void run_release_job(List<String> branches) {
             common.init_docker_images()
 
             stage('branch-info') {
-                def branch_info_jobs = branches.collectEntries {
-                    branch -> gen_jobs.job(branch) {
-                        return common.get_branch_information(branch)
-                    }
-                }
-                branch_info_jobs.failFast = false
-                infos = parallel(branch_info_jobs).values()
+                infos = common.get_branch_information(branches)
             }
             try {
                 stage('tls-testing') {
