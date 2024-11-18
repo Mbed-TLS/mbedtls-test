@@ -215,7 +215,7 @@ void gather_timestamps() {
 }
 
 void stash_outcomes(BranchInfo info, String job_name) {
-    def stash_name = job_name + '-outcome'
+    def stash_name = job_name.replace((char) '/', (char) '_') + '-outcome'
     if (findFiles(glob: '*-outcome.csv')) {
         stash(name: stash_name,
               includes: '*-outcome.csv',
@@ -237,8 +237,10 @@ void  analyze_results(Collection<BranchInfo> infos) {
 
         String prefix = infos.size() > 1 ? "$info.branch-" : ''
         String job_name = "${prefix}result-analysis"
-        String outcomes_csv = "${prefix}outcomes.csv"
-        String failures_csv = "${prefix}failures.csv"
+
+        String file_prefix = prefix.replace((char) '/', (char) '_')
+        String outcomes_csv = "${file_prefix}outcomes.csv"
+        String failures_csv = "${file_prefix}failures.csv"
 
         Closure post_checkout = {
             dir('csvs') {
@@ -258,7 +260,7 @@ void  analyze_results(Collection<BranchInfo> infos) {
             // as test description or test suite was "FAIL".
             if (info.failed_builds) {
                 sh """\
-LC_ALL=C grep ';FAIL;' outcomes.csv >'$failures_csv' || [ \$? -eq 1 ]
+LC_ALL=C grep ';FAIL;' $outcomes_csv >'$failures_csv' || [ \$? -eq 1 ]
 # Compress the failure list if it is large (for some value of large)
 if [ "\$(wc -c <'$failures_csv')" -gt 99999 ]; then
     xz -0 -T0 '$failures_csv'
