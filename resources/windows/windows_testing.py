@@ -167,7 +167,7 @@ class MbedWindowsTesting(object):
         self.selftest_exe = "selftest.exe"
         self.mingw_command = "mingw32-make"
         self.git_command = "git"
-        self.python_command = "python.exe"
+        self.python_command = "python"
 
     def this_version_forbids_c99(self, path):
         # If CMakeLists.txt contains -Wdeclaration-after-statement,
