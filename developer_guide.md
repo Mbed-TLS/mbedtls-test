@@ -97,6 +97,8 @@ The Groovy language gives access to the Java standard library. However, on Jenki
 
 Jenkins (with the plugins we have installed) makes some extra functions available, in particular [pipeline steps](https://www.jenkins.io/doc/pipeline/steps/workflow-basic-steps/).
 
+The two CI instances may have different sets of plugins. You can see the plugin list on [OpenCI](https://review.trustedfirmware.org/plugins/gitiles/ci/dockerfiles/+/refs/heads/master/jessie-amd64-jenkins-master/plugins.txt) and on the [internal CI](https://jenkins-mbedtls.oss.arm.com/manage/pluginManager/installed).
+
 #### Global variables
 
 Note that Groovy does not have global variables as such. Each module (`*.groovy` file) is a class, and that class can have multiple instances. Therefore, avoid using script-scope variables in a Groovy module that is loaded from another module. There's existing code that does this, but it's fragile and has caused us headaches so we are moving away from that.
