@@ -142,11 +142,11 @@ As discussed in [“Versioning”](#versioning), remember that the `mbedtls-test
 To validate changes, first upload your changes to a branch in the `mbedtls-test` repository. (Forks are not supported.) Use your personal namespace, i.e. branches called `dev/${your_github_username}/${some_meaningful_name}`. There are two test jobs that cover the common cases:
 
 * [`mbedtls-release-ci-testing`](https://mbedtls.trustedfirmware.org/job/mbedtls-release-ci-testing/): runs a full CI with a chosen branch of `mbedtls-test` on a chosen commit from any repository. Note that in addition to selecting your `mbedtls-test` branch in the dropdown, you need to check one or more of the boxes selecting what will run (`RUN_xxx` variables), otherwise not much will happen.
-* [`mbed-tls-restricted-pr-test-parametrized`](https://mbedtls.trustedfirmware.org/job/mbed-tls-restricted-pr-test-parametrized/): runs the PR tests. Useful for what the release job doesn't cover — mainly “Interface stability tests” (formerly known as “ABI-API-check”). You need to push the branch to test to [`staging/pr-ci-testing`](https://github.com/Mbed-TLS/mbedtls-test/tree/staging/pr-ci-testing), so only one branch can be tested at a time and you need to synchronize with other team members.
-
-For things that aren't covered, such as GitHub or email reporting, ask an expert.
+* [`mbed-tls-restricted-pr-test-parametrized`](https://mbedtls.trustedfirmware.org/job/mbed-tls-restricted-pr-test-parametrized/): runs the PR tests. Useful for what the release job doesn't cover — mainly “Interface stability tests” (formerly known as “ABI-API-check”).
 
 There are similar jobs on the internal CI.
+
+To validate changes to code that's specific to pull requests, such as GitHub reporting, see [the primary PR CI testing PR](https://github.com/Mbed-TLS/mbedtls-restricted/pull/906) (private link).
 
 ### Validation tips
 
