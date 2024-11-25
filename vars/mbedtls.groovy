@@ -119,8 +119,11 @@ void run_pr_job(String target_repo, boolean is_production, List<String> branches
 
             common.init_docker_images()
 
-            stage('pre-test-checks') {
+            stage('branch-info') {
                 infos = common.get_branch_information(branches)
+            }
+
+            stage('pre-test-checks') {
                 common.check_every_all_sh_component_will_be_run(infos)
             }
         } catch (err) {
