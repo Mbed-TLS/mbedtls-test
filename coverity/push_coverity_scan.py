@@ -175,6 +175,12 @@ def build_mbedtls(logger: logging.Logger, mbedtls_dir: pathlib.Path, tools_dir: 
         result = run(['git', 'submodule', 'update', '--init'], capture_output=True, check=True)
         logger.log(logging.INFO, result.stdout.decode("utf-8"))
 
+
+    # Backup config files here prior to running config.py, as the branch checkout may also have
+    # changed them, and backing up before this point will end up with old versions of the file being
+    # restored.
+    backup_config_files(logger, mbedtls_path, False)
+
     # Ensure correct library build configuration.
     result = run(['scripts/config.py', 'full_no_platform'], capture_output=True, check=True)
     logger.log(logging.INFO, result.stdout.decode("utf-8"))
@@ -357,8 +363,6 @@ def main() -> int:
                     if not check_coverity_scan_tools_version(coverity_token, args.os, tools_path):
                         logger.log(logging.INFO, 'Hash file differs, re-downloading tools.')
                         download_coverity_scan_tools(logger, coverity_token, args.os, tools_path)
-
-        backup_config_files(logger, mbedtls_path, False)
 
         with NamedTemporaryFile() as tar_file_handle:
 
