@@ -328,7 +328,7 @@ def main() -> int:
         else:
             # Coverity tools dir specified, see if it exists, contains tools and
             # those tools are up to date.
-            tools_path = pathlib.Path(args.toolsdir)
+            tools_path = pathlib.Path(args.covtools)
             tools_path = tools_path.resolve()
             tools_path_set = True
 
