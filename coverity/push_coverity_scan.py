@@ -30,6 +30,8 @@ Other options:
 * -l / --log: Specify a file to log information on the build to.
 * -m / --backupdir: If specified, this will be used as a directory to backup
     built tar files to.
+* -o / --os: If specified, override the OS specification for the coverity tools
+    default is 64 bit linux
 * -v / --verbose: If specified, all logging will be done to stdout.
 
 """
@@ -62,7 +64,7 @@ class ConfigError(Exception):
     """ Exception class for configuration errors """
     pass
 
-def check_coverity_scan_tools_version(token: str, tools_dir: str) -> bool:
+def check_coverity_scan_tools_version(token: str, tools_os: str, tools_dir: str) -> bool:
     """ Get the md5 of the coverity tools package from coverity.
 
     Enable us to check that we have the latest version, saving a potential large download.
@@ -72,8 +74,7 @@ def check_coverity_scan_tools_version(token: str, tools_dir: str) -> bool:
                   ('project', 'ARMmbed/mbedtls'),
                   ('md5', '1')]
 
-    # Presumption of linux here, could support other build types?
-    md5_request = requests.get('https://scan.coverity.com/download/linux64', data=query_data,
+    md5_request = requests.get('https://scan.coverity.com/download/' + tools_os, data=query_data,
                                timeout=60)
     md5_request.raise_for_status()
 
@@ -116,7 +117,7 @@ def filter_root_tar_dir(tar_file: tarfile.TarFile) -> Iterable[tarfile.TarInfo]:
             tar_member.path = str(member_path.relative_to(*member_path.parts[:1]))
             yield tar_member
 
-def download_coverity_scan_tools(logger: logging.Logger, token: str, tools_dir: str) -> None:
+def download_coverity_scan_tools(logger: logging.Logger, token: str, tools_os: str, tools_dir: str) -> None:
 
     """ Download the coverity scan tools.
 
@@ -128,8 +129,7 @@ def download_coverity_scan_tools(logger: logging.Logger, token: str, tools_dir: 
 
     logger.log(logging.INFO, "Downloading Coverity Scan....")
 
-    # Presumption of linux here, could support other build types?
-    package_request = requests.get('https://scan.coverity.com/download/linux64', data=query_data,
+    package_request = requests.get('https://scan.coverity.com/download/' + tools_os, data=query_data,
                                    timeout=60)
     package_request.raise_for_status()
 
@@ -261,9 +261,11 @@ def main() -> int:
     parser.add_argument('-t', '--token', help='Coverity Scan Token')
     parser.add_argument('-l', '--log', help='File to log to')
     parser.add_argument('-m', '--backupdir', help='Directory to backup tar files to')
+    parser.add_argument('-o', '--os', help='Specify OS for coverity tools',
+                        choices=['linux64', 'linux-ARM64', 'freebsd64', 'win64'],
+                        default='linux64')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Verbose logging to stdout')
-
     parser.add_argument('mbedtlsdir', help='Mbed TLS directory')
 
     args = parser.parse_args()
@@ -324,7 +326,7 @@ def main() -> int:
             tools_path = pathlib.Path(dir_path)
             tools_path_set = True
 
-            download_coverity_scan_tools(logger, coverity_token, tools_path)
+            download_coverity_scan_tools(logger, coverity_token, args.os, tools_path)
         else:
             # Coverity tools dir specified, see if it exists, contains tools and
             # those tools are up to date.
@@ -337,18 +339,18 @@ def main() -> int:
                 logger.log(logging.INFO, 'Tools dir does not exist, creating.')
                 tools_path.mkdir()
 
-                download_coverity_scan_tools(logger, coverity_token, tools_path)
+                download_coverity_scan_tools(logger, coverity_token, args.os, tools_path)
             else:
                 hash_path = tools_path / 'coverity_tool.md5'
 
                 if not hash_path.is_file():
                     logger.log(logging.INFO, 'Hash file does not exist, re-downloading.')
-                    download_coverity_scan_tools(logger, coverity_token, tools_path)
+                    download_coverity_scan_tools(logger, coverity_token, args.os, tools_path)
                 else:
                     # Attempt to check if our coverity scan package is up to date.
-                    if not check_coverity_scan_tools_version(coverity_token, tools_path):
+                    if not check_coverity_scan_tools_version(coverity_token, args.os, tools_path):
                         logger.log(logging.INFO, 'Hash file differs, re-downloading tools.')
-                        download_coverity_scan_tools(logger, coverity_token, tools_path)
+                        download_coverity_scan_tools(logger, coverity_token, args.os, tools_path)
 
         backup_config_files(mbedtls_path, False)
 
