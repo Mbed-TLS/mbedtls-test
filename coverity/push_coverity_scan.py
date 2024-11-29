@@ -166,6 +166,9 @@ def build_mbedtls(logger: logging.Logger, mbedtls_dir: pathlib.Path, tools_dir: 
                      check=True)
         logger.log(logging.INFO, result.stdout.decode("utf-8"))
 
+        result = run(['git', 'submodule', 'update', '--init'], capture_output=True, check=True)
+        logger.log(logging.INFO, result.stdout.decode("utf-8"))
+
     # Ensure correct library build configuration.
     result = run(['scripts/config.py', 'full_no_platform'], capture_output=True, check=True)
     logger.log(logging.INFO, result.stdout.decode("utf-8"))
