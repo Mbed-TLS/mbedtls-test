@@ -86,7 +86,7 @@ def check_coverity_scan_tools_version(token: str, tools_os: str, tools_dir: str)
 
     return tools_hash == md5_request.text
 
-def backup_config_files(mbedtls_dir: pathlib.Path, restore: bool) -> None:
+def backup_config_files(logger: logging.Logger, mbedtls_dir: pathlib.Path, restore: bool) -> None:
     """Backup / Restore config file. """
 
     config_path = pathlib.Path(mbedtls_dir)
@@ -97,8 +97,12 @@ def backup_config_files(mbedtls_dir: pathlib.Path, restore: bool) -> None:
 
     if restore:
         if backup_path.is_file():
+            logger.log(logging.INFO, "replacing {} with {}".format(config_path, backup_path))
             backup_path.replace(config_path)
+        else:
+            logger.log(logging.INFO, "backup {} does not exist".format(backup_path))
     else:
+        logger.log(logging.INFO, "backing up {} to {}".format(config_path, backup_path))
         shutil.copy(config_path, config_path.with_suffix('.h.bak'))
 
 def filter_root_tar_dir(tar_file: tarfile.TarFile) -> Iterable[tarfile.TarInfo]:
@@ -352,7 +356,7 @@ def main() -> int:
                         logger.log(logging.INFO, 'Hash file differs, re-downloading tools.')
                         download_coverity_scan_tools(logger, coverity_token, args.os, tools_path)
 
-        backup_config_files(mbedtls_path, False)
+        backup_config_files(logger, mbedtls_path, False)
 
         with NamedTemporaryFile() as tar_file_handle:
 
@@ -397,7 +401,7 @@ def main() -> int:
         if args.covtools is None and tools_path_set:
             shutil.rmtree(tools_path)
 
-        backup_config_files(mbedtls_path, True)
+        backup_config_files(logger, mbedtls_path, True)
 
     logger.log(logging.INFO, "### Script done.")
     return ret_code
