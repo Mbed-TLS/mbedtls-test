@@ -22,16 +22,18 @@ Other options:
 * -c / --covtools: If specified, the coverity tools will be downloaded here. If
     there is already a set of coverity tools in the specified directory, they
     will be checked for appropriate version, and overwritten only if necessary.
-* -p / --pre-build-step: Specify the command to run pre-build - defaults to
-    'make clean'.
-* -s / --build-step: Specify the command to run to build the project - defaults
-    to 'make -j'.
-
+* -e / --email: Email address to send build notifications to
+* -t / --token: The Coverity Scan token - needs to be got from the coverity web
+    UI
 * -l / --log: Specify a file to log information on the build to.
 * -m / --backupdir: If specified, this will be used as a directory to backup
     built tar files to.
 * -o / --os: If specified, override the OS specification for the coverity tools
     default is 64 bit linux
+* -p / --pre-build-step: Specify the command to run pre - build.
+    defaults to 'make clean'.
+* -s / --build-step: Specify the command to run to build the project.
+    defaults to 'make -j <num_cpus>'.
 * -v / --verbose: If specified, all logging will be done to stdout.
 
 """
@@ -258,8 +260,6 @@ def main() -> int:
                         help='Directory to store downloaded coverity tools in')
     parser.add_argument('-e', '--email', help='Email address to send build notifications to',
                         required=True)
-    parser.add_argument('-p', '--pre-build-step', help='Command to run pre-build',
-                        default='make clean && tests/scripts/check-generated-files.sh -u')
     parser.add_argument('-s', '--build-step', help='Command to run to build the project',
                         default = 'make -j{}'.format(cpu_count()))
     parser.add_argument('-t', '--token', help='Coverity Scan Token')
@@ -268,6 +268,8 @@ def main() -> int:
     parser.add_argument('-o', '--os', help='Specify OS for coverity tools',
                         choices=['linux64', 'linux-ARM64', 'freebsd64', 'win64'],
                         default='linux64')
+    parser.add_argument('-p', '--pre-build-step', help='Command to run pre-build',
+                        default='make clean && tests/scripts/check-generated-files.sh -u')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Verbose logging to stdout')
     parser.add_argument('mbedtlsdir', help='Mbed TLS directory')
