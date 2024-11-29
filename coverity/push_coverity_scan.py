@@ -370,7 +370,8 @@ def main() -> int:
                 backup_path = pathlib.Path(args.backupdir)
 
                 if not backup_path.is_dir():
-                    raise ConfigError('Backup dir specfied does not exist.')
+                    logger.log(logging.INFO, 'Backup dir does not exist, creating.')
+                    backup_path.mkdir()
 
                 backup_path = backup_path.resolve()
                 backup_path = backup_path / datetime.today().strftime('mbedtls-%y-%m-%d.tar.gz')
