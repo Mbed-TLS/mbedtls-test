@@ -64,8 +64,8 @@ What goes for `mbedtls` also goes for other repositories tested by `mbedtls-test
 
 The entry points for the Groovy code are scripts in the [`vars`](vars/) directory.
 
-* Release/nightly jobs invoke [`vars/mbedtls-release-Jenkinsfile`](vars/mbedtls-release-Jenkinsfile).
-* Pull request (“pr-head” and “pr-merge”) jobs invoke [`mbedtls.run_job()`](vars/mbedtls.groovy). The pr-merge job only runs the “Interface stability tests” (formerly known as “ABI-API-check”). The pr-head job runs a full test campaign, with reduced Windows testing, and minus the test coverage job (`basic-build-test.sh`).
+* Release/nightly jobs invoke [`vars/mbedtls-release-Jenkinsfile`](vars/mbedtls-release-Jenkinsfile) which runs all of `all.sh` on Linux, a small subset of `all.sh` on FreeBSD, several Windows jobs, and the test coverage job (`basic-build-test.sh`).
+* Pull request (“pr-head” and “pr-merge”) jobs invoke [`mbedtls.run_job()`](vars/mbedtls.groovy). The pr-merge job only runs the “Interface stability tests” (formerly known as “ABI-API-check”). The pr-head job runs a test campaign consisting of `all.sh` on Linux without `release_*` components, the same subset of `all.sh` on FreeBSD as the release job, and a subset of the Windows jobs.
 
 ### Jenkins pipeline structure
 
