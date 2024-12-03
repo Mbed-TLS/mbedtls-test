@@ -22,6 +22,20 @@ At the time of writing, there are two instances of Jenkins:
 
 The two instances mostly have the same capabilities, but they can differ in terms of Jenkins versions, available plugins, OS versions, etc.
 
+#### Jenkins jobs
+
+On OpenCI, the jobs are defined by YAML configuration files managed in a Gerrit instance: [browse code](https://review.trustedfirmware.org/plugins/gitiles/ci/mbedtls/mbed-tls-job-configs), [contributor setup](https://review.trustedfirmware.org/Documentation/user-upload.html), [reviews](https://review.trustedfirmware.org/q/project:ci/mbedtls/mbed-tls-job-configs+status:open). On the internal CI, the jobs and job configurations can be edited directly through the web interface.
+
+The main jobs on OpenCI are:
+
+* [`mbed-tls-framework-multibranch`](https://mbedtls.trustedfirmware.org/job/mbed-tls-framework-multibranch/): invoked automatically on pull requests in the [`mbedtls-framework` repository](https://github.com/Mbed-TLS/mbedtls-framework).
+* [`mbed-tls-nightly-tests`](https://mbedtls.trustedfirmware.org/job/mbed-tls-nightly-tests/): invoke daily on each maintained branch.
+* [`mbed-tls-pr-head`](https://mbedtls.trustedfirmware.org/job/mbed-tls-pr-head/), [`mbed-tls-pr-merge`](https://mbedtls.trustedfirmware.org/job/mbed-tls-pr-merge/): invoked on pull requests in the [`mbedtls` repository](https://github.com/Mbed-TLS/mbedtls). See [“Groovy entry points”](#groovy-entry-points) below. These jobs are meant to be triggered from GitHub. If you want to run them manually on an arbitrary branch, use [`mbed-tls-restricted-pr-test-parametrized`](https://mbedtls.trustedfirmware.org/job/mbed-tls-restricted-pr-test-parametrized/).
+* [`mbedtls-restricted-release-new`](https://mbedtls.trustedfirmware.org/job/mbedtls-restricted-release-new/): run the full release job on a given branch.
+* `ci-testing` jobs are meant for testing changes to the CI scripts. See [“Validation tools”](#validation-tools) below.
+
+The internal CI has a similar set of jobs.
+
 ## General programming advice
 
 ### Compatibility with `mbedtls`
