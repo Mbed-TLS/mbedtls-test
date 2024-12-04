@@ -18,6 +18,7 @@
  */
 
 import hudson.model.Result
+import hudson.plugins.git.GitSCM
 import hudson.scm.NullSCM
 import jenkins.model.CauseOfInterruption
 import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
@@ -129,18 +130,49 @@ Map<String, String> checkout_mbed_os_example_repo(String repo, String branch) {
     return checkout_report_errors(scm_config)
 }
 
+/** Produce an object that can be passed to {@code checkout} to make a shallow clone of the specified branch.
+ *
+ * @param repo
+ *     URL of the Git repo.
+ *
+ * @param branch
+ *     The branch / commit / tag to check out. Supports a variety of formats accepted by
+ *     {@code git rev-parse}, eg.:
+ *     <ul>
+ *         <li>{@code <branchName>}
+ *         <li>{@code refs/heads/<branchName>}
+ *         <li>{@code origin/<branchName>}
+ *         <li>{@code remotes/origin/<branchName>}
+ *         <li>{@code refs/remotes/origin/<branchName>}
+ *         <li>{@code <tagName>}
+ *         <li>{@code refs/tags/<tagName>}
+ *         <li>{@code refs/pull/<pullNr>/head}
+ *         <li>{@code <commitId>}
+ *         <li>{@code ${ENV_VARIABLE}}
+ *     </ul>
+ *     See also:
+ *     <a href="https://www.jenkins.io/doc/pipeline/steps/params/scmgit/#scmgit">
+ *     the documentation of the Git Plugin.
+ *     </a>
+ *
+ * @return
+ *     A {@link Map} representing a {@link GitSCM} object.
+ */
 Map<String, Object> parametrized_repo(String repo, String branch) {
+    String remoteRef = branch.replaceFirst('^((refs/)?remotes/)?origin/', '')
+    String localBranch = branch.replaceFirst('^(refs/)?(heads/|tags/|(remotes/)?origin/)?','')
     return [
         $class: 'GitSCM',
         userRemoteConfigs: [[
             url: repo,
+            refspec: "+$remoteRef:refs/remotes/origin/$localBranch",
             credentialsId: env.GIT_CREDENTIALS_ID
         ]],
         branches: [[name: branch]],
         extensions: [
             [$class: 'CloneOption', timeout: 60, honorRefspec: true, shallow: true],
             [$class: 'SubmoduleOption', recursiveSubmodules: true, parentCredentials: true, shallow: true],
-            [$class: 'LocalBranch', localBranch: '**'],
+            [$class: 'LocalBranch', localBranch: localBranch],
         ],
     ]
 }
