@@ -179,7 +179,7 @@ def build_mbedtls(logger: logging.Logger, mbedtls_dir: pathlib.Path, tools_dir: 
     # Backup config files here prior to running config.py, as the branch checkout may also have
     # changed them, and backing up before this point will end up with old versions of the file being
     # restored.
-    backup_config_files(logger, mbedtls_path, False)
+    backup_config_files(logger, mbedtls_dir, False)
 
     # Ensure correct library build configuration.
     result = run(['scripts/config.py', 'full_no_platform'], capture_output=True, check=True)
