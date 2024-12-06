@@ -394,8 +394,10 @@ def main() -> int:
         logger.log(logging.ERROR, format_exc())
         ret_code = 1
     except CalledProcessError as e:
-        logger.log(logging.ERROR, 'Command {} returned {}\n Output : {}'.format(e.cmd,
+        logger.log(logging.ERROR,
+                   'Command {} returned {}\n StdOut : {}\n StdErr : {}'.format(e.cmd,
                                                                                 e.returncode,
+                                                                                e.stdout.decode("utf-8"),
                                                                                 e.stderr.decode("utf-8")))
         ret_code = 1
     except:
