@@ -28,6 +28,8 @@ Other options:
 * -l / --log: Specify a file to log information on the build to.
 * -m / --backupdir: If specified, this will be used as a directory to backup
     built tar files to.
+* -n / --no-upload: If set, build the Coverity tar file, but do not request a
+    build or upload it.
 * -o / --os: If specified, override the OS specification for the coverity tools
     default is 64 bit linux
 * -p / --pre-build-step: Specify the command to run pre - build.
@@ -271,6 +273,9 @@ def main() -> int:
     parser.add_argument('-t', '--token', help='Coverity Scan Token')
     parser.add_argument('-l', '--log', help='File to log to')
     parser.add_argument('-m', '--backupdir', help='Directory to backup tar files to')
+    parser.add_argument('-n', '--no-upload',
+                        help='Build the Coverity tar file, but do not request a build or upload it',
+                        action = 'store_true')
     parser.add_argument('-o', '--os', help='Specify OS for coverity tools',
                         choices=['linux64', 'linux-ARM64', 'freebsd64', 'win64'],
                         default='linux64')
@@ -374,8 +379,12 @@ def main() -> int:
             build_mbedtls(logger, mbedtls_path, tools_path, args.branch,
                           args.pre_build_step, args.build_step, tar_file)
 
-            # send completed tar file to coverity
-            upload_build(logger, coverity_token, args.email, tar_file)
+            # Set this if you want to test without consuming the Coverity credit. The tar file will
+            # still obviously be built, and if you use a backup directory to save it, can still be
+            # manually uploaded via the website afterwards.
+            if not args.no_upload:
+                # send completed tar file to coverity
+                upload_build(logger, coverity_token, args.email, tar_file)
 
             # If we want a backup of the tar file, then make one.
             if args.backupdir is not None:
