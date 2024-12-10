@@ -22,6 +22,10 @@ Assuming `<mount dir>` is the root of an Mbed TLS source tree, first install the
 ```sh
 ./scripts/min_requirements.py --user
 ```
+(This will install packages in the `.local` subdirectory of `<mount dir>`.)
+Don't worry about the warnings about `.local/bin` not being on `PATH`, our
+tests will not rely on the executables but instead use `python -m xxx`.
+
 Then the tests can be run with:
 ```sh
 ./tests/scripts/all.sh
