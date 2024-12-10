@@ -65,6 +65,8 @@ RUN apt-get update -q && apt-get install -yq \
         doxygen \
         # to run tests in specific time.
         faketime \
+        # build dependency of GCC
+        flex \
         # to cross-build Mbed TLS
         gcc-mingw-w64-i686 \
         # to build Mbed TLS using latest gcc version available from Ubuntu
@@ -77,10 +79,14 @@ RUN apt-get update -q && apt-get install -yq \
         lcov \
         # to build GnuTLS (nettle with public key support aka hogweed)
         libgmp-dev \
+        # build dependency of GCC
+        libisl-dev libmpfr-dev libmpc-dev \
         # to build GnuTLS >= 3.6 (could also use --with-included-unistring)
         libunistring-dev \
         # to build GnuTLS
         libtasn1-6-dev \
+        # build dependency of GCC
+        libzstd-dev \
         # to have a UTF-8 locale (see locale-gen below)
         locales \
         # used by compat.sh and ssl-opt.sh
@@ -171,6 +177,23 @@ RUN if [ "$(uname -m)" = aarch64 ]; then \
         libc6-dev-armel-cross \
         libc6-dev-armhf-cross \
     && rm -rf /var/lib/apt/lists/
+
+# Install a snapshot of GCC that we want to test with.
+# GCC 15 will break our code: https://github.com/Mbed-TLS/mbedtls/issues/9814
+# During a transition period, we will use a snapshot of GCC 15 to test the
+# fix for that issue.
+# Eventually, gcc-latest should become GCC 15. This will cause test failures
+# on branches that don't have the fix yet, which is why we don't make
+# GCC 15 be gcc-latest immediately.
+RUN wget -q https://mirror.koddos.net/gcc/snapshots/15-20241201/gcc-15-20241201.tar.xz && \
+    tar -xf gcc-15-20241201.tar.xz && \
+    rm gcc-15-20241201.tar.xz && \
+    cd gcc-15-20241201 && \
+    ./configure --prefix=/usr/local/gcc-15 --program-suffix=-15 --disable-bootstrap --enable-languages=c,c++,lto && \
+    make && \
+    make install && \
+    cd .. && \
+    rm -rf gcc-15-20241201
 
 # Install exact upstream versions of OpenSSL and GnuTLS
 #
