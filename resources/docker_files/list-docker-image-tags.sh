@@ -10,7 +10,11 @@ list () {
     dir="${1%/Dockerfile}"
     dir="${dir%/}"
     hash="$(git hash-object "$dir/Dockerfile")"
-    echo "$(basename -- "$dir")-$hash"
+    base="$(basename -- "$dir")"
+    echo "$base-$hash-amd64"
+    if [ "$base" != "arm-compilers" ]; then
+        echo "$base-$hash-arm64"
+    fi
 }
 
 if [ $# -eq 0 ]; then
