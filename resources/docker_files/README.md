@@ -33,7 +33,6 @@ The helper script `run.sh` can be used to launch a docker image:
 ```
 `run.sh` makes it easier to start images with a suitable working environment. It:
 - mounts a local directory on to the container at startup. Hence, a local checkout of Mbed TLS can be used and artefacts produced can be preserved even after exiting the image.
-- mounts `~/.ssh` directory to the docker home so that `git` can be used from within the docker.
 - configures user ids for the docker user to be same as the host user to preserve the permissions on the files created or modified inside the docker.
 
 ## Running the images manually

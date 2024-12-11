@@ -10,11 +10,11 @@ The docker files in `resources/docker_files` are the ones used by the CI. For mo
 
 To get the docker image used in the CI, run the following command from the root of a fresh checkout of the `master` branch of this repository:
 ```sh
-docker pull trustedfirmware/ci-amd64-mbed-tls-ubuntu:ubuntu-16.04-$(git hash-object resources/docker_files/ubuntu-16.04/Dockerfile)
+docker pull trustedfirmware/ci-amd64-mbed-tls-ubuntu:ubuntu-16.04-$(git hash-object resources/docker_files/ubuntu-16.04/Dockerfile)-amd64
 ```
 Then to run the image:
 ```sh
-./resources/docker_files/run.sh <mount dir> trustedfirmware/ci-amd64-mbed-tls-ubuntu:ubuntu-16.04-$(git hash-object resources/docker_files/ubuntu-16.04/Dockerfile)
+./resources/docker_files/run.sh <mount dir> trustedfirmware/ci-amd64-mbed-tls-ubuntu:ubuntu-16.04-$(git hash-object resources/docker_files/ubuntu-16.04/Dockerfile)-amd64
 ```
 Where `<mount dir>` is a directory from the host that will be mounted on the container at startup (usually a local checkout of Mbed TLS).
 
@@ -22,6 +22,10 @@ Assuming `<mount dir>` is the root of an Mbed TLS source tree, first install the
 ```sh
 ./scripts/min_requirements.py --user
 ```
+(This will install packages in the `.local` subdirectory of `<mount dir>`.)
+Don't worry about the warnings about `.local/bin` not being on `PATH`, our
+tests will not rely on the executables but instead use `python -m xxx`.
+
 Then the tests can be run with:
 ```sh
 ./tests/scripts/all.sh

@@ -26,8 +26,6 @@
 #               created/updated by docker image can be accessible after
 #               exiting the image.
 #   Mount dir   Mounts a user specified dir to the working dir in the image.
-#   Mount ~/.ssh Also mounts host's ~/.ssh to ~/.ssh
-#               in the image. So git can be used.
 #
 # Usage: ./run.sh mount_dir docker_image_tag
 #
@@ -47,14 +45,12 @@ IMAGE=$2
 USR_NAME=`id -un`
 USR_ID=`id -u`
 USR_GRP=`id -g`
-SSH_CFG_PATH=~/.ssh
 
 echo "****************************************************"
 echo "  Running docker image - $IMAGE"
 echo "  User ID:Group ID --> $USR_ID:$USR_GRP"
-echo "  Mounting $SSH_CFG_PATH --> /home/user/.ssh"
 echo "  Mounting $MOUNT_DIR --> /var/lib/ws"
 echo "****************************************************"
 
-sudo docker run --network=host --rm -i -t -u $USR_ID:$USR_GRP -w /var/lib/ws -v $MOUNT_DIR:/var/lib/ws -v $SSH_CFG_PATH:/home/user/.ssh --cap-add SYS_PTRACE ${IMAGE}
+sudo docker run --network=host --rm -i -t -u $USR_ID:$USR_GRP -w /var/lib/ws -e HOME=/var/lib/ws -v $MOUNT_DIR:/var/lib/ws --cap-add SYS_PTRACE ${IMAGE}
 
