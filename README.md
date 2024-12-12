@@ -38,6 +38,8 @@ For more details on the docker images, see [their dedicated Readme](resources/do
 
 This repository accepts contributions only from Mbed TLS maintainers.
 
+If you are an Mbed TLS maintainer, see the [developer guide](developer_guide.md).
+
 ## License
 
 The software is provided under the [Apache 2.0 license](LICENSE) (except for some files which specify a different license).
