@@ -174,7 +174,8 @@ def build_mbedtls(logger: logging.Logger, mbedtls_dir: pathlib.Path, tools_dir: 
                      check=True)
         logger.log(logging.INFO, result.stdout.decode("utf-8"))
 
-        result = run(['git', 'submodule', 'update', '--init'], capture_output=True, check=True)
+        result = run(['git', 'submodule', 'update', '--init', '--recursive'], capture_output=True,
+                      check=True)
         logger.log(logging.INFO, result.stdout.decode("utf-8"))
 
 
