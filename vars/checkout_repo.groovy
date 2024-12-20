@@ -60,6 +60,30 @@ Map<String, String> checkout_report_errors(scm_config) {
     }
 }
 
+void checkout_framework_repo() {
+    if (env.TARGET_REPO == 'framework' && env.CHECKOUT_METHOD == 'scm') {
+        checkout_report_errors(scm)
+    } else if (env.FRAMEWORK_REPO && env.FRAMEWORK_BRANCH) {
+        checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, env.FRAMEWORK_BRANCH))
+    } else {
+        echo 'Using default framework version'
+    }
+}
+
+void checkout_tf_psa_crypto_repo() {
+    if (env.TARGET_REPO == 'tf-psa-crypto' && env.CHECKOUT_METHOD == 'scm') {
+        checkout_report_errors(scm)
+    } else if (env.TF_PSA_CRYPTO_REPO && env.TF_PSA_CRYPTO_BRANCH) {
+        checkout_report_errors(parametrized_repo(env.TF_PSA_CRYPTO_REPO, env.TF_PSA_CRYPTO_BRANCH))
+    } else {
+        echo 'Using default tf-psa-crypto version'
+    }
+
+    dir('framework') {
+        checkout_framework_repo()
+    }
+}
+
 Map<String, String> checkout_tls_repo(String branch) {
     def scm_config
     if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
@@ -76,30 +100,11 @@ Map<String, String> checkout_tls_repo(String branch) {
         def result = checkout_report_errors(scm_config)
 
         dir('tf-psa-crypto') {
-            if (env.TARGET_REPO == 'tf-psa-crypto' && env.CHECKOUT_METHOD == 'scm') {
-                checkout_report_errors(scm)
-            } else if (env.TF_PSA_CRYPTO_REPO && env.TF_PSA_CRYPTO_BRANCH) {
-                checkout_report_errors(parametrized_repo(env.TF_PSA_CRYPTO_REPO, env.TF_PSA_CRYPTO_BRANCH))
-            } else {
-                echo 'Using default tf-psa-crypto version'
-            }
+            checkout_tf_psa_crypto_repo()
         }
 
-        def framework_dirs = ['framework', 'tf-psa-crypto/framework']
-        if (env.TARGET_REPO == 'framework' && env.CHECKOUT_METHOD == 'scm') {
-            framework_dirs.each { framework_dir ->
-                dir(framework_dir) {
-                    checkout_report_errors(scm)
-                }
-            }
-        } else if (env.FRAMEWORK_REPO && env.FRAMEWORK_BRANCH) {
-            framework_dirs.each { framework_dir ->
-                dir(framework_dir) {
-                    checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, env.FRAMEWORK_BRANCH))
-                }
-            }
-        } else {
-            echo 'Using default framework version'
+        dir('framework') {
+            checkout_framework_repo()
         }
 
         // After the clone, replicate it in the local config, so it is effective when running inside docker
