@@ -183,7 +183,7 @@ fi
     }
 }
 
-def gen_all_sh_jobs(BranchInfo info, platform, component, label_prefix='') {
+def gen_all_sh_jobs(BranchInfo info, String platform, String component, String label_prefix='', String repo='tls') {
     def shorthands = [
         "arm-compilers-amd64": "armcc",
         "ubuntu-16.04-amd64": "u16",
@@ -198,7 +198,7 @@ def gen_all_sh_jobs(BranchInfo info, platform, component, label_prefix='') {
     ]
     /* Default to the full platform hame is a shorthand is not found */
     def shortplat = shorthands.getOrDefault(platform, platform)
-    def job_name = "${label_prefix}all_${shortplat}-${component}"
+    def job_name = "${label_prefix}${repo == 'tls' ? '' : "${repo}_"}all_${shortplat}-${component}"
     def outcome_file = "${job_name.replace((char) '/', (char) '_')}-outcome.csv"
     def use_docker = platform_has_docker(platform)
     def extra_setup_code = ''
@@ -245,7 +245,7 @@ echo >&2 'Note: "clang" will run /usr/bin/clang -Wno-error=c11-extensions'
 '''
     }
 
-    if (info.has_min_requirements) {
+    if (repo == 'tls' && info.has_min_requirements) {
         extra_setup_code += """
 scripts/min_requirements.py --user ${info.python_requirements_override_file}
 """
@@ -258,6 +258,16 @@ scripts/min_requirements.py --user ${info.python_requirements_override_file}
                 common.get_docker_image(platform)
             }
             dir('src') {
+                switch(repo) {
+                    case 'tls':
+                        checkout_repo.checkout_tls_repo(info)
+                        break
+                    case 'tf-psa-crypto':
+                        checkout_repo.checkout_tf_psa_crypto_repo()
+                        break
+                    default:
+                        error("Invalid repo: $repo")
+                }
                 checkout_repo.checkout_tls_repo(info)
                 writeFile file: 'steps.sh', text: """\
 #!/bin/sh
@@ -666,6 +676,12 @@ def gen_release_jobs(BranchInfo info, String label_prefix='', boolean run_exampl
                 jobs = jobs + gen_all_sh_jobs(info, platform, component, label_prefix)
             }
         }
+    }
+
+    if (env.RUN_TF_PSA_CRYPTO_ALL_SH == "true") {
+        info.tf_psa_crypto_all_sh_components.each({ component, platform ->
+            jobs = jobs + gen_all_sh_jobs(info, platform, component, label_prefix)
+        })
     }
 
     if (env.RUN_WINDOWS_TEST == "true") {
