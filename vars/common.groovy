@@ -224,69 +224,37 @@ docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS -e VERBOSE_LOGS $env_args --rm --
 /* Gather information about the branch that determines how to set up the
  * test environment.
  * In particular, get components of all.sh for Linux platforms. */
-BranchInfo get_branch_information(String branch) {
-    BranchInfo info = new BranchInfo()
-    info.branch = branch
-
+List<BranchInfo> get_branch_information(Collection<String> branches) {
+    List<BranchInfo> infos = []
     Map<String, Object> jobs = [:]
 
-    jobs << gen_jobs.job('all-platforms') {
-        node('container-host') {
-            try {
-                // Log the environment for debugging purposes
-                sh script: 'export'
+    branches.each { String branch ->
+        BranchInfo info = new BranchInfo()
+        info.branch = branch
+        infos << info
 
-                dir('src') {
-                    deleteDir()
-                    checkout_repo.checkout_tls_repo(branch)
-
-                    info.has_min_requirements = fileExists('scripts/min_requirements.py')
-
-                    if (info.has_min_requirements) {
-                        info.python_requirements_override_content = construct_python_requirements_override()
-                        if (info.python_requirements_override_content) {
-                            info.python_requirements_override_file = 'override.requirements.txt'
-                        }
-                    }
-                }
-
-                String platform = linux_platforms[0]
-                get_docker_image(platform)
-                def all_sh_help = sh(
-                    script: docker_script(
-                        platform, "./tests/scripts/all.sh", "--help"
-                    ),
-                    returnStdout: true
-                )
-                if (all_sh_help.contains('list-components')) {
-                    def all = sh(
-                        script: docker_script(
-                            platform, "./tests/scripts/all.sh",
-                            "--list-all-components"
-                        ),
-                        returnStdout: true
-                    ).trim().split('\n')
-                    echo "All all.sh components: ${all.join(" ")}"
-                    return all.collectEntries { element ->
-                        return [(element): null]
-                    }
-                } else {
-                    error('Pre Test Checks failed: Base branch out of date. Please rebase')
-                }
-            } finally {
-                deleteDir()
-            }
-        }
-    }
-
-    linux_platforms.each { platform ->
-        jobs << gen_jobs.job(platform) {
-            node(gen_jobs.node_label_for_platform(platform)) {
+        String prefix = branches.size() > 1 ? "$branch-" : ''
+        jobs << gen_jobs.job(prefix + 'all-platforms') {
+            node('container-host') {
                 try {
+                    // Log the environment for debugging purposes
+                    sh script: 'export'
+
                     dir('src') {
                         deleteDir()
                         checkout_repo.checkout_tls_repo(branch)
+
+                        info.has_min_requirements = fileExists('scripts/min_requirements.py')
+
+                        if (info.has_min_requirements) {
+                            info.python_requirements_override_content = construct_python_requirements_override()
+                            if (info.python_requirements_override_content) {
+                                info.python_requirements_override_file = 'override.requirements.txt'
+                            }
+                        }
                     }
+
+                    String platform = linux_platforms[0]
                     get_docker_image(platform)
                     def all_sh_help = sh(
                         script: docker_script(
@@ -295,15 +263,16 @@ BranchInfo get_branch_information(String branch) {
                         returnStdout: true
                     )
                     if (all_sh_help.contains('list-components')) {
-                        def available = sh(
+                        def all = sh(
                             script: docker_script(
-                                platform, "./tests/scripts/all.sh", "--list-components"
+                                platform, "./tests/scripts/all.sh",
+                                "--list-all-components"
                             ),
                             returnStdout: true
                         ).trim().split('\n')
-                        echo "Available all.sh components on ${platform}: ${available.join(" ")}"
-                        return available.collectEntries { element ->
-                            return [(element): platform]
+                        echo "All all.sh components: ${all.join(" ")}"
+                        return all.collectEntries { element ->
+                            return [(element): null]
                         }
                     } else {
                         error('Pre Test Checks failed: Base branch out of date. Please rebase')
@@ -313,33 +282,83 @@ BranchInfo get_branch_information(String branch) {
                 }
             }
         }
+
+        linux_platforms.each { platform ->
+            jobs << gen_jobs.job(prefix + platform) {
+                node(gen_jobs.node_label_for_platform(platform)) {
+                    try {
+                        dir('src') {
+                            deleteDir()
+                            checkout_repo.checkout_tls_repo(branch)
+                        }
+                        get_docker_image(platform)
+                        def all_sh_help = sh(
+                            script: docker_script(
+                                platform, "./tests/scripts/all.sh", "--help"
+                            ),
+                            returnStdout: true
+                        )
+                        if (all_sh_help.contains('list-components')) {
+                            def available = sh(
+                                script: docker_script(
+                                    platform, "./tests/scripts/all.sh", "--list-components"
+                                ),
+                                returnStdout: true
+                            ).trim().split('\n')
+                            echo "Available all.sh components on ${platform}: ${available.join(" ")}"
+                            return available.collectEntries { element ->
+                                return [(element): platform]
+                            }
+                        } else {
+                            error('Pre Test Checks failed: Base branch out of date. Please rebase')
+                        }
+                    } finally {
+                        deleteDir()
+                    }
+                }
+            }
+        }
     }
 
     jobs.failFast = true
     def results = (Map<String, Map<String, String>>) parallel(jobs)
 
-    info.all_all_sh_components = results['all-platforms']
-    linux_platforms.reverseEach { platform ->
-        info.all_all_sh_components << results[platform]
-    }
+    infos.each { BranchInfo info ->
+        String prefix = infos.size() > 1 ? "$info.branch-" : ''
 
-    if (env.JOB_TYPE == 'PR') {
-        // Do not run release components in PR jobs
-        info.all_all_sh_components = info.all_all_sh_components.findAll {
-            component, platform -> !component.startsWith('release')
+        info.all_all_sh_components = results[prefix + 'all-platforms']
+        linux_platforms.reverseEach { platform ->
+            info.all_all_sh_components << results[prefix + platform]
+        }
+
+        if (env.JOB_TYPE == 'PR') {
+            // Do not run release components in PR jobs
+            info.all_all_sh_components = info.all_all_sh_components.findAll {
+                component, platform -> !component.startsWith('release')
+            }
         }
     }
-    return info
+    return infos
 }
 
-def check_every_all_sh_component_will_be_run(BranchInfo info) {
-    def untested_all_sh_components = info.all_all_sh_components.collectMany(
-        {name, platform -> platform ? [] : [name]})
-    if (untested_all_sh_components != []) {
-        error(
-            "Pre-test checks failed: Unable to run all.sh components: \
-            ${untested_all_sh_components.join(",")}"
+void check_every_all_sh_component_will_be_run(Collection<BranchInfo> infos) {
+    Map<String, Collection<String>> untested_all_sh_components = infos.collectEntries { info ->
+        def components = info.all_all_sh_components.findResults {
+            name, platform -> platform ? null : name
+        }
+        return components ? [(info.branch): components] : [:]
+    }
+
+    if (untested_all_sh_components) {
+        def error_lines = ['Pre-test checks failed: Unable to run all.sh components:']
+        untested_all_sh_components.collect(
+            error_lines,
+            { branch, components ->
+                String prefix = infos.size() > 1 ? "$branch: " : ''
+                return prefix + components.join(',')
+            }
         )
+        error(error_lines.join('\n'))
     }
 }
 
