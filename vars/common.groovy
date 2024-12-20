@@ -228,6 +228,12 @@ List<BranchInfo> get_branch_information(Collection<String> branches) {
     List<BranchInfo> infos = []
     Map<String, Object> jobs = [:]
 
+    def repo_roots = ['tls': '.']
+
+    if (env.RUN_TF_PSA_CRYPTO_ALL_SH == 'true') {
+        repo_roots['tf-psa-crypto'] = 'tf-psa-crypto'
+    }
+
     branches.each { String branch ->
         BranchInfo info = new BranchInfo()
         info.branch = branch
@@ -256,26 +262,33 @@ List<BranchInfo> get_branch_information(Collection<String> branches) {
 
                     String platform = linux_platforms[0]
                     get_docker_image(platform)
-                    def all_sh_help = sh(
-                        script: docker_script(
-                            platform, "./tests/scripts/all.sh", "--help"
-                        ),
-                        returnStdout: true
-                    )
-                    if (all_sh_help.contains('list-components')) {
-                        def all = sh(
-                            script: docker_script(
-                                platform, "./tests/scripts/all.sh",
-                                "--list-all-components"
-                            ),
-                            returnStdout: true
-                        ).trim().split('\n')
-                        echo "All all.sh components: ${all.join(" ")}"
-                        return all.collectEntries { element ->
-                            return [(element): null]
+                    return repo_roots.collectEntries { repo, root ->
+                        dir(root) {
+                            if (!fileExists('./tests/scripts/all.sh')) {
+                                return [(repo): [:]]
+                            }
+                            def all_sh_help = sh(
+                                script: docker_script(
+                                    platform, "./tests/scripts/all.sh", "--help"
+                                ),
+                                returnStdout: true
+                            )
+                            if (all_sh_help.contains('list-components')) {
+                                def all = sh(
+                                    script: docker_script(
+                                        platform, "./tests/scripts/all.sh",
+                                        "--list-all-components"
+                                    ),
+                                    returnStdout: true
+                                ).trim().split('\n')
+                                echo "All all.sh components: ${all.join(" ")}"
+                                return [(repo): all.collectEntries { element ->
+                                    return [(element): null]
+                                }]
+                            } else {
+                                error('Pre Test Checks failed: Base branch out of date. Please rebase')
+                            }
                         }
-                    } else {
-                        error('Pre Test Checks failed: Base branch out of date. Please rebase')
                     }
                 } finally {
                     deleteDir()
@@ -292,25 +305,36 @@ List<BranchInfo> get_branch_information(Collection<String> branches) {
                             checkout_repo.checkout_tls_repo(branch)
                         }
                         get_docker_image(platform)
-                        def all_sh_help = sh(
-                            script: docker_script(
-                                platform, "./tests/scripts/all.sh", "--help"
-                            ),
-                            returnStdout: true
-                        )
-                        if (all_sh_help.contains('list-components')) {
-                            def available = sh(
-                                script: docker_script(
-                                    platform, "./tests/scripts/all.sh", "--list-components"
-                                ),
-                                returnStdout: true
-                            ).trim().split('\n')
-                            echo "Available all.sh components on ${platform}: ${available.join(" ")}"
-                            return available.collectEntries { element ->
-                                return [(element): platform]
+                        return repo_roots.collectEntries { repo, root ->
+                            // Only run tf-psa-crypto tests on the first branch
+                            if (repo == 'tf-psa-crypto' && branch != branches[0]) {
+                                return [(repo): [:]]
                             }
-                        } else {
-                            error('Pre Test Checks failed: Base branch out of date. Please rebase')
+                            dir(root) {
+                                if (!fileExists('./tests/scripts/all.sh')) {
+                                    return [(repo): [:]]
+                                }
+                                def all_sh_help = sh(
+                                    script: docker_script(
+                                        platform, "./tests/scripts/all.sh", "--help"
+                                    ),
+                                    returnStdout: true
+                                )
+                                if (all_sh_help.contains('list-components')) {
+                                    def available = sh(
+                                        script: docker_script(
+                                            platform, "./tests/scripts/all.sh", "--list-components"
+                                        ),
+                                        returnStdout: true
+                                    ).trim().split('\n')
+                                    echo "Available all.sh components on ${platform}: ${available.join(" ")}"
+                                    return [(repo): available.collectEntries { element ->
+                                        return [(element): platform]
+                                    }]
+                                } else {
+                                    error('Pre Test Checks failed: Base branch out of date. Please rebase')
+                                }
+                            }
                         }
                     } finally {
                         deleteDir()
@@ -321,29 +345,35 @@ List<BranchInfo> get_branch_information(Collection<String> branches) {
     }
 
     jobs.failFast = true
-    def results = (Map<String, Map<String, String>>) parallel(jobs)
+    def results = (Map<String, Map<String, Map<String, String>>>) parallel(jobs)
 
     infos.each { BranchInfo info ->
         String prefix = infos.size() > 1 ? "$info.branch-" : ''
 
-        info.all_all_sh_components = results[prefix + 'all-platforms']
-        linux_platforms.reverseEach { platform ->
-            info.all_all_sh_components << results[prefix + platform]
+        Map<String, Map<String, String>> repo_components = repo_roots.keySet().collectEntries {repo ->
+            def components = results[prefix + 'all-platforms'][repo]
+            linux_platforms.reverseEach { platform ->
+                components << results[prefix + platform][repo]
+            }
+
+            if (env.JOB_TYPE == 'PR') {
+                // Do not run release components in PR jobs
+                components = components.findAll {
+                    component, platform -> !component.startsWith('release')
+                }
+            }
+            return [(repo): components]
         }
 
-        if (env.JOB_TYPE == 'PR') {
-            // Do not run release components in PR jobs
-            info.all_all_sh_components = info.all_all_sh_components.findAll {
-                component, platform -> !component.startsWith('release')
-            }
-        }
+        info.mbed_tls_all_sh_components = repo_components['tls']
+        info.tf_psa_crypto_all_sh_components = repo_components['tf-psa-crypto'] ?: [:]
     }
     return infos
 }
 
 void check_every_all_sh_component_will_be_run(Collection<BranchInfo> infos) {
     Map<String, Collection<String>> untested_all_sh_components = infos.collectEntries { info ->
-        def components = info.all_all_sh_components.findResults {
+        def components = info.mbed_tls_all_sh_components.findResults {
             name, platform -> platform ? null : name
         }
         return components ? [(info.branch): components] : [:]
