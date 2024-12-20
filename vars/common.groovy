@@ -326,14 +326,14 @@ List<BranchInfo> get_branch_information(Collection<String> branches) {
     infos.each { BranchInfo info ->
         String prefix = infos.size() > 1 ? "$info.branch-" : ''
 
-        info.all_all_sh_components = results[prefix + 'all-platforms']
+        info.all_sh_components = results[prefix + 'all-platforms']
         linux_platforms.reverseEach { platform ->
-            info.all_all_sh_components << results[prefix + platform]
+            info.all_sh_components << results[prefix + platform]
         }
 
         if (env.JOB_TYPE == 'PR') {
             // Do not run release components in PR jobs
-            info.all_all_sh_components = info.all_all_sh_components.findAll {
+            info.all_sh_components = info.all_sh_components.findAll {
                 component, platform -> !component.startsWith('release')
             }
         }
@@ -343,7 +343,7 @@ List<BranchInfo> get_branch_information(Collection<String> branches) {
 
 void check_every_all_sh_component_will_be_run(Collection<BranchInfo> infos) {
     Map<String, Collection<String>> untested_all_sh_components = infos.collectEntries { info ->
-        def components = info.all_all_sh_components.findResults {
+        def components = info.all_sh_components.findResults {
             name, platform -> platform ? null : name
         }
         return components ? [(info.branch): components] : [:]
