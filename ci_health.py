@@ -52,6 +52,7 @@ JENKINS_SERVERS = {
 PR_JOB_NAME = "mbed-tls-pr-head"
 NIGHTLY_JOB_NAME = "mbed-tls-nightly-tests"
 
+DAYS = 7
 
 def gather_durations_ms(server, job_name, since_timestamp_ms):
     """Gather durations of runs started since the given timestamp.
@@ -129,7 +130,7 @@ def main():
         print("environment variables GITHUB_USERNAME and GITHUB_API_TOKEN.")
         sys.exit(1)
 
-    since_date = datetime.now() - timedelta(days=7)
+    since_date = datetime.now() - timedelta(days=DAYS)
     since_timestamp_ms = int(since_date.timestamp()) * 1000
 
     for name, url in JENKINS_SERVERS.items():
