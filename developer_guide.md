@@ -17,8 +17,8 @@ The [`mbedtls-test` repository](https://github.com/Mbed-TLS/mbedtls-test) contai
 
 At the time of writing, there are two instances of Jenkins:
 
-* [OpenCI](https://mbedtls.trustedfirmware.org/), maintained by Linaro on behalf of TrustedFirmware. The OpenCI instance is public. Only Mbed TLS team members can have accounts (access is via [the `trusted-firmware-mbed-tls-openci-users` team in `trusted-firmware-ci` on GitHub](https://github.com/orgs/trusted-firmware-ci/teams/trusted-firmware-mbed-tls-openci-users/members)), but everyone can see test results.
-* [Arm Internal CI](https://jenkins-mbedtls.oss.arm.com/) (private link), maintained by Arm. This instance is only accessible to Arm employees.
+* [OpenCI](https://mbedtls.trustedfirmware.org/), maintained by Linaro ([issue board: TFC](https://linaro.atlassian.net/browse/TFC-526)) on behalf of TrustedFirmware. The OpenCI instance is public. Only Mbed TLS team members (including non-Arm employees) can have accounts (access is via [the `trusted-firmware-mbed-tls-openci-users` team in `trusted-firmware-ci` on GitHub](https://github.com/orgs/trusted-firmware-ci/teams/trusted-firmware-mbed-tls-openci-users/members)), but everyone can see test results.
+* [Arm Internal CI](https://jenkins-mbedtls.oss.arm.com/), maintained by Arm ([issue board: OSSDEVOPS project](https://jira.arm.com/projects/OSSDEVOPS)). This instance is only accessible to Arm employees from within the Arm network.
 
 The two instances mostly have the same capabilities, but they can differ in terms of Jenkins versions, available plugins, OS versions, etc.
 
@@ -59,7 +59,7 @@ If you want to change the interface between `mbedtls` and `mbedtls-test`, you ne
 
 If you add tests in `mbedtls` that require a new tool on the CI:
 
-1. Make the new tool available. If the tool runs on Linux, add it to the Docker image(s) via a pull request on `mbedtls-test`. If the tool doesn't run on Linux, this will require a request to the devops teams that manage the two Jenkins instances.
+1. Make the new tool available. If the tool runs on Linux, add it to the Docker image(s) via a pull request on `mbedtls-test`. If the tool doesn't run on Linux, this will require a request to the devops teams that manage the two [Jenkins instances](#jenkins-instances).
 2. Make a pull request in `mbedtls` that starts using the new tool.
 
 If you add a new entry point in `mbedtls` that CI code should invoke:
