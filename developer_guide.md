@@ -50,7 +50,7 @@ The scripts in `mbedtls-test` must work with:
 * Long-time support branches.
 * Pull requests targeting one of the above, and more generally branches forked from the above.
 
-Note in particular that `mbedtls-test` must support branches that are somewhat out of date, to avoid disrupting ongoing work. An active pull request that passed the CI at some point should generally not fail due to an upgrade of `mbedtls-test`. The definition of “active” can vary, but generally we want to preserve compatibility for at least a few months, and in any case we want to preserve compatibility with the last release in each maintained branch.
+Note in particular that `mbedtls-test` must support branches that are somewhat out of date, to avoid disrupting ongoing work. An active pull request that passed the CI at some point should generally not fail due to an upgrade of `mbedtls-test`. The definition of “active” can vary, but generally we want to preserve compatibility for at least a few months, and in any case we want to preserve compatibility with the last release in each maintained branch (in case we need to do an emergency patch release).
 
 The code in `mbedtls-test` knows what branch to test because it is passed as environment variables. The environment variables point to a Git repository and a branch name.
 
