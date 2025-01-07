@@ -82,6 +82,11 @@ The entry points for the Groovy code are scripts in the [`vars`](vars/) director
 * Release/nightly jobs invoke [`vars/mbedtls-release-Jenkinsfile`](vars/mbedtls-release-Jenkinsfile) which runs all of `all.sh` on Linux, a small subset of `all.sh` on FreeBSD, several Windows jobs, and the test coverage job (`basic-build-test.sh`).
 * Pull request (“pr-head” and “pr-merge”) jobs invoke [`mbedtls.run_job()`](vars/mbedtls.groovy). The pr-merge job only runs the “Interface stability tests” (formerly known as “ABI-API-check”). The pr-head job runs a test campaign consisting of `all.sh` on Linux without `release_*` components, the same subset of `all.sh` on FreeBSD as the release job, and a subset of the Windows jobs.
 
+The way the entry point is reached depends on several settings.
+
+* Release/nightly jobs use the `script-path` (“Script Path”) setting in the job configuration to point to a file in the `mbedtls-test` repository.
+* Pull request jobs follow the Jenkins “Multibranch Pipeline” template, which use the `script-path` (“Script Path”) setting in the job configuration to point to a file in the default branch of the tested repository. We use [`tests/.jenkins/Jenkinsfile`](https://github.com/Mbed-TLS/mbedtls/blob/master/tests/.jenkins/Jenkinsfile) which just invokes `mbedtls.run_job()` from the repository (`mbedtls-test`) and branch (`main`) in the job properties.
+
 ### Jenkins pipeline structure
 
 Jenkins runs a [pipeline](https://www.jenkins.io/doc/book/pipeline/), which is expressed as a series of stages which can themselves have sub-stages executed in parallel or serially. We use [scripted pipelines](https://www.jenkins.io/doc/book/pipeline/#scripted-pipeline-fundamentals).
