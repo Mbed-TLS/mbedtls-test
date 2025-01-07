@@ -93,7 +93,7 @@ Jenkins runs a [pipeline](https://www.jenkins.io/doc/book/pipeline/), which is e
 
 At runtime, the general structure of the pipeline for a release or PR job is:
 
-1. Set up the Docker images (normally from a cache, but they will be rebuilt if needed).
+1. Set up the Docker images. The images are normally cached in a Docker registry ([`trustedfirmware`](https://hub.docker.com/u/trustedfirmware) on OpenCI, a private registry on the internal CI), but they will be (re)built automatically if needed.
 2. Obtain some information about the branch to test. In particular, run `tests/scripts/all.sh --list-all-components` from the tested branch, as well as `tests/scripts/all.sh --list-components` in each Docker container to determine which one to use in the next step.
 3. Run all the components to test in parallel. The components consist of:
     * A full run of `all.sh` (spread over multiple Linux versions), invoked by `gen_jobs.gen_all_sh_jobs`.
