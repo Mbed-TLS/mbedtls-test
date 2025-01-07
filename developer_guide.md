@@ -32,6 +32,7 @@ The main jobs on OpenCI are:
 * [`mbed-tls-nightly-tests`](https://mbedtls.trustedfirmware.org/job/mbed-tls-nightly-tests/): invoke daily on each maintained branch.
 * [`mbed-tls-pr-head`](https://mbedtls.trustedfirmware.org/job/mbed-tls-pr-head/), [`mbed-tls-pr-merge`](https://mbedtls.trustedfirmware.org/job/mbed-tls-pr-merge/): invoked on pull requests in the [`mbedtls` repository](https://github.com/Mbed-TLS/mbedtls). See [“Groovy entry points”](#groovy-entry-points) below. These jobs are meant to be triggered from GitHub. If you want to run them manually on an arbitrary branch, use [`mbed-tls-restricted-pr-test-parametrized`](https://mbedtls.trustedfirmware.org/job/mbed-tls-restricted-pr-test-parametrized/).
 * [`mbedtls-restricted-release-new`](https://mbedtls.trustedfirmware.org/job/mbedtls-restricted-release-new/): run the full release job on a given branch.
+* [`mbed-tls-tf-psa-crypto-multibranch`](https://mbedtls.trustedfirmware.org/job/mbed-tls-tf-psa-crypto-multibranch/): invoked automatically on pull requests in the [`TF-PSA-Crypto` repository](https://github.com/Mbed-TLS/TF-PSA-Crypto).
 * `ci-testing` jobs are meant for testing changes to the CI scripts. See [“Validation tools”](#validation-tools) below.
 
 The internal CI has a similar set of jobs.
@@ -44,7 +45,7 @@ The scripts in `mbedtls-test` must work with:
 
 * The `development` branch of Mbed TLS.
 * The `master` branch of Mbed TLS (which only contains releases).
-* The `main` branch of the PSA Crypto implementation (work in progress).
+* The `main` branch of the PSA Crypto implementation.
 * The latest release, in case we need to issue a patch release.
 * Long-time support branches.
 * Pull requests targeting one of the above, and more generally branches forked from the above.
@@ -129,9 +130,10 @@ node (label) {
 }
 ```
 
-The label identifies what features the executor needs to have. In particular, this encodes the operating system. We use three labels:
+The label identifies what features the executor needs to have. In particular, this encodes the operating system. We use four labels:
 
-* `container-host`, which runs Linux and has Docker. Most of our Linux code runs in Docker containers.
+* `container-host` (currently synonymous with `container-host-amd64`), which runs Linux on x86_64 and has Docker. Most of our Linux code runs in Docker containers.
+* `container-host-arm64`, similar to `container-host` but running on arm64.
 * `freebsd`
 * `windows`
 
