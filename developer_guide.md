@@ -9,7 +9,7 @@ The Mbed TLS CI is expressed as [Jenkins](https://www.jenkins.io/) pipelines wri
 
 The [`mbedtls-test` repository](https://github.com/Mbed-TLS/mbedtls-test) contains:
 
-* Groovy pipeline scripts under [`vars`](vars/).
+* Groovy pipeline scripts under [`vars`](vars/), which can import packages under [`src`](src/) (we use the namespace [`org.mbed.tls.jenkins`](src/org/mbed/tls/jenkins/)).
 * Docker files used for testing on Linux under [`resources/docker_files`](resources/docker_files/).
 * A script used for testing on Windows: [`resources/windows/windows_testing.py`](resources/windows/windows_testing.py).
 
