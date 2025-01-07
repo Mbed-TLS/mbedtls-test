@@ -137,6 +137,8 @@ The label identifies what features the executor needs to have. In particular, th
 * `freebsd`
 * `windows`
 
+The full list of available labels can be found in TODO for OpenCI and the [labels dashboard](https://jenkins-mbedtls.oss.arm.com/labelsdashboard/) (configured at [admin page](https://jenkins-mbedtls.oss.arm.com/manage/configureClouds/)) on the internal CI.
+
 ## Docker images
 
 Most of our Linux testing happens in Docker containers.
