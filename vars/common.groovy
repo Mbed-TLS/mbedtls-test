@@ -363,11 +363,19 @@ void check_every_all_sh_component_will_be_run(Collection<BranchInfo> infos) {
 }
 
 def get_supported_windows_builds() {
-    def vs_builds = []
+    def vs_builds
     if (env.JOB_TYPE == 'PR') {
-        vs_builds = ['2013']
+        if (env.CHANGE_TARGET == 'mbedtls-2.28') {
+            vs_builds = ['2013']
+        } else {
+            vs_builds = ['2017']
+        }
     } else {
-        vs_builds = ['2013', '2017']
+        if (env.MBED_TLS_BRANCH == 'mbedtls-2.28') {
+            vs_builds = ['2013', '2015', '2017']
+        } else {
+            vs_builds = ['2017']
+        }
     }
     echo "vs_builds = ${vs_builds}"
     return ['mingw'] + vs_builds
