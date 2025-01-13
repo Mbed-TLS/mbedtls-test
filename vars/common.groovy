@@ -281,7 +281,7 @@ List<BranchInfo> get_branch_information(Collection<String> branches) {
                                     ),
                                     returnStdout: true
                                 ).trim().split('\n')
-                                echo "All all.sh components: ${all.join(" ")}"
+                                echo "all.sh components: ${all.join(" ")}"
                                 return [(repo): all.collectEntries { element ->
                                     return [(element): null]
                                 }]
