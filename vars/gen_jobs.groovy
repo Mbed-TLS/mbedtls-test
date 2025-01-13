@@ -679,7 +679,7 @@ def gen_release_jobs(BranchInfo info, String label_prefix='', boolean run_exampl
 
     if (env.RUN_TF_PSA_CRYPTO_ALL_SH == "true") {
         info.tf_psa_crypto_all_sh_components.each({ component, platform ->
-            jobs = jobs + gen_all_sh_jobs(info, platform, component, label_prefix)
+            jobs = jobs + gen_all_sh_jobs(info, platform, component, label_prefix, 'tf-psa-crypto')
         })
     }
 
