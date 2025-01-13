@@ -24,6 +24,7 @@ import jenkins.model.CauseOfInterruption
 import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
 import org.mbed.tls.jenkins.BranchInfo
+import org.mbed.tls.jenkins.RepoType
 
 /* Write some files that override the default behavior.
  *
@@ -61,7 +62,7 @@ Map<String, String> checkout_report_errors(scm_config) {
 }
 
 void checkout_framework_repo() {
-    if (env.TARGET_REPO == 'framework' && env.CHECKOUT_METHOD == 'scm') {
+    if (env.TARGET_REPO as RepoType == RepoType.FRAMEWORK && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
     } else if (env.FRAMEWORK_REPO && env.FRAMEWORK_BRANCH) {
         checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, env.FRAMEWORK_BRANCH))
@@ -71,7 +72,7 @@ void checkout_framework_repo() {
 }
 
 void checkout_tf_psa_crypto_repo() {
-    if (env.TARGET_REPO == 'tf-psa-crypto' && env.CHECKOUT_METHOD == 'scm') {
+    if (env.TARGET_REPO as RepoType == RepoType.TF_PSA_CRYPTO && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
     } else if (env.TF_PSA_CRYPTO_REPO && env.TF_PSA_CRYPTO_BRANCH) {
         checkout_report_errors(parametrized_repo(env.TF_PSA_CRYPTO_REPO, env.TF_PSA_CRYPTO_BRANCH))
@@ -86,7 +87,7 @@ void checkout_tf_psa_crypto_repo() {
 
 Map<String, String> checkout_tls_repo(String branch) {
     def scm_config
-    if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
+    if (env.TARGET_REPO as RepoType == RepoType.TLS && env.CHECKOUT_METHOD == 'scm') {
         scm_config = scm
     } else {
         scm_config = parametrized_repo(env.MBED_TLS_REPO, branch)
@@ -127,7 +128,7 @@ Map<String, String> checkout_tls_repo(BranchInfo info) {
 
 Map<String, String> checkout_mbed_os_example_repo(String repo, String branch) {
     def scm_config
-    if (env.TARGET_REPO == 'example' && env.CHECKOUT_METHOD == 'scm') {
+    if (env.TARGET_REPO as RepoType == RepoType.EXAMPLE && env.CHECKOUT_METHOD == 'scm') {
         scm_config = scm
     } else {
         scm_config = parametrized_repo(repo, branch)

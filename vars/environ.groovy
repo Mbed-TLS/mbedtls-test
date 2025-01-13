@@ -18,6 +18,7 @@
  */
 
 import hudson.plugins.git.GitSCM
+import org.mbed.tls.jenkins.RepoType
 
 def set_common_environment() {
     /* Do moderately parallel builds. This overrides the default in all.sh
@@ -29,16 +30,16 @@ def set_common_environment() {
     env.VERBOSE_LOGS=1
 }
 
-void set_pr_environment(String target_repo, boolean is_production) {
+void set_pr_environment(RepoType target_repo, boolean is_production) {
     set_common_environment()
     env.JOB_TYPE = 'PR'
     env.TARGET_REPO = target_repo
     if (is_production) {
         switch (target_repo) {
-            case 'tf-psa-crypto':
+            case RepoType.TF_PSA_CRYPTO:
                 env.RUN_TF_PSA_CRYPTO_ALL_SH = 'true'
                 // fallthrough
-            case 'framework':
+            case RepoType.FRAMEWORK:
                 env.MBED_TLS_REPO = 'git@github.com:Mbed-TLS/mbedtls.git'
         }
         set_common_pr_production_environment()
@@ -74,14 +75,14 @@ def set_common_pr_production_environment() {
 def set_tls_release_environment() {
     set_common_environment()
     env.JOB_TYPE = 'release'
-    env.TARGET_REPO = 'tls'
+    env.TARGET_REPO = RepoType.TLS
     env.CHECKOUT_METHOD = 'parametrized'
 }
 
 def set_mbed_os_example_pr_environment(example, is_production) {
     set_common_environment()
     env.JOB_TYPE = 'PR'
-    env.TARGET_REPO = 'example'
+    env.TARGET_REPO = RepoType.EXAMPLE
     switch (example) {
         case 'TLS':
             env.TEST_MBED_OS_AUTHCRYPT_EXAMPLE = 'true'

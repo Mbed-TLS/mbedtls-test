@@ -27,6 +27,9 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+
+import org.mbed.tls.jenkins.RepoType
+
 import java.security.MessageDigest
 import java.util.concurrent.Callable
 
@@ -228,10 +231,10 @@ List<BranchInfo> get_branch_information(Collection<String> branches) {
     List<BranchInfo> infos = []
     Map<String, Object> jobs = [:]
 
-    def repo_roots = ['tls': '.']
+    def repo_roots = [(RepoType.TLS): '.']
 
     if (env.RUN_TF_PSA_CRYPTO_ALL_SH == 'true') {
-        repo_roots['tf-psa-crypto'] = 'tf-psa-crypto'
+        repo_roots[RepoType.TF_PSA_CRYPTO] = 'tf-psa-crypto'
     }
 
     branches.each { String branch ->
@@ -307,7 +310,7 @@ List<BranchInfo> get_branch_information(Collection<String> branches) {
                         get_docker_image(platform)
                         return repo_roots.collectEntries { repo, root ->
                             // Only run tf-psa-crypto tests on the first branch
-                            if (repo == 'tf-psa-crypto' && branch != branches[0]) {
+                            if (repo == RepoType.TF_PSA_CRYPTO && branch != branches[0]) {
                                 return [(repo): [:]]
                             }
                             dir(root) {
@@ -345,12 +348,12 @@ List<BranchInfo> get_branch_information(Collection<String> branches) {
     }
 
     jobs.failFast = true
-    def results = (Map<String, Map<String, Map<String, String>>>) parallel(jobs)
+    def results = (Map<String, Map<RepoType, Map<String, String>>>) parallel(jobs)
 
     infos.each { BranchInfo info ->
         String prefix = infos.size() > 1 ? "$info.branch-" : ''
 
-        Map<String, Map<String, String>> repo_components = repo_roots.keySet().collectEntries {repo ->
+        Map<RepoType, Map<String, String>> repo_components = repo_roots.keySet().collectEntries {repo ->
             def components = results[prefix + 'all-platforms'][repo]
             linux_platforms.reverseEach { platform ->
                 components << results[prefix + platform][repo]
@@ -365,8 +368,8 @@ List<BranchInfo> get_branch_information(Collection<String> branches) {
             return [(repo): components]
         }
 
-        info.mbed_tls_all_sh_components = repo_components['tls']
-        info.tf_psa_crypto_all_sh_components = repo_components['tf-psa-crypto'] ?: [:]
+        info.mbed_tls_all_sh_components = repo_components[RepoType.TLS]
+        info.tf_psa_crypto_all_sh_components = repo_components[RepoType.TF_PSA_CRYPTO] ?: [:]
     }
     return infos
 }

@@ -25,6 +25,7 @@ import jenkins.model.CauseOfInterruption
 import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
 import org.mbed.tls.jenkins.BranchInfo
+import org.mbed.tls.jenkins.RepoType
 
 void run_tls_tests(Collection<BranchInfo> infos) {
     try {
@@ -55,11 +56,11 @@ void run_tls_tests(Collection<BranchInfo> infos) {
 }
 
 /* main job */
-void run_pr_job(String target_repo, boolean is_production, String branches) {
+void run_pr_job(RepoType target_repo, boolean is_production, String branches) {
     run_pr_job(target_repo, is_production, branches.split(',') as List)
 }
 
-void run_pr_job(String target_repo, boolean is_production, List<String> branches) {
+void run_pr_job(RepoType target_repo, boolean is_production, List<String> branches) {
     analysis.main_record_timestamps('run_pr_job') {
         if (is_production) {
             // Cancel in-flight jobs for the same PR when a new job is launched
@@ -152,11 +153,11 @@ void run_pr_job(String target_repo, boolean is_production, List<String> branches
 /* main job */
 void run_job() {
     // CHANGE_BRANCH is not set in "branch" jobs, eg. in the merge queue
-    run_pr_job('tls', true, env.CHANGE_BRANCH ?: env.BRANCH_NAME)
+    run_pr_job(RepoType.TLS, true, env.CHANGE_BRANCH ?: env.BRANCH_NAME)
 }
 
 void run_framework_pr_job() {
-    run_pr_job('framework', true, ['development', 'mbedtls-3.6'])
+    run_pr_job(RepoType.FRAMEWORK, true, ['development', 'mbedtls-3.6'])
 }
 
 void run_release_job(String branches) {

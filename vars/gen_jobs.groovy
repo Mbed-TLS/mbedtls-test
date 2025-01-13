@@ -17,6 +17,9 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+
+import org.mbed.tls.jenkins.RepoType
+
 import java.util.concurrent.Callable
 
 import net.sf.json.JSONObject
@@ -183,7 +186,7 @@ fi
     }
 }
 
-def gen_all_sh_jobs(BranchInfo info, String platform, String component, String label_prefix='', String repo='tls') {
+def gen_all_sh_jobs(BranchInfo info, String platform, String component, String label_prefix='', RepoType repo=RepoType.TLS) {
     def shorthands = [
         "arm-compilers-amd64": "armcc",
         "ubuntu-16.04-amd64": "u16",
@@ -198,7 +201,7 @@ def gen_all_sh_jobs(BranchInfo info, String platform, String component, String l
     ]
     /* Default to the full platform hame is a shorthand is not found */
     def shortplat = shorthands.getOrDefault(platform, platform)
-    def job_name = "${label_prefix}${repo == 'tls' ? '' : "${repo}_"}all_${shortplat}-${component}"
+    def job_name = "${label_prefix}${repo == RepoType.TLS ? '' : "${repo}_"}all_${shortplat}-${component}"
     def outcome_file = "${job_name.replace((char) '/', (char) '_')}-outcome.csv"
     def use_docker = platform_has_docker(platform)
     def extra_setup_code = ''
@@ -245,7 +248,7 @@ echo >&2 'Note: "clang" will run /usr/bin/clang -Wno-error=c11-extensions'
 '''
     }
 
-    if (repo == 'tls' && info.has_min_requirements) {
+    if (repo == RepoType.TLS && info.has_min_requirements) {
         extra_setup_code += """
 scripts/min_requirements.py --user ${info.python_requirements_override_file}
 """
@@ -259,10 +262,10 @@ scripts/min_requirements.py --user ${info.python_requirements_override_file}
             }
             dir('src') {
                 switch(repo) {
-                    case 'tls':
+                    case RepoType.TLS:
                         checkout_repo.checkout_tls_repo(info)
                         break
-                    case 'tf-psa-crypto':
+                    case RepoType.TF_PSA_CRYPTO:
                         checkout_repo.checkout_tf_psa_crypto_repo()
                         break
                     default:
@@ -546,7 +549,7 @@ pip install mbed-host-tests
                 dir(example) {
 /* If the job is targeting an example repo, then we wish to use the versions
 * of Mbed OS, TLS and Crypto specified by the mbed-os.lib file. */
-                    if (env.TARGET_REPO == 'example') {
+                    if (env.TARGET_REPO as RepoType == RepoType.EXAMPLE) {
                         sh """\
 ulimit -f 20971520
 . $WORKSPACE/mbed-venv/bin/activate
@@ -679,7 +682,7 @@ def gen_release_jobs(BranchInfo info, String label_prefix='', boolean run_exampl
 
     if (env.RUN_TF_PSA_CRYPTO_ALL_SH == "true") {
         info.tf_psa_crypto_all_sh_components.each({ component, platform ->
-            jobs = jobs + gen_all_sh_jobs(info, platform, component, label_prefix, 'tf-psa-crypto')
+            jobs = jobs + gen_all_sh_jobs(info, platform, component, label_prefix, RepoType.TF_PSA_CRYPTO)
         })
     }
 
