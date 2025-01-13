@@ -268,7 +268,6 @@ scripts/min_requirements.py --user ${info.python_requirements_override_file}
                     default:
                         error("Invalid repo: $repo")
                 }
-                checkout_repo.checkout_tls_repo(info)
                 writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
