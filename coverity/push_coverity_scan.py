@@ -90,11 +90,9 @@ def check_coverity_scan_tools_version(token: str, tools_os: str, tools_dir: str)
 
     return tools_hash == md5_request.text
 
-def backup_config_files(logger: logging.Logger, mbedtls_dir: pathlib.Path, restore: bool) -> None:
-    """Backup / Restore config file. """
+def backup_config_file(logger: logging.Logger, config_path: pathlib.Path, restore: bool) -> None:
+    """Backup / Restore a single config file. """
 
-    config_path = pathlib.Path(mbedtls_dir)
-    config_path = config_path / 'include' / 'mbedtls' / 'mbedtls_config.h'
     config_path.resolve()
 
     backup_path = config_path.with_suffix('.h.bak')
@@ -108,6 +106,20 @@ def backup_config_files(logger: logging.Logger, mbedtls_dir: pathlib.Path, resto
     else:
         logger.log(logging.INFO, "backing up {} to {}".format(config_path, backup_path))
         shutil.copy(config_path, config_path.with_suffix('.h.bak'))
+
+
+def backup_config_files(logger: logging.Logger, mbedtls_dir: pathlib.Path, restore: bool) -> None:
+    """Backup / Restore all config files that we will change. """
+
+    config_path = pathlib.Path(mbedtls_dir)
+    config_path = config_path / 'include' / 'mbedtls' / 'mbedtls_config.h'
+
+    backup_config_file(logger, config_path, restore)
+
+    config_path = pathlib.Path(mbedtls_dir)
+    config_path = config_path / 'tf-psa-crypto' / 'include' / 'psa' / 'crypto_config.h'
+
+    backup_config_file(logger, config_path, restore)
 
 def filter_root_tar_dir(tar_file: tarfile.TarFile) -> Iterable[tarfile.TarInfo]:
 
