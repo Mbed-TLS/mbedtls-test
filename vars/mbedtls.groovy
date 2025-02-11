@@ -30,11 +30,18 @@ void run_tls_tests(Collection<BranchInfo> infos) {
     try {
         def jobs = [:]
 
+        def repos = infos.groupBy({info -> info.repo})
         infos.each { info ->
-            def label_prefix = infos.size() > 1 ? "$info.branch-" : ''
+            String label_prefix = ''
+            if(repos.size() > 1) {
+                label_prefix += "$info.repo-"
+            }
+            if (repos[info.repo].size() > 1) {
+                label_prefix += "$info.branch-"
+            }
             jobs << gen_jobs.gen_release_jobs(info, label_prefix, false)
 
-            if (env.RUN_ABI_CHECK == "true") {
+            if (env.RUN_ABI_CHECK == "true" && info.repo == 'tls') {
                 jobs << gen_jobs.gen_abi_api_checking_job(info, 'ubuntu-18.04-amd64', label_prefix)
             }
         }
@@ -175,8 +182,15 @@ void run_release_job(List<String> branches) {
             }
             try {
                 stage('tls-testing') {
+                    def repos = infos.groupBy({info -> info.repo})
                     def jobs = infos.collectEntries { info ->
-                        String prefix = branches.size() > 1 ? "$info.branch-" : ''
+                        String prefix = ''
+                        if(repos.size() > 1) {
+                            prefix += "$info.repo-"
+                        }
+                        if (repos[info.repo].size() > 1) {
+                            prefix += "$info.branch-"
+                        }
                         return gen_jobs.gen_release_jobs(info, prefix)
                     }
                     jobs = common.wrap_report_errors(jobs)
