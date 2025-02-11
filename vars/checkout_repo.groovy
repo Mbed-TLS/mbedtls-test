@@ -120,9 +120,25 @@ git submodule foreach --recursive git config url.git@github.com:.insteadOf https
 }
 
 Map<String, String> checkout_tls_repo(BranchInfo info) {
+    if (info.repo != 'tls') {
+        throw new IllegalArgumentException("checkout_tls_repo() called with BranchInfo for repo '$info.repo'")
+    }
     Map<String, String> m = checkout_tls_repo(info.branch)
     write_overrides(info)
     return m
+}
+
+void checkout_repo(BranchInfo info) {
+    switch(info.repo) {
+        case 'tls':
+            checkout_tls_repo(info)
+            break
+        case 'tf-psa-crypto':
+            checkout_tf_psa_crypto_repo()
+            break
+        default:
+            error("Invalid repo: $info.repo")
+    }
 }
 
 Map<String, String> checkout_mbed_os_example_repo(String repo, String branch) {
