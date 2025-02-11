@@ -1,6 +1,9 @@
 package org.mbed.tls.jenkins
 
 class BranchInfo {
+    /** The type of the repo */
+    public String repo
+
     /** The name of the branch */
     public String branch
 
