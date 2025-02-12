@@ -60,6 +60,30 @@ Map<String, String> checkout_report_errors(scm_config) {
     }
 }
 
+void checkout_framework_repo() {
+    if (env.TARGET_REPO == 'framework' && env.CHECKOUT_METHOD == 'scm') {
+        checkout_report_errors(scm)
+    } else if (env.FRAMEWORK_REPO && env.FRAMEWORK_BRANCH) {
+        checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, env.FRAMEWORK_BRANCH))
+    } else {
+        echo 'Using default framework version'
+    }
+}
+
+void checkout_tf_psa_crypto_repo() {
+    if (env.TARGET_REPO == 'tf-psa-crypto' && env.CHECKOUT_METHOD == 'scm') {
+        checkout_report_errors(scm)
+    } else if (env.TF_PSA_CRYPTO_REPO && env.TF_PSA_CRYPTO_BRANCH) {
+        checkout_report_errors(parametrized_repo(env.TF_PSA_CRYPTO_REPO, env.TF_PSA_CRYPTO_BRANCH))
+    } else {
+        echo 'Using default tf-psa-crypto version'
+    }
+
+    dir('framework') {
+        checkout_framework_repo()
+    }
+}
+
 Map<String, String> checkout_tls_repo(String branch) {
     def scm_config
     if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
@@ -76,30 +100,11 @@ Map<String, String> checkout_tls_repo(String branch) {
         def result = checkout_report_errors(scm_config)
 
         dir('tf-psa-crypto') {
-            if (env.TARGET_REPO == 'tf-psa-crypto' && env.CHECKOUT_METHOD == 'scm') {
-                checkout_report_errors(scm)
-            } else if (env.TF_PSA_CRYPTO_REPO && env.TF_PSA_CRYPTO_BRANCH) {
-                checkout_report_errors(parametrized_repo(env.TF_PSA_CRYPTO_REPO, env.TF_PSA_CRYPTO_BRANCH))
-            } else {
-                echo 'Using default tf-psa-crypto version'
-            }
+            checkout_tf_psa_crypto_repo()
         }
 
-        def framework_dirs = ['framework', 'tf-psa-crypto/framework']
-        if (env.TARGET_REPO == 'framework' && env.CHECKOUT_METHOD == 'scm') {
-            framework_dirs.each { framework_dir ->
-                dir(framework_dir) {
-                    checkout_report_errors(scm)
-                }
-            }
-        } else if (env.FRAMEWORK_REPO && env.FRAMEWORK_BRANCH) {
-            framework_dirs.each { framework_dir ->
-                dir(framework_dir) {
-                    checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, env.FRAMEWORK_BRANCH))
-                }
-            }
-        } else {
-            echo 'Using default framework version'
+        dir('framework') {
+            checkout_framework_repo()
         }
 
         // After the clone, replicate it in the local config, so it is effective when running inside docker
@@ -115,9 +120,25 @@ git submodule foreach --recursive git config url.git@github.com:.insteadOf https
 }
 
 Map<String, String> checkout_tls_repo(BranchInfo info) {
+    if (info.repo != 'tls') {
+        throw new IllegalArgumentException("checkout_tls_repo() called with BranchInfo for repo '$info.repo'")
+    }
     Map<String, String> m = checkout_tls_repo(info.branch)
     write_overrides(info)
     return m
+}
+
+void checkout_repo(BranchInfo info) {
+    switch(info.repo) {
+        case 'tls':
+            checkout_tls_repo(info)
+            break
+        case 'tf-psa-crypto':
+            checkout_tf_psa_crypto_repo()
+            break
+        default:
+            error("Invalid repo: $info.repo")
+    }
 }
 
 Map<String, String> checkout_mbed_os_example_repo(String repo, String branch) {

@@ -226,6 +226,7 @@ void stash_outcomes(BranchInfo info, String job_name) {
 
 /** Process the outcome files from all the jobs */
 void  analyze_results(Collection<BranchInfo> infos) {
+    def repos = infos.groupBy({info -> info.repo})
     def job_map = infos.collectEntries { info ->
         // After running a partial run, there may not be any outcome file.
         // In this case do nothing.
@@ -235,7 +236,13 @@ void  analyze_results(Collection<BranchInfo> infos) {
             return [:]
         }
 
-        String prefix = infos.size() > 1 ? "$info.branch-" : ''
+        String prefix = ''
+        if(repos.size() > 1) {
+            prefix += "$info.repo-"
+        }
+        if (repos[info.repo].size() > 1) {
+            prefix += "$info.branch-"
+        }
         String job_name = "${prefix}result-analysis"
 
         String file_prefix = prefix.replace((char) '/', (char) '_')
@@ -269,9 +276,7 @@ fi
             }
         }
 
-        String script_in_docker = """\
-tests/scripts/analyze_outcomes.py '$outcomes_csv'
-"""
+        String script_in_docker = info.repo == 'tls' ? "tests/scripts/analyze_outcomes.py '$outcomes_csv'" : ''
 
         Closure post_execution = {
             sh "[ -f '$outcomes_csv' ] && xz -0 -T0 '$outcomes_csv'"
