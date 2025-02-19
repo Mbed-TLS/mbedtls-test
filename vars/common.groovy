@@ -224,15 +224,13 @@ docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS -e VERBOSE_LOGS $env_args --rm --
 /* Gather information about the branch that determines how to set up the
  * test environment.
  * In particular, get components of all.sh for Linux platforms. */
-List<BranchInfo> get_branch_information(Collection<String> tls_branches) {
+List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collection<String> tf_psa_crypto_branches) {
     List<BranchInfo> infos = []
     Map<String, Object> jobs = [:]
 
-    Map<String, Collection<String>> repos = ['tls': tls_branches]
-
-    if (env.RUN_TF_PSA_CRYPTO_ALL_SH == 'true') {
-        repos['tf-psa-crypto'] = ['default']
-    }
+    Map<String, Collection<String>> repos = ['tls': tls_branches, 'tf-psa-crypto': tf_psa_crypto_branches]
+    // Filter out repos with no branches
+    repos = repos.findAll({repo, branches -> branches})
 
     repos.each { String repo, Collection<String> branches ->
         branches.each { String branch ->
