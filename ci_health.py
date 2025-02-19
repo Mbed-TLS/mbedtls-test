@@ -134,7 +134,7 @@ def main():
     since_timestamp_ms = int(since_date.timestamp()) * 1000
 
     for name, url in JENKINS_SERVERS.items():
-        print(f"\n{name}\n")
+        print(f"{name} CI health indicators:")
         # Note: setting an explicit timeout avoids an incompatibility
         # with some versions of the underlying urllib3, see
         # https://bugs.launchpad.net/python-jenkins/+bug/2018567
