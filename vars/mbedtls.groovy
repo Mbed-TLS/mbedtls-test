@@ -165,7 +165,7 @@ void run_job() {
 }
 
 void run_framework_pr_job() {
-    run_pr_job('framework', true, ['development', 'mbedtls-3.6'], [])
+    run_pr_job('framework', true, ['development', 'mbedtls-3.6'], ['development'])
 }
 
 void run_release_job(String tls_branches, String tf_psa_crypto_branches) {
