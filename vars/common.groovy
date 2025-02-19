@@ -27,6 +27,9 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+
+import org.mbed.tls.jenkins.Repo
+
 import java.security.MessageDigest
 import java.util.concurrent.Callable
 
@@ -228,13 +231,13 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches) {
     List<BranchInfo> infos = []
     Map<String, Object> jobs = [:]
 
-    Map<String, Collection<String>> repos = ['tls': tls_branches]
+    Map<Repo, Collection<String>> repos = [Repo.TLS: tls_branches]
 
     if (env.RUN_TF_PSA_CRYPTO_ALL_SH == 'true') {
-        repos['tf-psa-crypto'] = ['default']
+        repos[Repo.TF_PSA_CRYPTO] = ['default']
     }
 
-    repos.each { String repo, Collection<String> branches ->
+    repos.each { Repo repo, Collection<String> branches ->
         branches.each { String branch ->
             BranchInfo info = new BranchInfo()
             info.repo = repo

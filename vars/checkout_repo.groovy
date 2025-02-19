@@ -24,6 +24,7 @@ import jenkins.model.CauseOfInterruption
 import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
 import org.mbed.tls.jenkins.BranchInfo
+import org.mbed.tls.jenkins.Repo
 
 /* Write some files that override the default behavior.
  *
@@ -61,7 +62,7 @@ Map<String, String> checkout_report_errors(scm_config) {
 }
 
 void checkout_framework_repo() {
-    if (env.TARGET_REPO == 'framework' && env.CHECKOUT_METHOD == 'scm') {
+    if (env.TARGET_REPO as Repo == Repo.FRAMEWORK && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
     } else if (env.FRAMEWORK_REPO && env.FRAMEWORK_BRANCH) {
         checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, env.FRAMEWORK_BRANCH))
@@ -71,7 +72,7 @@ void checkout_framework_repo() {
 }
 
 void checkout_tf_psa_crypto_repo() {
-    if (env.TARGET_REPO == 'tf-psa-crypto' && env.CHECKOUT_METHOD == 'scm') {
+    if (env.TARGET_REPO as Repo == Repo.TF_PSA_CRYPTO && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
     } else if (env.TF_PSA_CRYPTO_REPO && env.TF_PSA_CRYPTO_BRANCH) {
         checkout_report_errors(parametrized_repo(env.TF_PSA_CRYPTO_REPO, env.TF_PSA_CRYPTO_BRANCH))
@@ -86,7 +87,7 @@ void checkout_tf_psa_crypto_repo() {
 
 Map<String, String> checkout_tls_repo(String branch) {
     def scm_config
-    if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
+    if (env.TARGET_REPO as Repo == Repo.TLS && env.CHECKOUT_METHOD == 'scm') {
         scm_config = scm
     } else {
         scm_config = parametrized_repo(env.MBED_TLS_REPO, branch)
@@ -120,7 +121,7 @@ git submodule foreach --recursive git config url.git@github.com:.insteadOf https
 }
 
 Map<String, String> checkout_tls_repo(BranchInfo info) {
-    if (info.repo != 'tls') {
+    if (info.repo != Repo.TLS) {
         throw new IllegalArgumentException("checkout_tls_repo() called with BranchInfo for repo '$info.repo'")
     }
     Map<String, String> m = checkout_tls_repo(info.branch)
@@ -130,10 +131,10 @@ Map<String, String> checkout_tls_repo(BranchInfo info) {
 
 void checkout_repo(BranchInfo info) {
     switch(info.repo) {
-        case 'tls':
+        case Repo.TLS:
             checkout_tls_repo(info)
             break
-        case 'tf-psa-crypto':
+        case Repo.TF_PSA_CRYPTO:
             checkout_tf_psa_crypto_repo()
             break
         default:
@@ -143,7 +144,7 @@ void checkout_repo(BranchInfo info) {
 
 Map<String, String> checkout_mbed_os_example_repo(String repo, String branch) {
     def scm_config
-    if (env.TARGET_REPO == 'example' && env.CHECKOUT_METHOD == 'scm') {
+    if (env.TARGET_REPO as Repo == Repo.EXAMPLE && env.CHECKOUT_METHOD == 'scm') {
         scm_config = scm
     } else {
         scm_config = parametrized_repo(repo, branch)

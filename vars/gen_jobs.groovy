@@ -17,6 +17,9 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+
+import org.mbed.tls.jenkins.Repo
+
 import java.util.concurrent.Callable
 
 import net.sf.json.JSONObject
@@ -537,7 +540,7 @@ pip install mbed-host-tests
                 dir(example) {
 /* If the job is targeting an example repo, then we wish to use the versions
 * of Mbed OS, TLS and Crypto specified by the mbed-os.lib file. */
-                    if (env.TARGET_REPO == 'example') {
+                    if (env.TARGET_REPO as Repo == Repo.EXAMPLE) {
                         sh """\
 ulimit -f 20971520
 . $WORKSPACE/mbed-venv/bin/activate
@@ -655,7 +658,7 @@ def gen_release_jobs(BranchInfo info, String label_prefix='', boolean run_exampl
         })
     }
 
-    if (info.repo == 'tls') {
+    if (info.repo == Repo.TLS) {
         if (env.RUN_BASIC_BUILD_TEST == "true") {
             jobs = jobs + gen_code_coverage_job(info, 'ubuntu-16.04-amd64', label_prefix);
         }

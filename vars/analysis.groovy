@@ -17,6 +17,9 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+
+import org.mbed.tls.jenkins.Repo
+
 import java.nio.file.Files
 import java.nio.file.NoSuchFileException
 import java.util.concurrent.Callable
@@ -276,7 +279,7 @@ fi
             }
         }
 
-        String script_in_docker = info.repo == 'tls' ? "tests/scripts/analyze_outcomes.py '$outcomes_csv'" : ''
+        String script_in_docker = info.repo == Repo.TLS ? "tests/scripts/analyze_outcomes.py '$outcomes_csv'" : ''
 
         Closure post_execution = {
             sh "[ -f '$outcomes_csv' ] && xz -0 -T0 '$outcomes_csv'"

@@ -43,5 +43,6 @@
  */
 
 /* main job */
-library identifier: 'mbedtls-test@main', retriever: legacySCM(scm)
-mbedtls.run_pr_job('tls', false, env.MBED_TLS_BRANCH)
+def mbedtls_test = library identifier: 'mbedtls-test@main', retriever: legacySCM(scm)
+def repo = mbedtls_test.org.mbed.tls.jenkins.Repo
+mbedtls.run_pr_job(repo.TLS, false, env.MBED_TLS_BRANCH)
