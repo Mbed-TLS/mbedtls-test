@@ -43,5 +43,5 @@
  */
 
 /* main job */
-library identifier: 'mbedtls-test@master', retriever: legacySCM(scm)
+library identifier: 'mbedtls-test@main', retriever: legacySCM(scm)
 mbedtls.run_pr_job('tls', false, env.MBED_TLS_BRANCH)

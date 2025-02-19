@@ -36,5 +36,5 @@
  */
 
 /* main job */
-library identifier: 'mbedtls-test@master', retriever: legacySCM(scm)
+library identifier: 'mbedtls-test@main', retriever: legacySCM(scm)
 mbed_os_example.run_pr_job(MBED_OS_EXAMPLE, is_production=false)

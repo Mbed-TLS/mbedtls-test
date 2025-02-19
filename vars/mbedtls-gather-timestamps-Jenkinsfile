@@ -20,5 +20,5 @@
  */
 
 /* main job */
-library identifier: 'mbedtls-test@master', retriever: legacySCM(scm)
+library identifier: 'mbedtls-test@main', retriever: legacySCM(scm)
 analysis.gather_timestamps()
