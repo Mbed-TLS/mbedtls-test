@@ -44,4 +44,4 @@
 
 /* main job */
 library identifier: 'mbedtls-test@master', retriever: legacySCM(scm)
-mbedtls.run_pr_job('tls', false, env.MBED_TLS_BRANCH, env.TF_PSA_CRYPTO_BRANCH)
+mbedtls.run_pr_job('tls', false, env.MBED_TLS_BRANCH, env.RUN_TF_PSA_CRYPTO_ALL_SH ? env.TF_PSA_CRYPTO_BRANCH : '')
