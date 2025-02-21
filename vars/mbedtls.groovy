@@ -64,7 +64,7 @@ void run_tls_tests(Collection<BranchInfo> infos) {
 /* main job */
 void run_pr_job(String target_repo, boolean is_production, String tls_branches, String tf_psa_crypto_branches) {
     def (tls_split,    tf_psa_crypto_split) =
-        [tls_branches, tf_psa_crypto_branches]*.split(',')*.findAll()
+        [tls_branches, tf_psa_crypto_branches].collect({branches -> branches.split(',').findAll()})
     run_pr_job(target_repo, is_production, tls_split, tf_psa_crypto_split)
 }
 
@@ -170,7 +170,7 @@ void run_framework_pr_job() {
 
 void run_release_job(String tls_branches, String tf_psa_crypto_branches) {
     def (tls_split,    tf_psa_crypto_split) =
-        [tls_branches, tf_psa_crypto_branches]*.split(',')*.findAll()
+        [tls_branches, tf_psa_crypto_branches].collect({branches -> branches.split(',').findAll()})
     run_release_job(tls_split, tf_psa_crypto_split)
 }
 
