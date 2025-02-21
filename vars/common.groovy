@@ -231,7 +231,7 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches) {
     List<BranchInfo> infos = []
     Map<String, Object> jobs = [:]
 
-    Map<Repo, Collection<String>> repos = [Repo.TLS: tls_branches]
+    Map<Repo, Collection<String>> repos = [(Repo.TLS): tls_branches]
 
     if (env.RUN_TF_PSA_CRYPTO_ALL_SH == 'true') {
         repos[Repo.TF_PSA_CRYPTO] = ['default']
