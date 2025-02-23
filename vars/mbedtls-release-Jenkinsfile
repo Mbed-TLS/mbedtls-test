@@ -43,4 +43,6 @@
 
 /* main job */
 library identifier: 'mbedtls-test@master', retriever: legacySCM(scm)
+echo "$env.RUN_ALL_SH"
+echo "mbedtls.run_release_job($env.MBED_TLS_BRANCH, $env.RUN_TF_PSA_CRYPTO_ALL_SH == 'true' ? $env.TF_PSA_CRYPTO_BRANCH : '')"
 mbedtls.run_release_job(env.MBED_TLS_BRANCH, env.RUN_TF_PSA_CRYPTO_ALL_SH == 'true' ? env.TF_PSA_CRYPTO_BRANCH : '')

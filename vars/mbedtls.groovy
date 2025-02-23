@@ -169,12 +169,14 @@ void run_framework_pr_job() {
 }
 
 void run_release_job(String tls_branches, String tf_psa_crypto_branches) {
+    echo "tls: $tls_branches; psa: $tf_psa_crypto_branches"
     def (tls_split,    tf_psa_crypto_split) =
         [tls_branches, tf_psa_crypto_branches].collect({branches -> branches.split(',').findAll()})
     run_release_job(tls_split, tf_psa_crypto_split)
 }
 
 void run_release_job(Collection<String> tls_branches, Collection<String> tf_psa_crypto_branches) {
+    echo "tls: $tls_branches; psa: $tf_psa_crypto_branches"
     analysis.main_record_timestamps('run_release_job') {
         List<BranchInfo> infos = []
         try {
