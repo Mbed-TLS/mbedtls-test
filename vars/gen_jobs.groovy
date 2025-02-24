@@ -142,7 +142,9 @@ set -eux
 ulimit -f 20971520
 
 if [ -e scripts/min_requirements.py ]; then
-scripts/min_requirements.py --user ${info.python_requirements_override_file}
+python3 -m venv --system-site-packages --without-pip venv
+export PATH="\$PWD/venv/bin:\$PATH"
+python3 scripts/min_requirements.py ${info.python_requirements_override_file}
 fi
 """ + script_in_docker
                     sh 'chmod +x steps.sh'
@@ -247,7 +249,9 @@ echo >&2 'Note: "clang" will run /usr/bin/clang -Wno-error=c11-extensions'
 
     if (info.has_min_requirements) {
         extra_setup_code += """
-scripts/min_requirements.py --user ${info.python_requirements_override_file}
+python3 -m venv --system-site-packages --without-pip venv
+export PATH="\$PWD/venv/bin:\$PATH"
+scripts/min_requirements.py ${info.python_requirements_override_file}
 """
     }
 

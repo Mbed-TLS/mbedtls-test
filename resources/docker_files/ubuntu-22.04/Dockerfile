@@ -97,8 +97,10 @@ RUN apt-get update -q && apt-get install -yq \
         make \
         # to build GnuTLS with locally-compiled nettle
         pkg-config \
-        # to install Python packages
+        # to install several Python packages (done by individual jobs)
         python3-pip \
+        # to install several Python packages (done by individual jobs)
+        python3-venv \
         # provides some useful scripts for adding and removing repositories
         software-properties-common \
         # for Mbed TLS tests
