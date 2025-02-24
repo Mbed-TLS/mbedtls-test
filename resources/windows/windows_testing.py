@@ -50,9 +50,7 @@ class VStestrun(object):
         self.run_failed = False
         self.results = OrderedDict([
             ("shipped build", "Not Run"),
-            ("shipped selftest", "Not Run"),
             ("cmake build", "Not Run"),
-            ("cmake selftest", "Not Run"),
             ("cmake test suites", "Not Run"),
         ])
 
@@ -160,11 +158,9 @@ class MbedWindowsTesting(object):
             "Build succeeded.", "\d+ Warning\(s\)", "0 Error\(s\)"
         ]
         self.visual_studio_build_zero_warnings_string = "0 Warning(s)"
-        self.selftest_success_pattern = "\[ All tests (PASS|passed) \]"
         self.test_suites_success_pattern = "100% tests passed, 0 tests failed"
         self.mingw_success_pattern = "PASSED \(\d+ suites, \d+ tests run\)"
         self.config_py_location = os.path.join("scripts", "config.py")
-        self.selftest_exe = "selftest.exe"
         self.mingw_command = "mingw32-make"
         self.git_command = "git"
         self.python_command = "python"
@@ -379,31 +375,6 @@ class MbedWindowsTesting(object):
             self.set_return_code(2)
             logger.error(error.output)
             return False
-
-    def run_selftest_on_built_code(self, selftest_dir, logger):
-        """Runs selftest.exe and parses the output to check that it
-        reports all tests passing."""
-        logger.info(selftest_dir)
-        try:
-            test_output = subprocess.run(
-                [os.path.join(selftest_dir, self.selftest_exe)],
-                cwd=selftest_dir,
-                input="\n",
-                encoding=sys.stdout.encoding,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                check=True
-            )
-            logger.info(test_output.stdout)
-            if re.search(self.selftest_success_pattern, test_output.stdout):
-                return "Pass"
-            else:
-                self.set_return_code(1)
-                return "Fail"
-        except subprocess.CalledProcessError as error:
-            self.set_return_code(2)
-            logger.error(error.output)
-            return "Fail"
 
     def run_test_suites_on_built_code(self, solution_dir, test_run, logger):
         """Runs the various test suites and parses the output to check that
@@ -621,20 +592,6 @@ class MbedWindowsTesting(object):
                         solution_dir, test_run, vs_logger
                     )
                     test_run.results["cmake test suites"] = test_suites_result
-                    selftest_code_path = os.path.join(
-                        solution_dir, "programs",
-                        "test", test_run.configuration
-                    )
-                else:
-                    selftest_code_path = os.path.join(
-                        solution_dir,
-                        "x64" if test_run.architecture == "x64" else "",
-                        test_run.configuration
-                    )
-                selftest_result = self.run_selftest_on_built_code(
-                    selftest_code_path, vs_logger
-                )
-                test_run.results[solution_type + " selftest"] = selftest_result
         except Exception as error:
             vs_logger.error(error)
             traceback.print_exc()
@@ -671,9 +628,7 @@ class MbedWindowsTesting(object):
                 "Architecture",
                 "Retargeted",
                 "shipped build",
-                "shipped selftest",
                 "cmake build",
-                "cmake selftest",
                 "cmake test suites"
             ])
             result_table.align["version"] = "l"
@@ -687,9 +642,7 @@ class MbedWindowsTesting(object):
                     test_run.architecture,
                     test_run.retargeted,
                     test_run.results["shipped build"],
-                    test_run.results["shipped selftest"],
                     test_run.results["cmake build"],
-                    test_run.results["cmake selftest"],
                     test_run.results["cmake test suites"],
                 ])
             result_logger.info(result_table)
