@@ -83,8 +83,10 @@ RUN apt-get update -q && apt-get install -yq \
         make \
         # to build GnuTLS with locally-compiled nettle
         pkg-config \
-        # to install the preferred version of pylint
+        # to install several Python packages (done by individual jobs)
         python3-pip \
+        # to install several Python packages (done by individual jobs)
+        python3-venv \
         # for Mbed TLS tests
         valgrind \
         # to download things installed from other places

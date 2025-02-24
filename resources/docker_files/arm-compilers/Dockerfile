@@ -92,6 +92,8 @@ RUN apt-get update -q && apt-get install -yq \
         locales \
         # to install several Python packages (done by individual jobs)
         python3-pip \
+        # to install several Python packages (done by individual jobs)
+        python3-venv \
     && rm -rf /var/lib/apt/lists/
 
 # Install Python pip packages
