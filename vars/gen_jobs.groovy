@@ -251,7 +251,7 @@ echo >&2 'Note: "clang" will run /usr/bin/clang -Wno-error=c11-extensions'
         extra_setup_code += """
 python3 -m venv --system-site-packages --without-pip venv
 export PATH="\$PWD/venv/bin:\$PATH"
-scripts/min_requirements.py ${info.python_requirements_override_file}
+python3 scripts/min_requirements.py ${info.python_requirements_override_file}
 """
     }
 
