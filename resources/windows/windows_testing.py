@@ -361,7 +361,7 @@ class MbedWindowsTesting(object):
             )
             logger.info(mingw_clean.stdout)
             mingw_check = subprocess.run(
-                [self.mingw_command, "CC=gcc", "check"],
+                [self.mingw_command, "CC=gcc", "CTEST_OUTPUT_ON_FAILURE=1", "check"],
                 env=my_environment,
                 encoding=sys.stdout.encoding,
                 cwd=git_worktree_path,
