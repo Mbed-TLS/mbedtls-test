@@ -348,6 +348,7 @@ class MbedWindowsTesting(object):
     def build_and_test_using_mingw(self, git_worktree_path, logger):
         my_environment = self.get_environment_containing_mingw_path()
         my_environment["WINDOWS"] = "1"
+        my_environment["CTEST_OUTPUT_ON_FAILURE"] = "1"
         logger.info("Building mbed TLS using {}".format(self.mingw_command))
         try:
             mingw_clean = subprocess.run(
