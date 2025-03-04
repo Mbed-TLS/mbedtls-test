@@ -358,7 +358,7 @@ void check_every_all_sh_component_will_be_run(Collection<BranchInfo> infos) {
         def components = info.all_sh_components.findResults {
             name, platform -> platform ? null : name
         }
-        return components ? [(info.branch): components] : [:]
+        return components ? [("$info.repo/$info.branch".toString()): components] : [:]
     }
 
     if (untested_all_sh_components) {
@@ -444,7 +444,7 @@ done
 void maybe_send_email(String name, Collection<BranchInfo> infos) {
     String branches = infos*.branch.join(',')
     def failed_builds = infos.collectMany { info -> info.failed_builds}
-    String coverage_details = infos.collect({info -> "$info.branch:\n$info.coverage_details"}).join('\n\n')
+    String coverage_details = infos.collect({info -> "$info.repo/$info.branch:\n$info.coverage_details"}).join('\n\n')
 
     String emailbody, recipients
     boolean failed = infos.size() == 0 || failed_builds.size() > 0
