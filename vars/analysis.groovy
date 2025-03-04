@@ -226,7 +226,6 @@ void stash_outcomes(BranchInfo info, String job_name) {
 
 /** Process the outcome files from all the jobs */
 void  analyze_results(Collection<BranchInfo> infos) {
-    def repos = infos.groupBy({info -> info.repo})
     def job_map = infos.collectEntries { info ->
         // After running a partial run, there may not be any outcome file.
         // In this case do nothing.
@@ -236,16 +235,9 @@ void  analyze_results(Collection<BranchInfo> infos) {
             return [:]
         }
 
-        String prefix = ''
-        if(repos.size() > 1) {
-            prefix += "$info.repo-"
-        }
-        if (repos[info.repo].size() > 1) {
-            prefix += "$info.branch-"
-        }
-        String job_name = "${prefix}result-analysis"
+        String job_name = "${info.job_prefix}result-analysis"
 
-        String file_prefix = prefix.replace((char) '/', (char) '_')
+        String file_prefix = info.job_prefix.replace((char) '/', (char) '_')
         String outcomes_csv = "${file_prefix}outcomes.csv"
         String failures_csv = "${file_prefix}failures.csv"
 

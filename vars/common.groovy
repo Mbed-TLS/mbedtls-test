@@ -239,15 +239,14 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
             info.branch = branch
             infos << info
 
-            String prefix = ''
             if(repos.size() > 1) {
-                prefix += "$repo-"
+                info.job_prefix += "$repo-"
             }
             if (branches.size() > 1) {
-                prefix += "$branch-"
+                info.job_prefix += "$branch-"
             }
 
-            jobs << gen_jobs.job(prefix + 'all-platforms') {
+            jobs << gen_jobs.job(info.job_prefix + 'all-platforms') {
                 node('container-host') {
                     try {
                         // Log the environment for debugging purposes
@@ -297,7 +296,7 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
             }
 
             linux_platforms.each { platform ->
-                jobs << gen_jobs.job(prefix + platform) {
+                jobs << gen_jobs.job(info.job_prefix + platform) {
                     node(gen_jobs.node_label_for_platform(platform)) {
                         try {
                             dir('src') {
@@ -338,16 +337,9 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
     def results = (Map<String, Map<String, String>>) parallel(jobs)
 
     infos.each { BranchInfo info ->
-        String prefix = ''
-        if(repos.size() > 1) {
-            prefix += "$info.repo-"
-        }
-        if (repos[info.repo].size() > 1) {
-            prefix += "$info.branch-"
-        }
-        info.all_sh_components = results[prefix + 'all-platforms']
+        info.all_sh_components = results[info.job_prefix + 'all-platforms']
         linux_platforms.reverseEach { platform ->
-            info.all_sh_components << results[prefix + platform]
+            info.all_sh_components << results[info.job_prefix + platform]
         }
 
         if (env.JOB_TYPE == 'PR') {

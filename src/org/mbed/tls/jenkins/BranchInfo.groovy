@@ -7,6 +7,9 @@ class BranchInfo {
     /** The name of the branch */
     public String branch
 
+    /** A unique prefix used to distinguish this repo+branch combination */
+    public String job_prefix
+
     /** Map from component name to chosen platform to run it, or to null
      *  if no platform has been chosen yet. */
     public Map<String, String> all_sh_components
@@ -38,6 +41,7 @@ class BranchInfo {
     String coverage_details
 
     BranchInfo() {
+        this.job_prefix = ''
         this.all_sh_components = [:]
         this.has_min_requirements = false
         this.python_requirements_override_content = ''
