@@ -35,9 +35,10 @@ void set_pr_environment(String target_repo, boolean is_production) {
     env.TARGET_REPO = target_repo
     if (is_production) {
         switch (target_repo) {
-            case 'tf-psa-crypto':
-                // fallthrough
             case 'framework':
+                env.TF_PSA_CRYPTO_REPO = 'git@github.com:Mbed-TLS/TF-PSA-Crypto.git'
+                // fallthrough
+            case 'tf-psa-crypto':
                 env.MBED_TLS_REPO = 'git@github.com:Mbed-TLS/mbedtls.git'
         }
         set_common_pr_production_environment()
