@@ -31,11 +31,10 @@ void run_tls_tests(Collection<BranchInfo> infos) {
         def jobs = [:]
 
         infos.each { info ->
-            def label_prefix = infos.size() > 1 ? "$info.branch-" : ''
-            jobs << gen_jobs.gen_release_jobs(info, label_prefix, false)
+            jobs << gen_jobs.gen_release_jobs(info, info.job_prefix, false)
 
-            if (env.RUN_ABI_CHECK == "true") {
-                jobs << gen_jobs.gen_abi_api_checking_job(info, 'ubuntu-18.04-amd64', label_prefix)
+            if (env.RUN_ABI_CHECK == "true" && info.repo == 'tls') {
+                jobs << gen_jobs.gen_abi_api_checking_job(info, 'ubuntu-18.04-amd64', info.job_prefix)
             }
         }
 
@@ -55,11 +54,13 @@ void run_tls_tests(Collection<BranchInfo> infos) {
 }
 
 /* main job */
-void run_pr_job(String target_repo, boolean is_production, String branches) {
-    run_pr_job(target_repo, is_production, branches.split(',') as List)
+void run_pr_job(String target_repo, boolean is_production, String tls_branches, String tf_psa_crypto_branches) {
+    def (tls_split,    tf_psa_crypto_split) =
+        [tls_branches, tf_psa_crypto_branches].collect({branches -> branches.split(',').findAll()})
+    run_pr_job(target_repo, is_production, tls_split, tf_psa_crypto_split)
 }
 
-void run_pr_job(String target_repo, boolean is_production, List<String> branches) {
+void run_pr_job(String target_repo, boolean is_production, Collection<String> tls_branches, Collection<String> tf_psa_crypto_branches) {
     analysis.main_record_timestamps('run_pr_job') {
         if (is_production) {
             // Cancel in-flight jobs for the same PR when a new job is launched
@@ -120,7 +121,7 @@ void run_pr_job(String target_repo, boolean is_production, List<String> branches
             common.init_docker_images()
 
             stage('branch-info') {
-                infos = common.get_branch_information(branches)
+                infos = common.get_branch_information(tls_branches, tf_psa_crypto_branches)
             }
 
             stage('pre-test-checks') {
@@ -152,18 +153,20 @@ void run_pr_job(String target_repo, boolean is_production, List<String> branches
 /* main job */
 void run_job() {
     // CHANGE_BRANCH is not set in "branch" jobs, eg. in the merge queue
-    run_pr_job('tls', true, env.CHANGE_BRANCH ?: env.BRANCH_NAME)
+    run_pr_job('tls', true, env.CHANGE_BRANCH ?: env.BRANCH_NAME, '')
 }
 
 void run_framework_pr_job() {
-    run_pr_job('framework', true, ['development', 'mbedtls-3.6'])
+    run_pr_job('framework', true, ['development', 'mbedtls-3.6'], ['development'])
 }
 
-void run_release_job(String branches) {
-    run_release_job(branches.split(',') as List)
+void run_release_job(String tls_branches, String tf_psa_crypto_branches) {
+    def (tls_split,    tf_psa_crypto_split) =
+        [tls_branches, tf_psa_crypto_branches].collect({branches -> branches.split(',').findAll()})
+    run_release_job(tls_split, tf_psa_crypto_split)
 }
 
-void run_release_job(List<String> branches) {
+void run_release_job(Collection<String> tls_branches, Collection<String> tf_psa_crypto_branches) {
     analysis.main_record_timestamps('run_release_job') {
         List<BranchInfo> infos = []
         try {
@@ -171,13 +174,12 @@ void run_release_job(List<String> branches) {
             common.init_docker_images()
 
             stage('branch-info') {
-                infos = common.get_branch_information(branches)
+                infos = common.get_branch_information(tls_branches, tf_psa_crypto_branches)
             }
             try {
                 stage('tls-testing') {
                     def jobs = infos.collectEntries { info ->
-                        String prefix = branches.size() > 1 ? "$info.branch-" : ''
-                        return gen_jobs.gen_release_jobs(info, prefix)
+                        return gen_jobs.gen_release_jobs(info, info.job_prefix)
                     }
                     jobs = common.wrap_report_errors(jobs)
                     jobs.failFast = false

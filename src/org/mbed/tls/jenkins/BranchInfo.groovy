@@ -1,12 +1,18 @@
 package org.mbed.tls.jenkins
 
 class BranchInfo {
+    /** The type of the repo */
+    public String repo
+
     /** The name of the branch */
     public String branch
 
+    /** A unique prefix used to distinguish this repo+branch combination */
+    public String job_prefix
+
     /** Map from component name to chosen platform to run it, or to null
      *  if no platform has been chosen yet. */
-    public Map<String, String> all_all_sh_components
+    public Map<String, String> all_sh_components
 
     /** Whether scripts/min_requirements.py is available. Older branches don't
      *  have it, so they only get what's hard-coded in the docker files on Linux,
@@ -35,7 +41,8 @@ class BranchInfo {
     String coverage_details
 
     BranchInfo() {
-        this.all_all_sh_components = [:]
+        this.job_prefix = ''
+        this.all_sh_components = [:]
         this.has_min_requirements = false
         this.python_requirements_override_content = ''
         this.python_requirements_override_file = ''

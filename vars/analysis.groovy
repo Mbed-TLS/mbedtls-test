@@ -235,10 +235,9 @@ void  analyze_results(Collection<BranchInfo> infos) {
             return [:]
         }
 
-        String prefix = infos.size() > 1 ? "$info.branch-" : ''
-        String job_name = "${prefix}result-analysis"
+        String job_name = "${info.job_prefix}result-analysis"
 
-        String file_prefix = prefix.replace((char) '/', (char) '_')
+        String file_prefix = info.job_prefix.replace((char) '/', (char) '_')
         String outcomes_csv = "${file_prefix}outcomes.csv"
         String failures_csv = "${file_prefix}failures.csv"
 
@@ -269,9 +268,7 @@ fi
             }
         }
 
-        String script_in_docker = """\
-tests/scripts/analyze_outcomes.py '$outcomes_csv'
-"""
+        String script_in_docker = info.repo == 'tls' ? "tests/scripts/analyze_outcomes.py '$outcomes_csv'" : ''
 
         Closure post_execution = {
             sh "[ -f '$outcomes_csv' ] && xz -0 -T0 '$outcomes_csv'"

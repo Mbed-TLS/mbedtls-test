@@ -128,7 +128,7 @@ Map<String, Callable<Void>> gen_docker_job(Map<String, Closure> hooks,
                 deleteDir()
                 common.get_docker_image(platform)
                 dir('src') {
-                    checkout_repo.checkout_tls_repo(info)
+                    checkout_repo.checkout_repo(info)
                     if (hooks.post_checkout) {
                         hooks.post_checkout()
                     }
@@ -262,7 +262,7 @@ python3 scripts/min_requirements.py ${info.python_requirements_override_file}
                 common.get_docker_image(platform)
             }
             dir('src') {
-                checkout_repo.checkout_tls_repo(info)
+                checkout_repo.checkout_repo(info)
                 writeFile file: 'steps.sh', text: """\
 #!/bin/sh
 set -eux
@@ -653,35 +653,37 @@ def gen_coverity_push_jobs(BranchInfo info) {
 def gen_release_jobs(BranchInfo info, String label_prefix='', boolean run_examples=true) {
     def jobs = [:]
 
-    if (env.RUN_BASIC_BUILD_TEST == "true") {
-        jobs = jobs + gen_code_coverage_job(info, 'ubuntu-16.04-amd64', label_prefix);
-    }
-
     if (env.RUN_ALL_SH == "true") {
-        info.all_all_sh_components.each({component, platform ->
+        info.all_sh_components.each({component, platform ->
             jobs = jobs + gen_all_sh_jobs(info, platform, component, label_prefix)
         })
     }
 
-    /* FreeBSD all.sh jobs */
-    if (env.RUN_FREEBSD == "true") {
-        for (platform in common.bsd_platforms) {
-            for (component in common.freebsd_all_sh_components) {
-                jobs = jobs + gen_all_sh_jobs(info, platform, component, label_prefix)
+    if (info.repo == 'tls') {
+        if (env.RUN_BASIC_BUILD_TEST == "true") {
+            jobs = jobs + gen_code_coverage_job(info, 'ubuntu-16.04-amd64', label_prefix);
+        }
+
+        /* FreeBSD all.sh jobs */
+        if (env.RUN_FREEBSD == "true") {
+            for (platform in common.bsd_platforms) {
+                for (component in common.freebsd_all_sh_components) {
+                    jobs = jobs + gen_all_sh_jobs(info, platform, component, label_prefix)
+                }
             }
         }
-    }
 
-    if (env.RUN_WINDOWS_TEST == "true") {
-        jobs = jobs + gen_windows_jobs(info, label_prefix)
-    }
+        if (env.RUN_WINDOWS_TEST == "true") {
+            jobs = jobs + gen_windows_jobs(info, label_prefix)
+        }
 
-    if (run_examples) {
-        jobs = jobs + gen_all_example_jobs(info)
-    }
+        if (run_examples) {
+            jobs = jobs + gen_all_example_jobs(info)
+        }
 
-    if (env.PUSH_COVERITY == "true") {
-        jobs = jobs + gen_coverity_push_jobs(info)
+        if (env.PUSH_COVERITY == "true") {
+            jobs = jobs + gen_coverity_push_jobs(info)
+        }
     }
 
     return jobs
