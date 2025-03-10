@@ -23,16 +23,21 @@
  * This script takes the following parameters:
  *
  * Repos and branches
+ *  - CHANGE_TARGET
  *  - MBED_TLS_REPO
  *  - MBED_TLS_BRANCH
  *  - FRAMEWORK_REPO
  *  - FRAMEWORK_BRANCH
+ *  - TF_PSA_CRYPTO_REPO
+ *  - TF_PSA_CRYPTO_BRANCH
  *
  * Test options
+ *  - RUN_ABI_CHECK
+ *  - RUN_ALL_SH
+ *  - RUN_BASIC_BUILD_TEST
  *  - RUN_FREEBSD
  *  - RUN_WINDOWS_TEST
- *  - RUN_ALL_SH
- *  - RUN_ABI_CHECK
+ *  - RUN_TF_PSA_CRYPTO_ALL_SH
  *
  * Other parameters
  *  - TEST_BRANCH
@@ -44,4 +49,4 @@
 
 /* main job */
 library identifier: 'mbedtls-test@master', retriever: legacySCM(scm)
-mbedtls.run_pr_job('tls', false, env.MBED_TLS_BRANCH)
+mbedtls.run_pr_job('tls', false, env.MBED_TLS_BRANCH, env.RUN_TF_PSA_CRYPTO_ALL_SH == 'true' ? env.TF_PSA_CRYPTO_BRANCH : '')
