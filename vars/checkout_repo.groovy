@@ -70,7 +70,13 @@ void checkout_framework_repo() {
     }
 }
 
-void checkout_tf_psa_crypto_repo(String branch) {
+void checkout_tf_psa_crypto_repo(BranchInfo info) {
+    String branch
+    if (info.repo == 'tf-psa-crypto') {
+        branch = info.branch
+    } else {
+        branch = env.TF_PSA_CRYPTO_BRANCH
+    }
     if (env.TARGET_REPO == 'tf-psa-crypto' && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
     } else if (env.TF_PSA_CRYPTO_REPO && branch) {
@@ -104,7 +110,7 @@ Map<String, String> checkout_tls_repo(BranchInfo info) {
         def result = checkout_report_errors(scm_config)
 
         dir('tf-psa-crypto') {
-            checkout_tf_psa_crypto_repo(env.TF_PSA_CRYPTO_BRANCH)
+            checkout_tf_psa_crypto_repo(info)
         }
 
         dir('framework') {
@@ -130,7 +136,7 @@ void checkout_repo(BranchInfo info) {
             checkout_tls_repo(info)
             break
         case 'tf-psa-crypto':
-            checkout_tf_psa_crypto_repo(info.branch)
+            checkout_tf_psa_crypto_repo(info)
             break
         default:
             error("Invalid repo: $info.repo")
