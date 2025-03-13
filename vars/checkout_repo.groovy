@@ -60,13 +60,15 @@ Map<String, String> checkout_report_errors(scm_config) {
     }
 }
 
-void checkout_framework_repo() {
+void checkout_framework_repo(BranchInfo info) {
+    def branch = env.FRAMEWORK_BRANCH ?: info.framework_override
     if (env.TARGET_REPO == 'framework' && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
-    } else if (env.FRAMEWORK_REPO && env.FRAMEWORK_BRANCH) {
-        checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, env.FRAMEWORK_BRANCH))
-    } else {
-        echo 'Using default framework version'
+    } else if (env.FRAMEWORK_REPO && branch) {
+        echo "Applying framework override ($branch)"
+        checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, branch))
+    } else if (fileExists('.git')) {
+        echo "Using default framework version"
     }
 }
 
@@ -79,14 +81,27 @@ void checkout_tf_psa_crypto_repo(BranchInfo info) {
     }
     if (env.TARGET_REPO == 'tf-psa-crypto' && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
+        if (!info.framework_override) {
+            if (!isUnix()) {
+                throw new IllegalStateException("The first checkout of the framework must be made on a Unix node")
+            }
+            info.framework_override = sh(
+                    script: "git -C framework log -n1 --pretty=%H",
+                    returnStdout: true
+            ).trim()
+            echo "Setting framework override to commit $info.framework_override"
+        }
     } else if (env.TF_PSA_CRYPTO_REPO && branch) {
+        if (info.repo != 'tf-psa-crypto') {
+            echo "Applying tf-psa-crypto override ($branch)"
+        }
         checkout_report_errors(parametrized_repo(env.TF_PSA_CRYPTO_REPO, branch))
-    } else {
-        echo 'Using default tf-psa-crypto version'
+    } else if (fileExists('.git')) {
+        echo "Using default tf-psa-crypto version"
     }
 
     dir('framework') {
-        checkout_framework_repo()
+        checkout_framework_repo(info)
     }
 }
 
@@ -114,7 +129,7 @@ Map<String, String> checkout_tls_repo(BranchInfo info) {
         }
 
         dir('framework') {
-            checkout_framework_repo()
+            checkout_framework_repo(info)
         }
 
         // After the clone, replicate it in the local config, so it is effective when running inside docker
