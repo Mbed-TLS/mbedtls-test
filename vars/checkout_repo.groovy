@@ -60,11 +60,12 @@ Map<String, String> checkout_report_errors(scm_config) {
     }
 }
 
-void checkout_framework_repo() {
+void checkout_framework_repo(BranchInfo info) {
+    def branch = env.FRAMEWORK_BRANCH ?: info.framework_override
     if (env.TARGET_REPO == 'framework' && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
-    } else if (env.FRAMEWORK_REPO && env.FRAMEWORK_BRANCH) {
-        checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, env.FRAMEWORK_BRANCH))
+    } else if (env.FRAMEWORK_REPO && branch) {
+        checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, branch))
     } else {
         echo 'Using default framework version'
     }
@@ -79,6 +80,8 @@ void checkout_tf_psa_crypto_repo(BranchInfo info) {
     }
     if (env.TARGET_REPO == 'tf-psa-crypto' && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
+        def sh_or_bat = isUnix() ? {args -> sh(args)} : {args -> bat(args)}
+        info.framework_override = sh_or_bat(script: 'git -C framework log -n1 --pretty=%H', returnStdout: true)
     } else if (env.TF_PSA_CRYPTO_REPO && branch) {
         checkout_report_errors(parametrized_repo(env.TF_PSA_CRYPTO_REPO, branch))
     } else {
@@ -86,7 +89,7 @@ void checkout_tf_psa_crypto_repo(BranchInfo info) {
     }
 
     dir('framework') {
-        checkout_framework_repo()
+        checkout_framework_repo(info)
     }
 }
 
@@ -114,7 +117,7 @@ Map<String, String> checkout_tls_repo(BranchInfo info) {
         }
 
         dir('framework') {
-            checkout_framework_repo()
+            checkout_framework_repo(info)
         }
 
         // After the clone, replicate it in the local config, so it is effective when running inside docker

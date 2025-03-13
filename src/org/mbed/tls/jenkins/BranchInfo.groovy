@@ -10,6 +10,9 @@ class BranchInfo {
     /** A unique prefix used to distinguish this repo+branch combination */
     public String job_prefix
 
+    /** Git hash of the framework commit to use in mbedtls. Set in crypto PRs. */
+    public String framework_override
+
     /** Map from component name to chosen platform to run it, or to null
      *  if no platform has been chosen yet. */
     public Map<String, String> all_sh_components
@@ -42,6 +45,7 @@ class BranchInfo {
 
     BranchInfo() {
         this.job_prefix = ''
+        this.framework_override = ''
         this.all_sh_components = [:]
         this.has_min_requirements = false
         this.python_requirements_override_content = ''
