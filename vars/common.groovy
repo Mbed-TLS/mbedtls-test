@@ -135,8 +135,8 @@ Caught: ${stack_trace_to_string(err)}
     }
 }
 
-Map<String, ? super Closure> wrap_report_errors(Map<String, ?> jobs) {
-    return (Map<String, ? super Closure>) jobs.collectEntries { key, value ->
+Map<String, Object> wrap_report_errors(Map<String, ?> jobs) {
+    return (Map<String, Object>) jobs.collectEntries { key, value ->
         return [(key): value instanceof Callable ? { report_errors(key, value) } : value]
     }
 }

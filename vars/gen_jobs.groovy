@@ -452,7 +452,7 @@ def gen_windows_jobs(BranchInfo info, String label_prefix='') {
     return jobs
 }
 
-def gen_abi_api_checking_job(BranchInfo info, String platform, String label_prefix = '') {
+Map<String, Closure> gen_abi_api_checking_job(BranchInfo info, String platform, String label_prefix = '') {
     String job_name = "${label_prefix}ABI-API-checking"
     String script_in_docker = '''
 tests/scripts/list-identifiers.sh --internal
@@ -650,7 +650,7 @@ def gen_coverity_push_jobs(BranchInfo info) {
     return jobs
 }
 
-def gen_release_jobs(BranchInfo info, String label_prefix='', boolean run_examples=true) {
+Map<String, Closure> gen_release_jobs(BranchInfo info, String label_prefix='', boolean run_examples=true) {
     def jobs = [:]
 
     if (env.RUN_ALL_SH == "true") {

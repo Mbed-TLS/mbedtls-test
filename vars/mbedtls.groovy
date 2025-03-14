@@ -27,13 +27,13 @@ import org.mbed.tls.jenkins.BranchInfo
 
 void run_tls_tests(Collection<BranchInfo> infos) {
     try {
-        def jobs = [:]
+        Map<String, Object> jobs = [:]
 
         infos.each { info ->
-            jobs << gen_jobs.gen_release_jobs(info, info.job_prefix, false)
+            jobs.putAll(gen_jobs.gen_release_jobs(info, info.job_prefix, false))
 
             if (env.RUN_ABI_CHECK == "true" && info.repo == 'tls') {
-                jobs << gen_jobs.gen_abi_api_checking_job(info, 'ubuntu-18.04-amd64', info.job_prefix)
+                jobs.putAll(gen_jobs.gen_abi_api_checking_job(info, 'ubuntu-18.04-amd64', info.job_prefix))
             }
         }
 
@@ -54,9 +54,9 @@ void run_tls_tests(Collection<BranchInfo> infos) {
 
 /* main job */
 void run_pr_job(String target_repo, boolean is_production, String tls_branches, String tf_psa_crypto_branches) {
-    def (tls_split,    tf_psa_crypto_split) =
+    List<Collection<String>> results =
         [tls_branches, tf_psa_crypto_branches].collect({branches -> branches.split(',').findAll()})
-    run_pr_job(target_repo, is_production, tls_split, tf_psa_crypto_split)
+    run_pr_job(target_repo, is_production, results[0], results[1])
 }
 
 void run_pr_job(String target_repo, boolean is_production, Collection<String> tls_branches, Collection<String> tf_psa_crypto_branches) {
@@ -152,7 +152,7 @@ void run_pr_job(String target_repo, boolean is_production, Collection<String> tl
 /* main job */
 void run_job() {
     // CHANGE_BRANCH is not set in "branch" jobs, eg. in the merge queue
-    run_pr_job('tls', true, env.CHANGE_BRANCH ?: env.BRANCH_NAME, '')
+    run_pr_job('tls', true, env['CHANGE_BRANCH'] ?: env['BRANCH_NAME'], '')
 }
 
 void run_framework_pr_job() {
@@ -160,9 +160,9 @@ void run_framework_pr_job() {
 }
 
 void run_release_job(String tls_branches, String tf_psa_crypto_branches) {
-    def (tls_split,    tf_psa_crypto_split) =
+    List<Collection<String>> results =
         [tls_branches, tf_psa_crypto_branches].collect({branches -> branches.split(',').findAll()})
-    run_release_job(tls_split, tf_psa_crypto_split)
+    run_release_job(results[0], results[1])
 }
 
 void run_release_job(Collection<String> tls_branches, Collection<String> tf_psa_crypto_branches) {
@@ -177,7 +177,7 @@ void run_release_job(Collection<String> tls_branches, Collection<String> tf_psa_
             }
             try {
                 stage('tls-testing') {
-                    def jobs = infos.collectEntries { info ->
+                    Map<String, Object> jobs = infos.collectEntries { info ->
                         return gen_jobs.gen_release_jobs(info, info.job_prefix)
                     }
                     jobs = common.wrap_report_errors(jobs)
