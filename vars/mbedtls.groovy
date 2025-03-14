@@ -17,6 +17,9 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+
+import groovy.transform.TypeChecked
+
 import hudson.model.Cause
 import hudson.model.Result
 import hudson.triggers.TimerTrigger
@@ -25,6 +28,7 @@ import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
 import org.mbed.tls.jenkins.BranchInfo
 
+@TypeChecked(extensions = ['org.mbed.tls.jenkins.typing.JenkinsTypingExtension'])
 void run_tls_tests(Collection<BranchInfo> infos) {
     try {
         Map<String, Object> jobs = [:]
@@ -53,12 +57,14 @@ void run_tls_tests(Collection<BranchInfo> infos) {
 }
 
 /* main job */
+@TypeChecked(extensions = ['org.mbed.tls.jenkins.typing.JenkinsTypingExtension'])
 void run_pr_job(String target_repo, boolean is_production, String tls_branches, String tf_psa_crypto_branches) {
     List<Collection<String>> results =
         [tls_branches, tf_psa_crypto_branches].collect({branches -> branches.split(',').findAll()})
     run_pr_job(target_repo, is_production, results[0], results[1])
 }
 
+@TypeChecked(extensions = ['org.mbed.tls.jenkins.typing.JenkinsTypingExtension'])
 void run_pr_job(String target_repo, boolean is_production, Collection<String> tls_branches, Collection<String> tf_psa_crypto_branches) {
     analysis.main_record_timestamps('run_pr_job') {
         if (is_production) {
@@ -150,21 +156,25 @@ void run_pr_job(String target_repo, boolean is_production, Collection<String> tl
 }
 
 /* main job */
+@TypeChecked(extensions = ['org.mbed.tls.jenkins.typing.JenkinsTypingExtension'])
 void run_job() {
     // CHANGE_BRANCH is not set in "branch" jobs, eg. in the merge queue
     run_pr_job('tls', true, env['CHANGE_BRANCH'] ?: env['BRANCH_NAME'], '')
 }
 
+@TypeChecked(extensions = ['org.mbed.tls.jenkins.typing.JenkinsTypingExtension'])
 void run_framework_pr_job() {
     run_pr_job('framework', true, ['development', 'mbedtls-3.6'], ['development'])
 }
 
+@TypeChecked(extensions = ['org.mbed.tls.jenkins.typing.JenkinsTypingExtension'])
 void run_release_job(String tls_branches, String tf_psa_crypto_branches) {
     List<Collection<String>> results =
         [tls_branches, tf_psa_crypto_branches].collect({branches -> branches.split(',').findAll()})
     run_release_job(results[0], results[1])
 }
 
+@TypeChecked(extensions = ['org.mbed.tls.jenkins.typing.JenkinsTypingExtension'])
 void run_release_job(Collection<String> tls_branches, Collection<String> tf_psa_crypto_branches) {
     analysis.main_record_timestamps('run_release_job') {
         List<BranchInfo> infos = []

@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentMap
 import java.util.function.Function
 
 import groovy.transform.Field
+import groovy.transform.TypeChecked
 
 import com.cloudbees.groovy.cps.NonCPS
 import hudson.FilePath
@@ -45,6 +46,7 @@ import org.mbed.tls.jenkins.typing.NeedsNodeContext
 @Field private static ConcurrentMap<String, ConcurrentMap<String, JobTimestamps>> timestamps =
         new ConcurrentHashMap<String, ConcurrentMap<String, JobTimestamps>>();
 
+@TypeChecked(extensions = ['org.mbed.tls.jenkins.typing.JenkinsTypingExtension'])
 void record_timestamps(String group, String job_name, Callable<Void> body, String node_label = null) {
     def ts = new JobTimestamps()
     def group_map = timestamps.computeIfAbsent(group, new Function<String, ConcurrentMap<String, JobTimestamps>>() {
@@ -74,6 +76,7 @@ void record_timestamps(String group, String job_name, Callable<Void> body, Strin
     }
 }
 
+@TypeChecked(extensions = ['org.mbed.tls.jenkins.typing.JenkinsTypingExtension'])
 void main_record_timestamps(String job_name, Callable<Void> body) {
     timestamps {
         try {
@@ -93,10 +96,12 @@ void main_record_timestamps(String job_name, Callable<Void> body) {
     }
 }
 
+@TypeChecked(extensions = ['org.mbed.tls.jenkins.typing.JenkinsTypingExtension'])
 void node_record_timestamps(String node_label, String job_name, Callable<Void> body) {
     record_timestamps(node_label, job_name, body, node_label)
 }
 
+@TypeChecked(extensions = ['org.mbed.tls.jenkins.typing.JenkinsTypingExtension'])
 void record_inner_timestamps(String group, String job_name, Callable<?> body) {
     def ts = timestamps[group][job_name]
     if (ts == null) {
@@ -111,6 +116,7 @@ void record_inner_timestamps(String group, String job_name, Callable<?> body) {
 }
 
 // Takes a filename -> content map, and produces archives for each entry, without launching an executor
+@TypeChecked(extensions = ['org.mbed.tls.jenkins.typing.JenkinsTypingExtension'])
 void archive_strings(Map<String, String> artifacts) {
     def dir = new FilePath(Files.createTempDirectory('artifacts').toFile())
     try {
@@ -126,6 +132,7 @@ void archive_strings(Map<String, String> artifacts) {
 
 // Gather the build information we store in timestamp files, and write it in a provided / new map
 @NonCPS
+@TypeChecked(extensions = ['org.mbed.tls.jenkins.typing.JenkinsTypingExtension'])
 static Map<String, Object> get_build_info(Run build, Map<String, Object> info=[:]) {
     def data = build.getActions(BuildData).find({ data -> data.remoteUrls[0] =~ /mbedtls-test/ })
     def project = build.parent
@@ -148,6 +155,7 @@ static Map<String, Object> get_build_info(Run build, Map<String, Object> info=[:
     return info
 }
 
+@TypeChecked(extensions = ['org.mbed.tls.jenkins.typing.JenkinsTypingExtension'])
 void archive_timestamps() {
     archive_strings([
         'timestamps.json': JSONObject.fromObject(get_build_info(currentBuild.rawBuild, [
@@ -157,6 +165,7 @@ void archive_timestamps() {
 }
 
 @NonCPS
+@TypeChecked(extensions = ['org.mbed.tls.jenkins.typing.JenkinsTypingExtension'])
 static List<JSONObject> gather_timestamps_since(ItemGroup project_root, long threshold_ms) {
     List<JSONObject> builds = []
     def names = ['mbed-tls-nightly-tests', 'mbed-tls-pr-head', 'mbed-tls-pr-merge']
@@ -192,6 +201,7 @@ static List<JSONObject> gather_timestamps_since(ItemGroup project_root, long thr
     return builds
 }
 
+@TypeChecked(extensions = ['org.mbed.tls.jenkins.typing.JenkinsTypingExtension'])
 void gather_timestamps() {
     stage('gather-timestamps') {
         def builds = gather_timestamps_since(currentBuild.rawBuild.parent.parent, currentBuild.startTimeInMillis - 24 * 60 * 60 * 1000)
@@ -215,6 +225,7 @@ void gather_timestamps() {
     }
 }
 
+@TypeChecked(extensions = ['org.mbed.tls.jenkins.typing.JenkinsTypingExtension'])
 @NeedsNodeContext
 void stash_outcomes(BranchInfo info, String job_name) {
     def stash_name = job_name.replace((char) '/', (char) '_') + '-outcome'
@@ -227,6 +238,7 @@ void stash_outcomes(BranchInfo info, String job_name) {
 }
 
 /** Process the outcome files from all the jobs */
+@TypeChecked(extensions = ['org.mbed.tls.jenkins.typing.JenkinsTypingExtension'])
 void  analyze_results(Collection<BranchInfo> infos) {
     def job_map = infos.collectEntries { info ->
         // After running a partial run, there may not be any outcome file.
