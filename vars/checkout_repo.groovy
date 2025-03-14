@@ -65,13 +65,17 @@ void checkout_framework_repo(BranchInfo info) {
     if (env.TARGET_REPO == 'framework' && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
     } else if (env.FRAMEWORK_REPO && branch) {
+        echo "Applying framework override ($branch)"
         checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, branch))
-    } else {
-        echo 'Using default framework version'
+    } else if (fileExists('.git')) {
+        def sh_or_bat = isUnix() ? {args -> sh(args)} : {args -> bat(args)}
+        String commit = sh_or_bat(script: 'git log -n1 --pretty=%H', returnStdout: true)
+        echo "Using default framework version ($commit)"
     }
 }
 
 void checkout_tf_psa_crypto_repo(BranchInfo info) {
+    def sh_or_bat = isUnix() ? {args -> sh(args)} : {args -> bat(args)}
     String branch
     if (info.repo == 'tf-psa-crypto') {
         branch = info.branch
@@ -80,12 +84,16 @@ void checkout_tf_psa_crypto_repo(BranchInfo info) {
     }
     if (env.TARGET_REPO == 'tf-psa-crypto' && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
-        def sh_or_bat = isUnix() ? {args -> sh(args)} : {args -> bat(args)}
         info.framework_override = sh_or_bat(script: 'git -C framework log -n1 --pretty=%H', returnStdout: true)
+        echo "Setting framework override to commit $info.framework_override"
     } else if (env.TF_PSA_CRYPTO_REPO && branch) {
+        if (info.repo != 'tf-psa-crypto') {
+            echo "Applying tf-psa-crypto override ($branch)"
+        }
         checkout_report_errors(parametrized_repo(env.TF_PSA_CRYPTO_REPO, branch))
-    } else {
-        echo 'Using default tf-psa-crypto version'
+    } else if (fileExists('.git')) {
+        String commit = sh_or_bat(script: 'git log -n1 --pretty=%H', returnStdout: true)
+        echo "Using default tf-psa-crypto version ($commit)"
     }
 
     dir('framework') {
