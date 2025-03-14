@@ -5,11 +5,25 @@ plugins {
 
 repositories {
     mavenCentral()
+    maven {
+        url 'https://repo.jenkins-ci.org/public'
+    }
 }
 
 dependencies {
-    implementation libs.groovy.all
-    implementation libs.objectweb.asm
+    api libs.groovy.all
+    api libs.groovy.all
+    api libs.jakarta.servlet.api
+    api libs.jenkins.core
+    api libs.jenkins.plugins.branch.api
+    api libs.jenkins.plugins.git
+    api libs.jenkins.plugins.github.branch.source
+    api libs.jenkins.plugins.parameterized.scheduler
+    api libs.jenkins.plugins.pipeline.utility.steps
+    api libs.jenkins.plugins.workflow.basic.steps
+    api libs.jenkins.plugins.workflow.cps
+    api libs.jenkins.plugins.workflow.multibranch
+    api libs.jenkins.plugins.workflow.step.api
 }
 
 // Apply a specific Java toolchain to ease working on different environments.

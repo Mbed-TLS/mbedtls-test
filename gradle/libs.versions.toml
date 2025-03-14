@@ -1,13 +1,15 @@
 # https://docs.gradle.org/current/userguide/platforms.html#sub::toml-dependencies-format
-
 [libraries]
 groovy-all                              = "org.codehaus.groovy:groovy-all:2.4.21"
-groovy-cps                              = "com.cloudbees:groovy-cps:3691.v28b_14c465a_b_b_"
 jakarta-servlet-api                     = "jakarta.servlet:jakarta.servlet-api:4.0.4"
-jenkins-core                            = "org.jenkins-ci.main:jenkins-core:2.387.2"
+jenkins-core                            = "org.jenkins-ci.main:jenkins-core:2.387.3"
 jenkins-plugins-branch-api              = "org.jenkins-ci.plugins:branch-api:2.1128.v717130d4f816"
 jenkins-plugins-git                     = "org.jenkins-ci.plugins:git:5.2.1"
-jenkins-plugins-github-branch-source    = "org.jenkins-ci.plugins:github-branch-source:1734.v8a_ed3a_653490"
+jenkins-plugins-github-branch-source    = "org.jenkins-ci.plugins:github-branch-source:1741.va_3028eb_9fd21"
 jenkins-plugins-parameterized-scheduler = "org.jenkins-ci.plugins:parameterized-scheduler:255.v73827fcdf618"
+jenkins-plugins-pipeline-utility-steps  = "org.jenkins-ci.plugins:pipeline-utility-steps:2.16.0"
+jenkins-plugins-workflow-basic-steps    = "org.jenkins-ci.plugins.workflow:workflow-basic-steps:1058.vcb_fc1e3a_21a_9"
+jenkins-plugins-workflow-cps            = "org.jenkins-ci.plugins.workflow:workflow-cps:3806.va_3a_6988277b_2"
+jenkins-plugins-workflow-multibranch    = "org.jenkins-ci.plugins.workflow:workflow-multibranch:756.v891d88f2cd46"
 jenkins-plugins-workflow-step-api       = "org.jenkins-ci.plugins.workflow:workflow-step-api:639.v6eca_cd8c04a_a_"
 objectweb-asm                           = "org.ow2.asm:asm:9.4"

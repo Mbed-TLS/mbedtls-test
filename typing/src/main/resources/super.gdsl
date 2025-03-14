@@ -1,0 +1,16 @@
+//The global script scope
+//def ctx = context(scope: scriptScope())
+scriptSuperClass(pattern: 'vars/[^/]*\\.groovy', superClass: 'org.mbed.tls.jenkins.typing.VarScriptContext')
+
+
+//def ctx = context(ctype: 'groovy.lang.Script')
+//contributor(ctx) {
+//}
+
+//Steps that require a node context
+def nodeCtx = [
+        context(scope: annotatedScope(ctype: 'org.mbed.tls.jenkins.typing.NeedsNodeContext')),
+]
+contributor(nodeCtx) {
+    delegatesTo(findClass('org.mbed.tls.jenkins.typing.NodeContext'))
+}

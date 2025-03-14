@@ -11,11 +11,8 @@ import java.lang.annotation.Target
  * to annotating all of its methods and constructors.
  */
 @Target([
-    ElementType.TYPE,
     ElementType.METHOD,
-    ElementType.CONSTRUCTOR,
     ElementType.LOCAL_VARIABLE,
-    ElementType.FIELD,
 ])
 @Retention(RetentionPolicy.SOURCE)
 @interface NeedsNodeContext {}

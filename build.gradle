@@ -31,16 +31,6 @@ repositories {
 }
 
 dependencies {
-    implementation libs.groovy.all
-    implementation libs.groovy.cps
-    implementation libs.jakarta.servlet.api
-    implementation libs.jenkins.core
-    implementation libs.jenkins.plugins.branch.api
-    implementation libs.jenkins.plugins.git
-    implementation libs.jenkins.plugins.github.branch.source
-    implementation libs.jenkins.plugins.parameterized.scheduler
-    implementation libs.jenkins.plugins.workflow.step.api
-
     compileOnly project(':typing')
 }
 
@@ -48,6 +38,12 @@ dependencies {
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(11)
+    }
+}
+
+compileGroovy {
+    groovyOptions.with {
+        configurationScript = file('gradle/config.groovy')
     }
 }
 
