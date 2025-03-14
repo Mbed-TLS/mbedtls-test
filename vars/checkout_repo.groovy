@@ -68,14 +68,30 @@ void checkout_framework_repo(BranchInfo info) {
         echo "Applying framework override ($branch)"
         checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, branch))
     } else if (fileExists('.git')) {
-        def sh_or_bat = isUnix() ? {args -> sh(args)} : {args -> bat(args)}
-        String commit = sh_or_bat(script: 'git log -n1 --pretty=%H', returnStdout: true).trim()
+        def sh_or_bat
+        def format
+        if (isUnix()) {
+            sh_or_bat = {args -> sh(args)}
+            format = '%H'
+        } else {
+            sh_or_bat = {args -> bat(args)}
+            format = '%%H'
+        }
+        String commit = sh_or_bat(script: "git log -n1 --pretty=$format", returnStdout: true).trim()
         echo "Using default framework version ($commit)"
     }
 }
 
 void checkout_tf_psa_crypto_repo(BranchInfo info) {
-    def sh_or_bat = isUnix() ? {args -> sh(args)} : {args -> bat(args)}
+    def sh_or_bat
+    def format
+    if (isUnix()) {
+        sh_or_bat = {args -> sh(args)}
+        format = '%H'
+    } else {
+        sh_or_bat = {args -> bat(args)}
+        format = '%%H'
+    }
     String branch
     if (info.repo == 'tf-psa-crypto') {
         branch = info.branch
@@ -84,7 +100,7 @@ void checkout_tf_psa_crypto_repo(BranchInfo info) {
     }
     if (env.TARGET_REPO == 'tf-psa-crypto' && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
-        info.framework_override = sh_or_bat(script: 'git -C framework log -n1 --pretty=%H', returnStdout: true).trim()
+        info.framework_override = sh_or_bat(script: "git -C framework log -n1 --pretty=$format", returnStdout: true).trim()
         echo "Setting framework override to commit $info.framework_override"
     } else if (env.TF_PSA_CRYPTO_REPO && branch) {
         if (info.repo != 'tf-psa-crypto') {
@@ -92,7 +108,7 @@ void checkout_tf_psa_crypto_repo(BranchInfo info) {
         }
         checkout_report_errors(parametrized_repo(env.TF_PSA_CRYPTO_REPO, branch))
     } else if (fileExists('.git')) {
-        String commit = sh_or_bat(script: 'git log -n1 --pretty=%H', returnStdout: true).trim()
+        String commit = sh_or_bat(script: "git log -n1 --pretty=$format", returnStdout: true).trim()
         echo "Using default tf-psa-crypto version ($commit)"
     }
 
