@@ -40,6 +40,7 @@ import net.sf.json.JSONObject
 
 import org.mbed.tls.jenkins.BranchInfo
 import org.mbed.tls.jenkins.JobTimestamps
+import org.mbed.tls.jenkins.typing.NeedsNodeContext
 
 @Field private static ConcurrentMap<String, ConcurrentMap<String, JobTimestamps>> timestamps =
         new ConcurrentHashMap<String, ConcurrentMap<String, JobTimestamps>>();
@@ -150,7 +151,7 @@ static Map<String, Object> get_build_info(Run build, Map<String, Object> info=[:
 void archive_timestamps() {
     archive_strings([
         'timestamps.json': JSONObject.fromObject(get_build_info(currentBuild.rawBuild, [
-            subtasks: timestamps
+            subtasks: (Object) timestamps
         ])).toString()
     ])
 }
@@ -161,14 +162,14 @@ static List<JSONObject> gather_timestamps_since(ItemGroup project_root, long thr
     def names = ['mbed-tls-nightly-tests', 'mbed-tls-pr-head', 'mbed-tls-pr-merge']
     for (def name : names) {
         def item = project_root.getItem(name)
-        def jobs
+        Collection<Job<Job, Run>> jobs
         if (item instanceof ItemGroup<Job<Job, Run>>) {
             jobs = item.items
         } else {
             assert item instanceof Job<Job, Run>
-            jobs = [item]
+            jobs = [(Job<Job, Run>) item]
         }
-        for (def job : jobs) {
+        for (Job<Job, Run> job : jobs) {
             for (def build : job.builds) {
                 if (!build.building && build.startTimeInMillis + build.duration >= threshold_ms) {
                     JSONObject json
@@ -178,7 +179,7 @@ static List<JSONObject> gather_timestamps_since(ItemGroup project_root, long thr
                         continue
                     }
 
-                    if (json.getOrDefault('version', 0) < 1) {
+                    if ((Integer) json.getOrDefault('version', 0) < 1) {
                         // Convert to version 1 format
                         get_build_info(build, json)
                         ((JSONObject) json.subtasks).main = json.remove('main')
@@ -201,7 +202,7 @@ void gather_timestamps() {
         builds.collectMany(records, { build ->
             def build_header = group_path.collect(build.&getOrDefault)
             return ((Map<String, Map<String, JSONObject>>) build.subtasks).collectMany { group, tasks ->
-                tasks.collect { subtask, ts ->
+                return (Collection<String>) tasks.collect { subtask, ts ->
                     return ts_format.collect(build_header + [group, subtask], ts.&get).join(',')
                 }
             }
@@ -214,6 +215,7 @@ void gather_timestamps() {
     }
 }
 
+@NeedsNodeContext
 void stash_outcomes(BranchInfo info, String job_name) {
     def stash_name = job_name.replace((char) '/', (char) '_') + '-outcome'
     if (findFiles(glob: '*-outcome.csv')) {
@@ -241,6 +243,7 @@ void  analyze_results(Collection<BranchInfo> infos) {
         String outcomes_csv = "${file_prefix}outcomes.csv"
         String failures_csv = "${file_prefix}failures.csv"
 
+        @NeedsNodeContext
         Closure post_checkout = {
             dir('csvs') {
                 for (stash_name in info.outcome_stashes) {
@@ -270,6 +273,7 @@ fi
 
         String script_in_docker = info.repo == 'tls' ? "tests/scripts/analyze_outcomes.py '$outcomes_csv'" : ''
 
+        @NeedsNodeContext
         Closure post_execution = {
             sh "[ -f '$outcomes_csv' ] && xz -0 -T0 '$outcomes_csv'"
             archiveArtifacts(artifacts: "${outcomes_csv}.xz, ${failures_csv}*",
