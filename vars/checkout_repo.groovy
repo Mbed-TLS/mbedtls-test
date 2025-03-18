@@ -61,14 +61,16 @@ Map<String, String> checkout_report_errors(scm_config) {
 }
 
 void checkout_framework_repo(BranchInfo info) {
-    def branch = env.FRAMEWORK_BRANCH ?: info.framework_override
     if (env.TARGET_REPO == 'framework' && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
-    } else if (env.FRAMEWORK_REPO && branch) {
-        echo "Applying framework override ($branch)"
-        checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, branch))
-    } else if (fileExists('.git')) {
-        echo "Using default framework version"
+    } else {
+        def branch = env.FRAMEWORK_BRANCH ?: info.framework_override
+        if (env.FRAMEWORK_REPO && branch) {
+            echo "Applying framework override ($branch)"
+            checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, branch))
+        } else if (fileExists('.git')) {
+            echo "Using default framework version"
+        }
     }
 }
 
