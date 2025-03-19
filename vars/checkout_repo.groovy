@@ -75,12 +75,6 @@ void checkout_framework_repo(BranchInfo info) {
 }
 
 void checkout_tf_psa_crypto_repo(BranchInfo info) {
-    String branch
-    if (info.repo == 'tf-psa-crypto') {
-        branch = info.branch
-    } else {
-        branch = env.TF_PSA_CRYPTO_BRANCH
-    }
     if (env.TARGET_REPO == 'tf-psa-crypto' && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
         if (!info.framework_override) {
@@ -93,13 +87,21 @@ void checkout_tf_psa_crypto_repo(BranchInfo info) {
             ).trim()
             echo "Setting framework override to commit $info.framework_override"
         }
-    } else if (env.TF_PSA_CRYPTO_REPO && branch) {
-        if (info.repo != 'tf-psa-crypto') {
-            echo "Applying tf-psa-crypto override ($branch)"
+    } else {
+        String branch
+        if (info.repo == 'tf-psa-crypto') {
+            branch = info.branch
+        } else {
+            branch = env.TF_PSA_CRYPTO_BRANCH
         }
-        checkout_report_errors(parametrized_repo(env.TF_PSA_CRYPTO_REPO, branch))
-    } else if (fileExists('.git')) {
-        echo "Using default tf-psa-crypto version"
+        if (env.TF_PSA_CRYPTO_REPO && branch) {
+            if (info.repo != 'tf-psa-crypto') {
+                echo "Applying tf-psa-crypto override ($branch)"
+            }
+            checkout_report_errors(parametrized_repo(env.TF_PSA_CRYPTO_REPO, branch))
+        } else if (fileExists('.git')) {
+            echo "Using default tf-psa-crypto version"
+        }
     }
 
     dir('framework') {
