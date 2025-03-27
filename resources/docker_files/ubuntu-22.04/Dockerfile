@@ -322,6 +322,9 @@ RUN python3 -m pip config set global.progress_bar off && \
     python3 -m pip install setuptools --upgrade && \
     true
 
+#Upgrade pip to the latest version
+RUN  python3 -m pip install --upgrade pip
+
 # Make sure we have a UTF-8 locale
 RUN locale && \
     locale-gen "en_US.UTF-8" && \
