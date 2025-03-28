@@ -215,8 +215,6 @@ RUN wget -q https://www.openssl.org/source/openssl-1.1.1a.tar.gz && \
 ENV OPENSSL_1_1_1=/usr/local/openssl-1.1.1a/bin/openssl
 ENV OPENSSL_1_1=/usr/local/openssl-1.1.1a/bin/openssl
 ENV OPENSSL_1=/usr/local/openssl-1.1.1a/bin/openssl
-# Up to at least 2023, the test scripts expect that $OPENSSL_NEXT is 1.1.1a.
-ENV OPENSSL_NEXT=/usr/local/openssl-1.1.1a/bin/openssl
 
 RUN wget -q https://www.openssl.org/source/openssl-3.0.10.tar.gz && \
     tar -zxf openssl-3.0.10.tar.gz && cd openssl-3.0.10 && \
@@ -234,6 +232,14 @@ RUN wget -q https://www.openssl.org/source/openssl-3.1.2.tar.gz && \
 ENV OPENSSL_3_1_2=/usr/local/openssl-3.1.2/bin/openssl
 ENV OPENSSL_3_1=/usr/local/openssl-3.1.2/bin/openssl
 ENV OPENSSL_3=/usr/local/openssl-3.1.2/bin/openssl
+# As of early 2025 (just after 2.28 became EOL), 3.6 and development both:
+# - set OPENSSL_NEXT to OPENSSL_3 (if OPENSSL_3 is defined) in all-core.sh,
+#   effectively ignoring the value of OPENSSL_NEXT from the environment;
+# - but use OPENSSL_NEXT straight from the environment in basic-build-test.sh,
+#   (both directly, and indirectly when invoking ssl-opt.sh which uses it).
+# So, we still need to set OPENSSL_NEXT here. (The long-term plan is that
+# scripts should be updated to only use explicit versions like OPENSSL_3.)
+ENV OPENSSL_NEXT=/usr/local/openssl-3.1.2/bin/openssl
 
 # GnuTLS has a number of (optional) dependencies:
 # - nettle (crypto library): quite tighly coupled, so build one for each
