@@ -293,7 +293,7 @@ def main() -> int:
                         choices=['linux64', 'linux-ARM64', 'freebsd64', 'win64'],
                         default='linux64')
     parser.add_argument('-p', '--pre-build-step', help='Command to run pre-build',
-                        default='make clean && tests/scripts/check-generated-files.sh -u')
+                        default='make neat && make generated_files')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Verbose logging to stdout')
     parser.add_argument('mbedtlsdir', help='Mbed TLS directory')
