@@ -10,6 +10,9 @@ class BranchInfo {
     /** A unique prefix used to distinguish this repo+branch combination */
     public String job_prefix
 
+    /** Tree stash name */
+    public String stash
+
     /** Git hash of the framework commit to use in mbedtls. Set in crypto PRs. */
     public String framework_override
 
@@ -45,6 +48,7 @@ class BranchInfo {
 
     BranchInfo() {
         this.job_prefix = ''
+        this.stash = ''
         this.framework_override = ''
         this.all_sh_components = [:]
         this.has_min_requirements = false
