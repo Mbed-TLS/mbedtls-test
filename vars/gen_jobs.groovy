@@ -39,7 +39,7 @@ Map<String, Callable<Void>> gen_simple_windows_jobs(BranchInfo info, String labe
         try {
             dir('src') {
                 deleteDir()
-                checkout_repo.checkout_tls_repo(info)
+                checkout_repo.checkout_repo(info)
                 timeout(time: common.perJobTimeout.time,
                         unit: common.perJobTimeout.unit) {
                     analysis.record_inner_timestamps('windows', label) {
@@ -359,7 +359,7 @@ def gen_windows_testing_job(BranchInfo info, String toolchain, String label_pref
                 stage('checkout') {
                     dir("src") {
                         deleteDir()
-                        checkout_repo.checkout_tls_repo(info)
+                        checkout_repo.checkout_repo(info)
                     }
                     /* The empty files are created to re-create the directory after it
                      * and its contents have been removed by deleteDir. */
