@@ -226,7 +226,8 @@ docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS -e VERBOSE_LOGS $env_args --rm --
  * In particular, get components of all.sh for Linux platforms. */
 List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collection<String> tf_psa_crypto_branches) {
     List<BranchInfo> infos = []
-    Map<String, Object> jobs = [:]
+    Map<String, Object> all_jobs = [:]
+    Map<String, Object> platform_jobs = [:]
 
     Map<String, Collection<String>> repos = ['tls': tls_branches, 'tf-psa-crypto': tf_psa_crypto_branches]
     // Filter out repos with no branches
@@ -246,7 +247,7 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
                 info.job_prefix += "$branch-"
             }
 
-            jobs << gen_jobs.job(info.job_prefix + 'all-platforms') {
+            all_jobs << gen_jobs.job(info.job_prefix + 'all-platforms') {
                 node('container-host') {
                     try {
                         // Log the environment for debugging purposes
@@ -296,7 +297,7 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
             }
 
             linux_platforms.each { platform ->
-                jobs << gen_jobs.job(info.job_prefix + platform) {
+                platform_jobs << gen_jobs.job(info.job_prefix + platform) {
                     node(gen_jobs.node_label_for_platform(platform)) {
                         try {
                             dir('src') {
@@ -333,8 +334,15 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
         }
     }
 
-    jobs.failFast = true
-    def results = (Map<String, Map<String, String>>) parallel(jobs)
+    all_jobs.failFast = true
+    def all_results = (Map<String, Map<String, String>>) parallel(all_jobs)
+
+    platform_jobs.failFast = true
+    def platform_results = (Map<String, Map<String, String>>) parallel(platform_jobs)
+
+    def results = [:]
+    results.putAll(all_results)
+    results.putAll(platform_results)
 
     infos.each { BranchInfo info ->
         info.all_sh_components = results[info.job_prefix + 'all-platforms']
