@@ -471,7 +471,7 @@ class MbedWindowsTesting(object):
         elif c89:
             retarget = "Windows7.1SDK"  # Workaround for missing 2010 x64 tools
         else:
-            retarget = "v120" # Visual Studio 2013
+            retarget = "v150" # Visual Studio 2017
         logger.info("retarget={}".format(retarget))
         for solution_file in os.listdir(solution_dir):
             if re.match(self.solution_file_pattern, solution_file):
