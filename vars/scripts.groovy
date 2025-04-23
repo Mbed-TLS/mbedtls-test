@@ -37,20 +37,20 @@ cmake -D CMAKE_BUILD_TYPE:String=Check -G "MinGW Makefiles" . || exit
 mingw32-make lib || exit
 '''
 
-@Field static final String win32_msvc12_32_test_bat = '''\
-call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat" || exit
+@Field static final String win32_msvc15_32_test_bat = '''\
+call "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat" || exit
 set CC=cl
 if exist scripts\\make_generated_files.bat call scripts\\make_generated_files.bat || exit
-cmake . -G "Visual Studio 12" || exit
+cmake . -G "Visual Studio 15 2017" -A Win32 || exit
 MSBuild ALL_BUILD.vcxproj || exit
 programs\\test\\Debug\\selftest.exe || exit
 '''
 
-@Field static final String win32_msvc12_64_test_bat = '''\
-call "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat" || exit
+@Field static final String win32_msvc15_64_test_bat = '''\
+call "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat" || exit
 set CC=cl
 if exist scripts\\make_generated_files.bat call scripts\\make_generated_files.bat || exit
-cmake . -G "Visual Studio 12 Win64" || exit
+cmake . -G "Visual Studio 15 2017" -A x64 || exit
 MSBuild ALL_BUILD.vcxproj || exit
 programs\\test\\Debug\\selftest.exe || exit
 '''
