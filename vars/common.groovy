@@ -340,14 +340,10 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
     platform_jobs.failFast = true
     def platform_results = (Map<String, Map<String, String>>) parallel(platform_jobs)
 
-    def results = [:]
-    results.putAll(all_results)
-    results.putAll(platform_results)
-
     infos.each { BranchInfo info ->
-        info.all_sh_components = results[info.job_prefix + 'all-platforms']
+        info.all_sh_components = all_results[info.job_prefix + 'all-platforms']
         linux_platforms.reverseEach { platform ->
-            info.all_sh_components << results[info.job_prefix + platform]
+            info.all_sh_components << platform_results[info.job_prefix + platform]
         }
 
         if (env.JOB_TYPE == 'PR') {
