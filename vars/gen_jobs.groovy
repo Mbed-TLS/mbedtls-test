@@ -317,8 +317,8 @@ ${extra_setup_code}
     }
 }
 
-def gen_windows_testing_job(BranchInfo info, String toolchain, String label_prefix='') {
-    def prefix = "${label_prefix}Windows-${toolchain}"
+def gen_windows_testing_job(BranchInfo info, String toolchain) {
+    def prefix = "${info.prefix}Windows-${toolchain}"
     def build_configs, arches, build_systems, retargeted
     if (toolchain == 'mingw') {
         build_configs = ['mingw']
@@ -447,7 +447,7 @@ def gen_windows_jobs(BranchInfo info) {
         preamble + scripts.win32_msvc15_64_test_bat
     )
     for (build in common.get_supported_windows_builds()) {
-        jobs = jobs + gen_windows_testing_job(info, build, info.prefix)
+        jobs = jobs + gen_windows_testing_job(info, build)
     }
     return jobs
 }
