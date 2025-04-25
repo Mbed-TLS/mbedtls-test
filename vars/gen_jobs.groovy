@@ -650,31 +650,31 @@ def gen_coverity_push_jobs(BranchInfo info) {
     return jobs
 }
 
-def gen_release_jobs(BranchInfo info, String label_prefix='', boolean run_examples=true) {
+def gen_release_jobs(BranchInfo info, boolean run_examples=true) {
     def jobs = [:]
 
     if (env.RUN_ALL_SH == "true") {
         info.all_sh_components.each({component, platform ->
-            jobs = jobs + gen_all_sh_jobs(info, platform, component, label_prefix)
+            jobs = jobs + gen_all_sh_jobs(info, platform, component, info.prefix)
         })
     }
 
     if (info.repo == 'tls') {
         if (env.RUN_BASIC_BUILD_TEST == "true") {
-            jobs = jobs + gen_code_coverage_job(info, 'ubuntu-16.04-amd64', label_prefix);
+            jobs = jobs + gen_code_coverage_job(info, 'ubuntu-16.04-amd64', info.prefix);
         }
 
         /* FreeBSD all.sh jobs */
         if (env.RUN_FREEBSD == "true") {
             for (platform in common.bsd_platforms) {
                 for (component in common.freebsd_all_sh_components) {
-                    jobs = jobs + gen_all_sh_jobs(info, platform, component, label_prefix)
+                    jobs = jobs + gen_all_sh_jobs(info, platform, component, info.prefix)
                 }
             }
         }
 
         if (env.RUN_WINDOWS_TEST == "true") {
-            jobs = jobs + gen_windows_jobs(info, label_prefix)
+            jobs = jobs + gen_windows_jobs(info, info.prefix)
         }
 
         if (run_examples) {
