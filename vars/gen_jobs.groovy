@@ -427,7 +427,7 @@ def gen_windows_testing_job(BranchInfo info, String toolchain, String label_pref
     }
 }
 
-def gen_windows_jobs(BranchInfo info, String label_prefix='') {
+def gen_windows_jobs(BranchInfo info) {
     String preamble = ''
     if (info.has_min_requirements) {
         preamble += "python scripts\\min_requirements.py ${info.python_requirements_override_file} || exit\r\n"
@@ -435,19 +435,19 @@ def gen_windows_jobs(BranchInfo info, String label_prefix='') {
 
     def jobs = [:]
     jobs = jobs + gen_simple_windows_jobs(
-        info, label_prefix + 'win32-mingw',
+        info, info.prefix + 'win32-mingw',
         preamble + scripts.win32_mingw_test_bat
     )
     jobs = jobs + gen_simple_windows_jobs(
-        info, label_prefix + 'win32_msvc15_32',
+        info, info.prefix + 'win32_msvc15_32',
         preamble + scripts.win32_msvc15_32_test_bat
     )
     jobs = jobs + gen_simple_windows_jobs(
-        info, label_prefix + 'win32-msvc15_64',
+        info, info.prefix + 'win32-msvc15_64',
         preamble + scripts.win32_msvc15_64_test_bat
     )
     for (build in common.get_supported_windows_builds()) {
-        jobs = jobs + gen_windows_testing_job(info, build, label_prefix)
+        jobs = jobs + gen_windows_testing_job(info, build, info.prefix)
     }
     return jobs
 }
@@ -674,7 +674,7 @@ def gen_release_jobs(BranchInfo info, boolean run_examples=true) {
         }
 
         if (env.RUN_WINDOWS_TEST == "true") {
-            jobs = jobs + gen_windows_jobs(info, info.prefix)
+            jobs = jobs + gen_windows_jobs(info)
         }
 
         if (run_examples) {
