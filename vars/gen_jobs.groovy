@@ -469,8 +469,8 @@ scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
                           post_checkout: post_checkout)
 }
 
-def gen_code_coverage_job(BranchInfo info, String platform, String label_prefix='') {
-    String job_name = "${label_prefix}code-coverage"
+def gen_code_coverage_job(BranchInfo info, String platform) {
+    String job_name = "${info.prefix}code-coverage"
     String script_in_docker = '''
 if grep -q -F coverage-summary.txt tests/scripts/basic-build-test.sh; then
 # New basic-build-test, generates coverage-summary.txt
@@ -661,7 +661,7 @@ def gen_release_jobs(BranchInfo info, boolean run_examples=true) {
 
     if (info.repo == 'tls') {
         if (env.RUN_BASIC_BUILD_TEST == "true") {
-            jobs = jobs + gen_code_coverage_job(info, 'ubuntu-16.04-amd64', info.prefix);
+            jobs = jobs + gen_code_coverage_job(info, 'ubuntu-16.04-amd64');
         }
 
         /* FreeBSD all.sh jobs */
