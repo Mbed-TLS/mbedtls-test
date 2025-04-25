@@ -163,7 +163,7 @@ void checkout_repo(BranchInfo info) {
                     error("Invalid repo: ${info.repo}")
             }
 
-            def stashName = "${info.job_prefix}stash"
+            def stashName = "${info.prefix}stash"
             stash name: stashName, includes: '**/*', useDefaultExcludes: false
             info.stash = stashName
         } else {

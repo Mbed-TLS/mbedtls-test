@@ -7,8 +7,20 @@ class BranchInfo {
     /** The name of the branch */
     public String branch
 
-    /** A unique prefix used to distinguish this repo+branch combination */
-    public String job_prefix
+    /**
+     * A unique prefix identifying a tested branch.
+     *
+     * The prefix format is [$repo-][$branch-].
+     * - The repository part ($repo-) is omitted if all branches under test
+     *   belong to the same repository.
+     * - The branch part ($branch-) is omitted if a repository has only one
+     *   branch under test.
+     * - The prefix is an empty string if only one branch is under test.
+     *
+     * This prefix is used to distinguish resources (such as jobs, stashes, etc.)
+     * associated with different branches during testing.
+     */
+    public String prefix
 
     /** Tree stash name */
     public String stash
@@ -47,7 +59,7 @@ class BranchInfo {
     String coverage_details
 
     BranchInfo() {
-        this.job_prefix = ''
+        this.prefix = ''
         this.stash = ''
         this.framework_override = ''
         this.all_sh_components = [:]
