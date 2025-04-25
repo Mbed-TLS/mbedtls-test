@@ -34,7 +34,7 @@ void run_tls_tests(Collection<BranchInfo> infos) {
             jobs << gen_jobs.gen_release_jobs(info, false)
 
             if (env.RUN_ABI_CHECK == "true" && info.repo == 'tls') {
-                jobs << gen_jobs.gen_abi_api_checking_job(info, 'ubuntu-18.04-amd64', info.prefix)
+                jobs << gen_jobs.gen_abi_api_checking_job(info, 'ubuntu-18.04-amd64')
             }
         }
 

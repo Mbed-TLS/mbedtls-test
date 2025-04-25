@@ -452,8 +452,8 @@ def gen_windows_jobs(BranchInfo info) {
     return jobs
 }
 
-def gen_abi_api_checking_job(BranchInfo info, String platform, String label_prefix = '') {
-    String job_name = "${label_prefix}ABI-API-checking"
+def gen_abi_api_checking_job(BranchInfo info, String platform) {
+    String job_name = "${info.prefix}ABI-API-checking"
     String script_in_docker = '''
 tests/scripts/list-identifiers.sh --internal
 scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
