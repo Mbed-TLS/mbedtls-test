@@ -185,7 +185,7 @@ fi
     }
 }
 
-def gen_all_sh_jobs(BranchInfo info, platform, component, label_prefix='') {
+def gen_all_sh_jobs(BranchInfo info, platform, component) {
     def shorthands = [
         "arm-compilers-amd64": "armcc",
         "ubuntu-16.04-amd64": "u16",
@@ -200,7 +200,7 @@ def gen_all_sh_jobs(BranchInfo info, platform, component, label_prefix='') {
     ]
     /* Default to the full platform hame is a shorthand is not found */
     def shortplat = shorthands.getOrDefault(platform, platform)
-    def job_name = "${label_prefix}all_${shortplat}-${component}"
+    def job_name = "${info.prefix}all_${shortplat}-${component}"
     def outcome_file = "${job_name.replace((char) '/', (char) '_')}-outcome.csv"
     def use_docker = platform_has_docker(platform)
     def extra_setup_code = ''
@@ -655,7 +655,7 @@ def gen_release_jobs(BranchInfo info, boolean run_examples=true) {
 
     if (env.RUN_ALL_SH == "true") {
         info.all_sh_components.each({component, platform ->
-            jobs = jobs + gen_all_sh_jobs(info, platform, component, info.prefix)
+            jobs = jobs + gen_all_sh_jobs(info, platform, component)
         })
     }
 
@@ -668,7 +668,7 @@ def gen_release_jobs(BranchInfo info, boolean run_examples=true) {
         if (env.RUN_FREEBSD == "true") {
             for (platform in common.bsd_platforms) {
                 for (component in common.freebsd_all_sh_components) {
-                    jobs = jobs + gen_all_sh_jobs(info, platform, component, info.prefix)
+                    jobs = jobs + gen_all_sh_jobs(info, platform, component)
                 }
             }
         }
