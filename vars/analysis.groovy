@@ -235,9 +235,9 @@ void  analyze_results(Collection<BranchInfo> infos) {
             return [:]
         }
 
-        String job_name = "${info.job_prefix}result-analysis"
+        String job_name = "${info.prefix}result-analysis"
 
-        String file_prefix = info.job_prefix.replace((char) '/', (char) '_')
+        String file_prefix = info.prefix.replace((char) '/', (char) '_')
         String outcomes_csv = "${file_prefix}outcomes.csv"
         String failures_csv = "${file_prefix}failures.csv"
 

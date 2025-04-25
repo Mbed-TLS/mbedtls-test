@@ -31,10 +31,10 @@ void run_tls_tests(Collection<BranchInfo> infos) {
         def jobs = [:]
 
         infos.each { info ->
-            jobs << gen_jobs.gen_release_jobs(info, info.job_prefix, false)
+            jobs << gen_jobs.gen_release_jobs(info, info.prefix, false)
 
             if (env.RUN_ABI_CHECK == "true" && info.repo == 'tls') {
-                jobs << gen_jobs.gen_abi_api_checking_job(info, 'ubuntu-18.04-amd64', info.job_prefix)
+                jobs << gen_jobs.gen_abi_api_checking_job(info, 'ubuntu-18.04-amd64', info.prefix)
             }
         }
 
@@ -179,7 +179,7 @@ void run_release_job(Collection<String> tls_branches, Collection<String> tf_psa_
             try {
                 stage('tls-testing') {
                     def jobs = infos.collectEntries { info ->
-                        return gen_jobs.gen_release_jobs(info, info.job_prefix)
+                        return gen_jobs.gen_release_jobs(info, info.prefix)
                     }
                     jobs = common.wrap_report_errors(jobs)
                     jobs.failFast = false
