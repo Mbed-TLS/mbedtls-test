@@ -187,15 +187,15 @@ RUN if [ "$(uname -m)" = aarch64 ]; then \
 # Eventually, gcc-latest should become GCC 15. This will cause test failures
 # on branches that don't have the fix yet, which is why we don't make
 # GCC 15 be gcc-latest immediately.
-RUN wget -q https://mirror.koddos.net/gcc/snapshots/15-20241201/gcc-15-20241201.tar.xz && \
-    tar -xf gcc-15-20241201.tar.xz && \
-    rm gcc-15-20241201.tar.xz && \
-    cd gcc-15-20241201 && \
+RUN wget -q https://mirror.koddos.net/gcc/releases/gcc-15.1.0/gcc-15.1.0.tar.xz && \
+    tar -xf gcc-15.1.0.tar.xz && \
+    rm gcc-15.1.0.tar.xz && \
+    cd gcc-15.1.0 && \
     ./configure --prefix=/usr/local/gcc-15 --program-suffix=-15 --disable-bootstrap --enable-languages=c,c++,lto && \
     make && \
     make install && \
     cd .. && \
-    rm -rf gcc-15-20241201
+    rm -rf gcc-15.1.0
 
 # Install exact upstream versions of OpenSSL and GnuTLS
 #
