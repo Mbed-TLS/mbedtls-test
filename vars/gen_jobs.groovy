@@ -454,37 +454,45 @@ def gen_windows_jobs(BranchInfo info) {
 
 def gen_abi_api_checking_job(BranchInfo info, String platform) {
     String job_name = "${info.prefix}ABI-API-checking"
-    String script_in_docker = '''
-tests/scripts/list-identifiers.sh --internal
-scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
-'''
-    Closure post_checkout = {
-        sshagent([env.GIT_CREDENTIALS_ID]) {
-            sh '''#!/bin/sh
-                origin_url=$(git remote get-url origin)
-                echo "origin_url: $origin_url"
-                case "$origin_url" in
-                    ssh://* )
-                        domain=$(printf "%s" "$origin_url" | sed -n 's#ssh://[^@]*@\\([^/:]*\\).*#\\1#p')
-                        echo "domain: $domain"
-                        mkdir -p ~/.ssh
-                        ssh-keyscan "$domain" >> ~/.ssh/known_hosts
-                        ;;
-                    https://* )
-                        ;;
-                    * )
-                    # SCP-like git URLs not handled
-                    echo "Unknown URL type: $origin_url"
-                    ;;
-                esac
+    String old_commit
 
-                git fetch --depth 1 origin ${CHANGE_TARGET}
-            '''
+    Map<String, Closure> hooks = [:]
+    if (env.BRANCH_NAME ==~ /PR-\d+-merge/) {
+        old_commit = 'HEAD^2'
+    } else {
+        old_commit = 'FETCH_HEAD'
+        hooks.post_checkout = {
+            sshagent([env.GIT_CREDENTIALS_ID]) {
+                sh '''#!/bin/sh
+                    origin_url=$(git remote get-url origin)
+                    echo "origin_url: $origin_url"
+                    case "$origin_url" in
+                        ssh://* )
+                            domain=$(printf "%s" "$origin_url" | sed -n 's#ssh://[^@]*@\\([^/:]*\\).*#\\1#p')
+                            echo "domain: $domain"
+                            mkdir -p ~/.ssh
+                            ssh-keyscan "$domain" >> ~/.ssh/known_hosts
+                            ;;
+                        https://* )
+                            ;;
+                        * )
+                        # SCP-like git URLs not handled
+                        echo "Unknown URL type: $origin_url"
+                        ;;
+                    esac
+
+                    git fetch --depth 1 origin ${CHANGE_TARGET}
+                '''
+            }
         }
     }
 
-    return gen_docker_job(info, job_name, platform, script_in_docker,
-                          post_checkout: post_checkout)
+    String script_in_docker = """
+tests/scripts/list-identifiers.sh --internal
+scripts/abi_check.py -o $old_commit -n HEAD -s identifiers --brief
+"""
+
+    return gen_docker_job(hooks, info, job_name, platform, script_in_docker)
 }
 
 def gen_code_coverage_job(BranchInfo info, String platform) {
