@@ -696,7 +696,7 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
     def cache = "$image-cache-$arch"
     def check_docker_image
     if (common.is_open_ci_env) {
-        check_docker_image = "docker manifest inspect $common.docker_repo:$tag > /dev/null 2>&1"
+        check_docker_image = "aws ecr describe-images --repository-name $common.docker_repo_name --image-ids imageTag=$tag"
     } else {
         check_docker_image = "aws ecr describe-images --repository-name $common.docker_repo_name --image-ids imageTag=$tag"
     }
@@ -719,27 +719,9 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
                             writeFile file: 'Dockerfile', text: dockerfile
                             def extra_build_args = ''
 
-                            if (common.is_open_ci_env) {
-                                withCredentials([string(credentialsId: 'DOCKER_AUTH', variable: 'TOKEN')]) {
-                                    sh """\
-mkdir -p ${env.HOME}/.docker
-cat > ${env.HOME}/.docker/config.json << EOF
-{
-        "auths": {
-                "https://index.docker.io/v1/": {
-                        "auth": "\${TOKEN}"
-                }
-        }
-}
-EOF
-chmod 0600 ${env.HOME}/.docker/config.json
-"""
-                                }
-                            } else {
-                                sh """\
+                            sh """\
 aws ecr get-login-password | docker login --username AWS --password-stdin $common.docker_ecr
 """
-                            }
 
                             // Generate download URL for armclang
                             if (platform.startsWith('arm-compilers')) {

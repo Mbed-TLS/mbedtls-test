@@ -63,8 +63,8 @@ import org.mbed.tls.jenkins.BranchInfo
     'cc' : 'cc'
 ]
 
-@Field docker_repo_name = is_open_ci_env ? 'ci-amd64-mbed-tls-ubuntu' : 'jenkins-mbedtls'
-@Field docker_ecr = is_open_ci_env ? "trustedfirmware" : "666618195821.dkr.ecr.eu-west-1.amazonaws.com"
+@Field docker_repo_name = 'ci-mbed-tls-ubuntu'
+@Field docker_ecr = "767398041324.dkr.ecr.eu-west-1.amazonaws.com"
 @Field docker_repo = "$docker_ecr/$docker_repo_name"
 
 /* List of Linux platforms. When a job can run on multiple Linux platforms,
@@ -190,12 +190,7 @@ def get_docker_image(platform) {
     def docker_image = get_docker_tag(platform)
     for (int attempt = 1; attempt <= 3; attempt++) {
         try {
-            if (is_open_ci_env)
-                sh """\
-docker pull $docker_repo:$docker_image
-"""
-            else
-                sh """\
+            sh """\
 aws ecr get-login-password | docker login --username AWS --password-stdin $docker_ecr
 docker pull $docker_repo:$docker_image
 """
