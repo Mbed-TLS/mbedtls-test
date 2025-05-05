@@ -461,7 +461,7 @@ scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
 
     Closure post_checkout = {
         sshagent([env.GIT_CREDENTIALS_ID]) {
-            sh "git fetch --depth 1 origin ${CHANGE_TARGET}"
+            sh "GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=accept‐new' git fetch --depth 1 origin ${CHANGE_TARGET}"
         }
     }
 
