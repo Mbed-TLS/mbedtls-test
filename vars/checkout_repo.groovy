@@ -150,23 +150,32 @@ git submodule foreach --recursive git config url.git@github.com:.insteadOf https
 }
 
 void checkout_repo(BranchInfo info) {
+    def stashName = "${info.prefix}stash"
+    def needUnstash = true
+
     try {
         if (!info.stash) {
-            switch (info.repo) {
-                case 'tls':
-                    checkout_tls_repo(info)
-                    break
-                case 'tf-psa-crypto':
-                    checkout_tf_psa_crypto_repo(info)
-                    break
-                default:
-                    error("Invalid repo: ${info.repo}")
-            }
+            lock(resource: "checkout_repo-${stashName}", inversePrecedence: true) {
+                if (!info.stash) {
+                    switch (info.repo) {
+                        case 'tls':
+                            checkout_tls_repo(info)
+                            break
+                        case 'tf-psa-crypto':
+                            checkout_tf_psa_crypto_repo(info)
+                            break
+                        default:
+                            error("Invalid repo: ${info.repo}")
+                    }
 
-            def stashName = "${info.prefix}stash"
-            stash name: stashName, includes: '**/*', useDefaultExcludes: false
-            info.stash = stashName
-        } else {
+                    stash name: stashName, includes: '**/*', useDefaultExcludes: false
+                    info.stash = stashName
+                    needUnstash = false
+                }
+            }
+        }
+
+        if (needUnstash) {
             unstash info.stash
         }
     } catch (exception) {
