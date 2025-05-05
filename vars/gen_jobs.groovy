@@ -458,10 +458,28 @@ def gen_abi_api_checking_job(BranchInfo info, String platform) {
 tests/scripts/list-identifiers.sh --internal
 scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
 '''
-
     Closure post_checkout = {
         sshagent([env.GIT_CREDENTIALS_ID]) {
-            sh "git fetch --depth 1 origin ${CHANGE_TARGET}"
+            sh '''#!/bin/sh
+                origin_url=$(git remote get-url origin)
+                echo "origin remote URL: $origin_url"
+                case "$origin_url" in
+                    ssh://* )
+                        domain=$(printf "%s" "$origin_url" | sed -n 's#ssh://[^@]*@\\([^/:]*\\).*#\\1#p')
+                        echo "origin remote domain: $domain"
+                        mkdir -p ~/.ssh
+                        ssh-keyscan "$domain" >> ~/.ssh/known_hosts
+                        ;;
+                    https://* )
+                        ;;
+                    * )
+                    # SCP-like git URLs not handled
+                    echo "Unknown URL type: $origin_url"
+                    ;;
+                esac
+
+                git fetch --depth 1 origin ${CHANGE_TARGET}
+            '''
         }
     }
 
