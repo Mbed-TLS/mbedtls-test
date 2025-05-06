@@ -696,9 +696,9 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
     def cache = "$image-cache-$arch"
     def check_docker_image
     if (common.is_open_ci_env) {
-        check_docker_image = "aws ecr describe-images --repository-name $common.docker_repo_name --image-ids imageTag=$tag"
+        check_docker_image = "aws ecr describe-images --region eu-west-1 --repository-name $common.docker_repo_name --image-ids imageTag=$tag"
     } else {
-        check_docker_image = "aws ecr describe-images --repository-name $common.docker_repo_name --image-ids imageTag=$tag"
+        check_docker_image = "aws ecr describe-images --region eu-west-1 --repository-name $common.docker_repo_name --image-ids imageTag=$tag"
     }
 
     common.docker_tags[platform] = tag
@@ -720,7 +720,7 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
                             def extra_build_args = ''
 
                             sh """\
-aws ecr get-login-password | docker login --username AWS --password-stdin $common.docker_ecr
+aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin $common.docker_ecr
 """
 
                             // Generate download URL for armclang

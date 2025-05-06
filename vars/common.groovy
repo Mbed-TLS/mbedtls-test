@@ -191,7 +191,7 @@ def get_docker_image(platform) {
     for (int attempt = 1; attempt <= 3; attempt++) {
         try {
             sh """\
-aws ecr get-login-password | docker login --username AWS --password-stdin $docker_ecr
+aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin $docker_ecr
 docker pull $docker_repo:$docker_image
 """
             break
