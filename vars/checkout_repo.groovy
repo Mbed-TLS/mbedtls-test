@@ -155,7 +155,7 @@ void checkout_repo(BranchInfo info) {
 
     try {
         if (!info.stash) {
-            lock(resource: "checkout_repo-${stashName}", inversePrecedence: true) {
+            synchronized(info) {
                 if (!info.stash) {
                     switch (info.repo) {
                         case 'tls':
