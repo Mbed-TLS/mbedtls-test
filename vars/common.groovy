@@ -376,11 +376,9 @@ void check_every_all_sh_component_will_be_run(Collection<BranchInfo> infos) {
 
 def get_supported_windows_builds() {
     def vs_builds = []
-    if (env.JOB_TYPE == 'PR') {
-        vs_builds = ['2013']
-    } else {
-        vs_builds = ['2013', '2017']
-    }
+    /* At the time of writing, all supported branches (3.6, development)
+     * advertise support for Visual Studio 2017 (VS 15.0) and above. */
+    vs_builds = ['2017']
     echo "vs_builds = ${vs_builds}"
     return ['mingw'] + vs_builds
 }

@@ -439,12 +439,12 @@ def gen_windows_jobs(BranchInfo info, String label_prefix='') {
         preamble + scripts.win32_mingw_test_bat
     )
     jobs = jobs + gen_simple_windows_jobs(
-        info, label_prefix + 'win32_msvc12_32',
-        preamble + scripts.win32_msvc12_32_test_bat
+        info, label_prefix + 'win32_msvc15_32',
+        preamble + scripts.win32_msvc15_32_test_bat
     )
     jobs = jobs + gen_simple_windows_jobs(
-        info, label_prefix + 'win32-msvc12_64',
-        preamble + scripts.win32_msvc12_64_test_bat
+        info, label_prefix + 'win32-msvc15_64',
+        preamble + scripts.win32_msvc15_64_test_bat
     )
     for (build in common.get_supported_windows_builds()) {
         jobs = jobs + gen_windows_testing_job(info, build, label_prefix)
