@@ -226,7 +226,7 @@ docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS -e VERBOSE_LOGS $env_args --rm --
  * In particular, get components of all.sh for Linux platforms. */
 List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collection<String> tf_psa_crypto_branches) {
     List<BranchInfo> infos = []
-    Map<String, Object> jobs = [:]
+    Map<String, Object> list_components_jobs = [:]
 
     Map<String, Collection<String>> repos = ['tls': tls_branches, 'tf-psa-crypto': tf_psa_crypto_branches]
     // Filter out repos with no branches
@@ -240,13 +240,13 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
             infos << info
 
             if(repos.size() > 1) {
-                info.job_prefix += "$repo-"
+                info.prefix += "$repo-"
             }
             if (branches.size() > 1) {
-                info.job_prefix += "$branch-"
+                info.prefix += "$branch-"
             }
 
-            jobs << gen_jobs.job(info.job_prefix + 'all-platforms') {
+            list_components_jobs << gen_jobs.job(info.prefix + 'all-platforms') {
                 node('container-host') {
                     try {
                         // Log the environment for debugging purposes
@@ -296,7 +296,7 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
             }
 
             linux_platforms.each { platform ->
-                jobs << gen_jobs.job(info.job_prefix + platform) {
+                list_components_jobs << gen_jobs.job(info.prefix + platform) {
                     node(gen_jobs.node_label_for_platform(platform)) {
                         try {
                             dir('src') {
@@ -333,13 +333,13 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
         }
     }
 
-    jobs.failFast = true
-    def results = (Map<String, Map<String, String>>) parallel(jobs)
+    list_components_jobs.failFast = true
+    def components = (Map<String, Map<String, String>>) parallel(list_components_jobs)
 
     infos.each { BranchInfo info ->
-        info.all_sh_components = results[info.job_prefix + 'all-platforms']
+        info.all_sh_components = components[info.prefix + 'all-platforms']
         linux_platforms.reverseEach { platform ->
-            info.all_sh_components << results[info.job_prefix + platform]
+            info.all_sh_components << components[info.prefix + platform]
         }
 
         if (env.JOB_TYPE == 'PR') {
