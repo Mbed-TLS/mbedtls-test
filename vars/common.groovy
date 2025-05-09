@@ -63,7 +63,7 @@ import org.mbed.tls.jenkins.BranchInfo
     'cc' : 'cc'
 ]
 
-@Field docker_repo_name = 'ci-mbed-tls-ubuntu'
+@Field docker_repo_name = 'docker.io/trustedfirmware/ci-amd64-mbed-tls-ubuntu'
 @Field docker_ecr = "767398041324.dkr.ecr.eu-west-1.amazonaws.com"
 @Field docker_repo = "$docker_ecr/$docker_repo_name"
 
