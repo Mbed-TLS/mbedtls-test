@@ -117,7 +117,7 @@ def backup_config_files(logger: logging.Logger, mbedtls_dir: pathlib.Path, resto
     backup_config_file(logger, config_path, restore)
 
     config_path = pathlib.Path(mbedtls_dir)
-    config_path = config_path / 'tf-psa-crypto' / 'include' / 'psa' / 'crypto_config.h'
+    config_path = config_path / 'include' / 'psa' / 'crypto_config.h'
 
     backup_config_file(logger, config_path, restore)
 
