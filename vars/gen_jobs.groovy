@@ -39,7 +39,7 @@ Map<String, Callable<Void>> gen_simple_windows_jobs(BranchInfo info, String labe
         try {
             dir('src') {
                 deleteDir()
-                checkout_repo.checkout_tls_repo(info)
+                checkout_repo.checkout_repo(info)
                 timeout(time: common.perJobTimeout.time,
                         unit: common.perJobTimeout.unit) {
                     analysis.record_inner_timestamps('windows', label) {
@@ -185,7 +185,7 @@ fi
     }
 }
 
-def gen_all_sh_jobs(BranchInfo info, platform, component, label_prefix='') {
+def gen_all_sh_jobs(BranchInfo info, platform, component) {
     def shorthands = [
         "arm-compilers-amd64": "armcc",
         "ubuntu-16.04-amd64": "u16",
@@ -200,7 +200,7 @@ def gen_all_sh_jobs(BranchInfo info, platform, component, label_prefix='') {
     ]
     /* Default to the full platform hame is a shorthand is not found */
     def shortplat = shorthands.getOrDefault(platform, platform)
-    def job_name = "${label_prefix}all_${shortplat}-${component}"
+    def job_name = "${info.prefix}all_${shortplat}-${component}"
     def outcome_file = "${job_name.replace((char) '/', (char) '_')}-outcome.csv"
     def use_docker = platform_has_docker(platform)
     def extra_setup_code = ''
@@ -317,8 +317,8 @@ ${extra_setup_code}
     }
 }
 
-def gen_windows_testing_job(BranchInfo info, String toolchain, String label_prefix='') {
-    def prefix = "${label_prefix}Windows-${toolchain}"
+def gen_windows_testing_job(BranchInfo info, String toolchain) {
+    def prefix = "${info.prefix}Windows-${toolchain}"
     def build_configs, arches, build_systems, retargeted
     if (toolchain == 'mingw') {
         build_configs = ['mingw']
@@ -359,7 +359,7 @@ def gen_windows_testing_job(BranchInfo info, String toolchain, String label_pref
                 stage('checkout') {
                     dir("src") {
                         deleteDir()
-                        checkout_repo.checkout_tls_repo(info)
+                        checkout_repo.checkout_repo(info)
                     }
                     /* The empty files are created to re-create the directory after it
                      * and its contents have been removed by deleteDir. */
@@ -427,7 +427,7 @@ def gen_windows_testing_job(BranchInfo info, String toolchain, String label_pref
     }
 }
 
-def gen_windows_jobs(BranchInfo info, String label_prefix='') {
+def gen_windows_jobs(BranchInfo info) {
     String preamble = ''
     if (info.has_min_requirements) {
         preamble += "python scripts\\min_requirements.py ${info.python_requirements_override_file} || exit\r\n"
@@ -435,42 +435,49 @@ def gen_windows_jobs(BranchInfo info, String label_prefix='') {
 
     def jobs = [:]
     jobs = jobs + gen_simple_windows_jobs(
-        info, label_prefix + 'win32-mingw',
+        info, info.prefix + 'win32-mingw',
         preamble + scripts.win32_mingw_test_bat
     )
     jobs = jobs + gen_simple_windows_jobs(
-        info, label_prefix + 'win32_msvc15_32',
+        info, info.prefix + 'win32_msvc15_32',
         preamble + scripts.win32_msvc15_32_test_bat
     )
     jobs = jobs + gen_simple_windows_jobs(
-        info, label_prefix + 'win32-msvc15_64',
+        info, info.prefix + 'win32-msvc15_64',
         preamble + scripts.win32_msvc15_64_test_bat
     )
     for (build in common.get_supported_windows_builds()) {
-        jobs = jobs + gen_windows_testing_job(info, build, label_prefix)
+        jobs = jobs + gen_windows_testing_job(info, build)
     }
     return jobs
 }
 
-def gen_abi_api_checking_job(BranchInfo info, String platform, String label_prefix = '') {
-    String job_name = "${label_prefix}ABI-API-checking"
-    String script_in_docker = '''
-tests/scripts/list-identifiers.sh --internal
-scripts/abi_check.py -o FETCH_HEAD -n HEAD -s identifiers --brief
-'''
+def gen_abi_api_checking_job(BranchInfo info, String platform) {
+    String job_name = "${info.prefix}ABI-API-checking"
+    String old_commit
 
-    Closure post_checkout = {
-        sshagent([env.GIT_CREDENTIALS_ID]) {
-            sh "git fetch --depth 1 origin ${CHANGE_TARGET}"
+    Map<String, Closure> hooks = [:]
+    if (env.BRANCH_NAME ==~ /PR-\d+-merge/) {
+        old_commit = 'HEAD^2'
+    } else {
+        old_commit = 'FETCH_HEAD'
+        hooks.post_checkout = {
+            sshagent([env.GIT_CREDENTIALS_ID]) {
+                sh "git fetch --depth 1 origin ${CHANGE_TARGET}"
+            }
         }
     }
 
-    return gen_docker_job(info, job_name, platform, script_in_docker,
-                          post_checkout: post_checkout)
+    String script_in_docker = """
+tests/scripts/list-identifiers.sh --internal
+scripts/abi_check.py -o $old_commit -n HEAD -s identifiers --brief
+"""
+
+    return gen_docker_job(hooks, info, job_name, platform, script_in_docker)
 }
 
-def gen_code_coverage_job(BranchInfo info, String platform, String label_prefix='') {
-    String job_name = "${label_prefix}code-coverage"
+def gen_code_coverage_job(BranchInfo info, String platform) {
+    String job_name = "${info.prefix}code-coverage"
     String script_in_docker = '''
 if grep -q -F coverage-summary.txt tests/scripts/basic-build-test.sh; then
 # New basic-build-test, generates coverage-summary.txt
@@ -650,31 +657,31 @@ def gen_coverity_push_jobs(BranchInfo info) {
     return jobs
 }
 
-def gen_release_jobs(BranchInfo info, String label_prefix='', boolean run_examples=true) {
+def gen_release_jobs(BranchInfo info, boolean run_examples=true) {
     def jobs = [:]
 
     if (env.RUN_ALL_SH == "true") {
         info.all_sh_components.each({component, platform ->
-            jobs = jobs + gen_all_sh_jobs(info, platform, component, label_prefix)
+            jobs = jobs + gen_all_sh_jobs(info, platform, component)
         })
     }
 
     if (info.repo == 'tls') {
         if (env.RUN_BASIC_BUILD_TEST == "true") {
-            jobs = jobs + gen_code_coverage_job(info, 'ubuntu-16.04-amd64', label_prefix);
+            jobs = jobs + gen_code_coverage_job(info, 'ubuntu-16.04-amd64');
         }
 
         /* FreeBSD all.sh jobs */
         if (env.RUN_FREEBSD == "true") {
             for (platform in common.bsd_platforms) {
                 for (component in common.freebsd_all_sh_components) {
-                    jobs = jobs + gen_all_sh_jobs(info, platform, component, label_prefix)
+                    jobs = jobs + gen_all_sh_jobs(info, platform, component)
                 }
             }
         }
 
         if (env.RUN_WINDOWS_TEST == "true") {
-            jobs = jobs + gen_windows_jobs(info, label_prefix)
+            jobs = jobs + gen_windows_jobs(info)
         }
 
         if (run_examples) {
