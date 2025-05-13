@@ -136,11 +136,6 @@ Map<String, String> checkout_tls_repo(BranchInfo info) {
             checkout_framework_repo(info)
         }
 
-        // After the clone, replicate it in the local config, so it is effective when running inside docker
-        sh_or_bat '''
-git config url.git@github.com:.insteadOf https://github.com/ && \
-git submodule foreach --recursive git config url.git@github.com:.insteadOf https://github.com/
-'''
         write_overrides(info)
         return result
     } finally {
