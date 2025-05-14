@@ -47,6 +47,18 @@ void set_pr_environment(String target_repo, boolean is_production) {
     }
 }
 
+void parse_scm_repo() {
+    /* Extract owner and repository from the repo url - needed for testing Github merge queues
+     * "scm" might degenerate to a NullSCM object if the branch we are testing is deleted durin the test.
+     *  This tends to happen during merge queue runs */
+    if (scm instanceof GitSCM) {
+        def (org, repo) = scm.userRemoteConfigs[0].url.replaceFirst(/.*:/, '').split('/')[-2..-1]
+        repo = repo.replaceFirst(/\.git$/, '')
+        env.GITHUB_ORG = org
+        env.GITHUB_REPO = repo
+    }
+}
+
 def set_common_pr_production_environment() {
     env.CHECKOUT_METHOD = 'scm'
     /* The credentials here are the SSH credentials for accessing the repositories.
@@ -60,15 +72,7 @@ def set_common_pr_production_environment() {
         env.RUN_WINDOWS_TEST = 'true'
         env.RUN_ALL_SH = 'true'
     }
-    /* Extract owner and repository from the repo url - needed for testing Github merge queues
-     * "scm" might degenerate to a NullSCM object if the branch we are testing is deleted durin the test.
-     *  This tends to happen during merge queue runs */
-    if (scm instanceof GitSCM) {
-        def (org, repo) = scm.userRemoteConfigs[0].url.replaceFirst(/.*:/, '').split('/')[-2..-1]
-        repo = repo.replaceFirst(/\.git$/, '')
-        env.GITHUB_ORG = org
-        env.GITHUB_REPO = repo
-    }
+    parse_scm_repo()
 }
 
 def set_tls_release_environment() {
