@@ -145,7 +145,18 @@ void checkout_repo(BranchInfo info) {
                 if (!info.stash) {
                     try {
                         // Set global config so its picked up when cloning submodules
-                        sh 'git config --global url.git@github.com:.insteadOf https://github.com/'
+                        String extra_overrides = ''
+                        if (env.IS_RESTRICTED) {
+                            extra_overrides = '''
+git config --global url.git@github.com:Mbed-TLS/TF-PSA-Crypto-restricted.insteadof https://github.com/Mbed-TLS/TF-PSA-Crypto
+git config --global url.git@github.com:Mbed-TLS/mbedtls-framework-restricted.insteadof https://github.com/Mbed-TLS/mbedtls-framework
+'''
+                        }
+                        sh """
+set -eux
+git config --global url.git@github.com:.insteadOf https://github.com/
+$extra_overrides
+"""
                         switch (info.repo) {
                             case 'tls':
                                 checkout_tls_repo(info)
@@ -158,7 +169,12 @@ void checkout_repo(BranchInfo info) {
                         }
                     } finally {
                         // Clean up global config
-                        sh 'git config --global --unset url.git@github.com:.insteadOf'
+                        sh '''
+set -eux
+git config --global --unset url.git@github.com:.insteadOf
+git config --global --unset url.git@github.com:Mbed-TLS/TF-PSA-Crypto-restricted.insteadof
+git config --global --unset url.git@github.com:Mbed-TLS/mbedtls-framework-restricted.insteadof
+'''
                     }
 
                     stash name: stashName, includes: '**/*', useDefaultExcludes: false
