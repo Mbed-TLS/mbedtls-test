@@ -157,7 +157,14 @@ void run_job() {
 }
 
 void run_framework_pr_job() {
-    run_pr_job('framework', true, ['development', 'mbedtls-3.6'], ['development'])
+    environ.parse_scm_repo()
+    def tls_branches = ['development', 'mbedtls-3.6']
+    def tf_psa_crypto_branches = ['development']
+    if (env.IS_RESTRICTED) {
+        tls_branches = ['development-restricted', 'mbedtls-3.6-restricted']
+        tf_psa_crypto_branches = ['development-restricted']
+    }
+    run_pr_job('framework', true, tls_branches, tf_psa_crypto_branches)
 }
 
 void run_release_job(String tls_branches, String tf_psa_crypto_branches) {
