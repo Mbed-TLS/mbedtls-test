@@ -34,14 +34,20 @@ void set_pr_environment(String target_repo, boolean is_production) {
     env.JOB_TYPE = 'PR'
     env.TARGET_REPO = target_repo
     if (is_production) {
+        set_common_pr_production_environment()
         switch (target_repo) {
             case 'framework': //fallthrough
             case 'tf-psa-crypto':
-                env.FRAMEWORK_REPO = 'git@github.com:Mbed-TLS/mbedtls-framework.git'
-                env.TF_PSA_CRYPTO_REPO = 'git@github.com:Mbed-TLS/TF-PSA-Crypto.git'
-                env.MBED_TLS_REPO = 'git@github.com:Mbed-TLS/mbedtls.git'
+                if (env.IS_RESTRICTED) {
+                    env.FRAMEWORK_REPO = 'git@github.com:Mbed-TLS/mbedtls-framework-restricted.git'
+                    env.TF_PSA_CRYPTO_REPO = 'git@github.com:Mbed-TLS/TF-PSA-Crypto-restricted.git'
+                    env.MBED_TLS_REPO = 'git@github.com:Mbed-TLS/mbedtls-restricted.git'
+                } else {
+                    env.FRAMEWORK_REPO = 'git@github.com:Mbed-TLS/mbedtls-framework.git'
+                    env.TF_PSA_CRYPTO_REPO = 'git@github.com:Mbed-TLS/TF-PSA-Crypto.git'
+                    env.MBED_TLS_REPO = 'git@github.com:Mbed-TLS/mbedtls.git'
+                }
         }
-        set_common_pr_production_environment()
     } else {
         env.CHECKOUT_METHOD = 'parametrized'
     }
@@ -56,6 +62,9 @@ void parse_scm_repo() {
         repo = repo.replaceFirst(/\.git$/, '')
         env.GITHUB_ORG = org
         env.GITHUB_REPO = repo
+        if (org ==~ /.*-restricted/) {
+            env.IS_RESTRICTED = 'true'
+        }
     }
 }
 
