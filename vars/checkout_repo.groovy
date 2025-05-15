@@ -171,9 +171,10 @@ $extra_overrides
                         // Clean up global config
                         sh '''
 set -eux
-git config --global --unset url.git@github.com:.insteadOf
-git config --global --unset url.git@github.com:Mbed-TLS/TF-PSA-Crypto-restricted.insteadof
-git config --global --unset url.git@github.com:Mbed-TLS/mbedtls-framework-restricted.insteadof
+# Git will return a non-zero exit status when unsetting non-existent values
+git config --global --unset url.git@github.com:.insteadOf || true
+git config --global --unset url.git@github.com:Mbed-TLS/TF-PSA-Crypto-restricted.insteadof || true
+git config --global --unset url.git@github.com:Mbed-TLS/mbedtls-framework-restricted.insteadof || true
 '''
                     }
 
