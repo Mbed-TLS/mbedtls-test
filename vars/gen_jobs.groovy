@@ -458,7 +458,7 @@ def gen_abi_api_checking_job(BranchInfo info, String platform) {
 
     Map<String, Closure> hooks = [:]
     if (env.BRANCH_NAME ==~ /PR-\d+-merge/) {
-        old_commit = 'HEAD^2'
+        old_commit = "origin/${env.CHANGE_TARGET}"
     } else {
         old_commit = 'FETCH_HEAD'
         hooks.post_checkout = {
