@@ -121,32 +121,18 @@ Map<String, String> checkout_tls_repo(BranchInfo info) {
         scm_config = parametrized_repo(env.MBED_TLS_REPO, info.branch)
     }
 
-    // Use bilingual scripts when manipulating the git config
-    def sh_or_bat = isUnix() ? {args -> sh(args)} : {args -> bat(args)}
-    // Set global config so its picked up when cloning submodules
-    sh_or_bat 'git config --global url.git@github.com:.insteadOf https://github.com/'
-    try {
-        def result = checkout_report_errors(scm_config)
+    def result = checkout_report_errors(scm_config)
 
-        dir('tf-psa-crypto') {
-            checkout_tf_psa_crypto_repo(info)
-        }
-
-        dir('framework') {
-            checkout_framework_repo(info)
-        }
-
-        // After the clone, replicate it in the local config, so it is effective when running inside docker
-        sh_or_bat '''
-git config url.git@github.com:.insteadOf https://github.com/ && \
-git submodule foreach --recursive git config url.git@github.com:.insteadOf https://github.com/
-'''
-        write_overrides(info)
-        return result
-    } finally {
-        // Clean up global config
-        sh_or_bat 'git config --global --unset url.git@github.com:.insteadOf'
+    dir('tf-psa-crypto') {
+        checkout_tf_psa_crypto_repo(info)
     }
+
+    dir('framework') {
+        checkout_framework_repo(info)
+    }
+
+    write_overrides(info)
+    return result
 }
 
 void checkout_repo(BranchInfo info) {
@@ -157,15 +143,39 @@ void checkout_repo(BranchInfo info) {
         if (!info.stash) {
             lock(resource: "stash-lock/${env.BUILD_TAG}-${stashName}") {
                 if (!info.stash) {
-                    switch (info.repo) {
-                        case 'tls':
-                            checkout_tls_repo(info)
-                            break
-                        case 'tf-psa-crypto':
-                            checkout_tf_psa_crypto_repo(info)
-                            break
-                        default:
-                            error("Invalid repo: ${info.repo}")
+                    try {
+                        // Set global config so its picked up when cloning submodules
+                        String extra_overrides = ''
+                        if (env.IS_RESTRICTED) {
+                            extra_overrides = '''
+git config --global url.git@github.com:Mbed-TLS/TF-PSA-Crypto-restricted.insteadof https://github.com/Mbed-TLS/TF-PSA-Crypto
+git config --global url.git@github.com:Mbed-TLS/mbedtls-framework-restricted.insteadof https://github.com/Mbed-TLS/mbedtls-framework
+'''
+                        }
+                        sh """
+set -eux
+git config --global url.git@github.com:.insteadOf https://github.com/
+$extra_overrides
+"""
+                        switch (info.repo) {
+                            case 'tls':
+                                checkout_tls_repo(info)
+                                break
+                            case 'tf-psa-crypto':
+                                checkout_tf_psa_crypto_repo(info)
+                                break
+                            default:
+                                error("Invalid repo: ${info.repo}")
+                        }
+                    } finally {
+                        // Clean up global config
+                        sh '''
+set -eux
+# Git will return a non-zero exit status when unsetting non-existent values
+git config --global --unset url.git@github.com:.insteadOf || true
+git config --global --unset url.git@github.com:Mbed-TLS/TF-PSA-Crypto-restricted.insteadof || true
+git config --global --unset url.git@github.com:Mbed-TLS/mbedtls-framework-restricted.insteadof || true
+'''
                     }
 
                     stash name: stashName, includes: '**/*', useDefaultExcludes: false
