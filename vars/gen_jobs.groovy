@@ -454,23 +454,19 @@ def gen_windows_jobs(BranchInfo info) {
 
 def gen_abi_api_checking_job(BranchInfo info, String platform) {
     String job_name = "${info.prefix}ABI-API-checking"
-    String old_commit
 
     Map<String, Closure> hooks = [:]
-    if (env.BRANCH_NAME ==~ /PR-\d+-merge/) {
-        old_commit = "origin/${env.CHANGE_TARGET}"
-    } else {
-        old_commit = 'FETCH_HEAD'
+    if (!(env.BRANCH_NAME ==~ /PR-\d+-merge/)) {
         hooks.post_checkout = {
             sshagent([env.GIT_CREDENTIALS_ID]) {
-                sh "git fetch --depth 1 origin ${CHANGE_TARGET}"
+                sh "git fetch --depth 1 origin '+${env.CHANGE_TARGET}:refs/remotes/origin/${env.CHANGE_TARGET}'"
             }
         }
     }
 
     String script_in_docker = """
 tests/scripts/list-identifiers.sh --internal
-scripts/abi_check.py -o $old_commit -n HEAD -s identifiers --brief
+scripts/abi_check.py -o 'origin/${env.CHANGE_TARGET}' -n HEAD -s identifiers --brief
 """
 
     return gen_docker_job(hooks, info, job_name, platform, script_in_docker)
