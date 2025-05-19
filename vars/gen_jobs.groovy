@@ -466,7 +466,8 @@ def gen_abi_api_checking_job(BranchInfo info, String platform) {
 
     String script_in_docker = """
 tests/scripts/list-identifiers.sh --internal
-scripts/abi_check.py -o 'origin/${env.CHANGE_TARGET}' -n HEAD -s identifiers --brief
+# Workaround for abi_check.py failing to properly escape slashes in ref names
+scripts/abi_check.py -o \$(git rev-parse 'origin/${env.CHANGE_TARGET}^{commit}') -n HEAD -s identifiers --brief
 """
 
     return gen_docker_job(hooks, info, job_name, platform, script_in_docker)
