@@ -54,6 +54,7 @@ NIGHTLY_JOB_NAME = "mbed-tls-nightly-tests"
 
 DAYS = 7
 
+
 def gather_durations_ms(server, job_name, since_timestamp_ms):
     """Gather durations of runs started since the given timestamp.
 
@@ -116,6 +117,9 @@ def report_summary_durations(durations_ms):
 def report_success_rate(nb_good, nb_bad):
     """Print out success rate for a job."""
     nb_runs = nb_good + nb_bad
+    if nb_runs == 0:
+        print("No nightly!!!")
+        return
     success_percent = int(nb_good / nb_runs * 100)
     print(f"Nightly success rate: {success_percent}% (out of {nb_runs})")
 
