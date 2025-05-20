@@ -62,7 +62,7 @@ void parse_scm_repo() {
         repo = repo.replaceFirst(/\.git$/, '')
         env.GITHUB_ORG = org
         env.GITHUB_REPO = repo
-        if (org ==~ /.*-restricted/) {
+        if (repo ==~ /.*-restricted/) {
             env.IS_RESTRICTED = 'true'
         }
     }
