@@ -63,9 +63,7 @@ import org.mbed.tls.jenkins.BranchInfo
     'cc' : 'cc'
 ]
 
-@Field docker_repo_name = is_open_ci_env ? 'ci-amd64-mbed-tls-ubuntu' : 'jenkins-mbedtls'
-@Field docker_ecr = is_open_ci_env ? "trustedfirmware" : "666618195821.dkr.ecr.eu-west-1.amazonaws.com"
-@Field docker_repo = "$docker_ecr/$docker_repo_name"
+@Field docker_repo_name = is_open_ci_env ? 'docker.io/trustedfirmware/ci-amd64-mbed-tls-ubuntu' : 'jenkins-mbedtls'
 
 /* List of Linux platforms. When a job can run on multiple Linux platforms,
  * it runs on the first element of the list that supports this job. */
@@ -190,15 +188,12 @@ def get_docker_image(platform) {
     def docker_image = get_docker_tag(platform)
     for (int attempt = 1; attempt <= 3; attempt++) {
         try {
-            if (is_open_ci_env)
+            withCredentials([string(credentialsId: 'MBEDTLS_DOCKER_ECR', variable:'MBEDTLS_DOCKER_ECR')]) {
                 sh """\
-docker pull $docker_repo:$docker_image
+aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin $MBEDTLS_DOCKER_ECR
+docker pull $MBEDTLS_DOCKER_ECR/$docker_repo_name:$docker_image
 """
-            else
-                sh """\
-aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin $docker_ecr
-docker pull $docker_repo:$docker_image
-"""
+            }
             break
         } catch (AbortException err) {
             if (attempt == 3) throw (err)
@@ -217,7 +212,7 @@ String docker_script(
     return """\
 docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS -e VERBOSE_LOGS $env_args --rm --entrypoint $entrypoint \
     -w /var/lib/build -v `pwd`/src:/var/lib/build \
-    --cap-add SYS_PTRACE $docker_repo:$docker_image $entrypoint_arguments
+    --cap-add SYS_PTRACE $MBEDTLS_DOCKER_ECR/$docker_repo_name:$docker_image $entrypoint_arguments
 """
 }
 

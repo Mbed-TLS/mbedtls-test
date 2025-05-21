@@ -696,7 +696,7 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
     def cache = "$image-cache-$arch"
     def check_docker_image
     if (common.is_open_ci_env) {
-        check_docker_image = "docker manifest inspect $common.docker_repo:$tag > /dev/null 2>&1"
+        check_docker_image = "docker manifest inspect $common.docker_repo_name:$tag > /dev/null 2>&1"
     } else {
         check_docker_image = "aws ecr describe-images --region eu-west-1 --repository-name $common.docker_repo_name --image-ids imageTag=$tag"
     }
@@ -719,9 +719,11 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
                             writeFile file: 'Dockerfile', text: dockerfile
                             def extra_build_args = ''
 
-                            sh """\
-aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin $common.docker_ecr
+                            withCredentials([string(credentialsId: 'MBEDTLS_DOCKER_ECR', variable:'MBEDTLS_DOCKER_ECR')]) {
+                                sh """\
+aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin $MBEDTLS_DOCKER_ECR
 """
+                            }
 
                             // Generate download URL for armclang
                             if (platform.startsWith('arm-compilers')) {
