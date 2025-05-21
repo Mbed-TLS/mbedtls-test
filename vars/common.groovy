@@ -189,10 +189,10 @@ def get_docker_image(platform) {
     for (int attempt = 1; attempt <= 3; attempt++) {
         try {
             withCredentials([string(credentialsId: 'MBEDTLS_DOCKER_ECR', variable:'MBEDTLS_DOCKER_ECR')]) {
-                sh """\
-aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 767398041324.dkr.ecr.eu-west-1.amazonaws.com
-docker pull \${MBEDTLS_DOCKER_ECR}/$docker_repo_name:$docker_image
-"""
+                sh '''\
+aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin $MBEDTLS_DOCKER_ECR
+docker pull $MBEDTLS_DOCKER_ECR/$docker_repo_name:$docker_image
+'''
             }
             break
         } catch (AbortException err) {
