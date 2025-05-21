@@ -719,27 +719,9 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
                             writeFile file: 'Dockerfile', text: dockerfile
                             def extra_build_args = ''
 
-                            if (common.is_open_ci_env) {
-                                withCredentials([string(credentialsId: 'DOCKER_AUTH', variable: 'TOKEN')]) {
-                                    sh """\
-mkdir -p ${env.HOME}/.docker
-cat > ${env.HOME}/.docker/config.json << EOF
-{
-        "auths": {
-                "https://index.docker.io/v1/": {
-                        "auth": "\${TOKEN}"
-                }
-        }
-}
-EOF
-chmod 0600 ${env.HOME}/.docker/config.json
-"""
-                                }
-                            } else {
-                                sh """\
+                            sh """\
 aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin $common.docker_ecr
 """
-                            }
 
                             // Generate download URL for armclang
                             if (platform.startsWith('arm-compilers')) {
