@@ -190,8 +190,8 @@ def get_docker_image(platform) {
         try {
             withCredentials([string(credentialsId: 'MBEDTLS_DOCKER_ECR', variable:'MBEDTLS_DOCKER_ECR')]) {
                 sh """\
-aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin $MBEDTLS_DOCKER_ECR
-docker pull $MBEDTLS_DOCKER_ECR/$docker_repo_name:$docker_image
+aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin \${MBEDTLS_DOCKER_ECR}
+docker pull \${MBEDTLS_DOCKER_ECR}/$docker_repo_name:$docker_image
 """
             }
             break

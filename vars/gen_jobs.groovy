@@ -721,7 +721,7 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
 
                             withCredentials([string(credentialsId: 'MBEDTLS_DOCKER_ECR', variable:'MBEDTLS_DOCKER_ECR')]) {
                                 sh """\
-aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin $MBEDTLS_DOCKER_ECR
+aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin \${MBEDTLS_DOCKER_ECR}
 """
                             }
 
