@@ -240,7 +240,7 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
             }
 
             list_components_jobs << gen_jobs.job(info.prefix + 'all-platforms') {
-                node('container-host') {
+                node('mbedtls-container-host') {
                     try {
                         // Log the environment for debugging purposes
                         sh script: 'export'

@@ -137,10 +137,10 @@ node (label) {
 
 The label identifies what features the executor needs to have. In particular, this encodes the operating system. We use four labels:
 
-* `container-host` (currently synonymous with `container-host-amd64`), which runs Linux on x86_64 and has Docker. Most of our Linux code runs in Docker containers.
-* `container-host-arm64`, similar to `container-host` but running on arm64.
-* `freebsd`
-* `windows`
+* `mbedtls-container-host` (currently synonymous with `mbedtls-container-host-amd64`), which runs Linux on x86_64 and has Docker. Most of our Linux code runs in Docker containers.
+* `mbedtls-container-host-arm64`, similar to `mbedtls-container-host` but running on arm64.
+* `mbedtls-freebsd`
+* `mbedlts-windows`
 
 The full list of available labels can be found in TODO for OpenCI and the [labels dashboard](https://jenkins-mbedtls.oss.arm.com/labelsdashboard/) (configured at [admin page](https://jenkins-mbedtls.oss.arm.com/manage/configureClouds/)) on the internal CI.
 

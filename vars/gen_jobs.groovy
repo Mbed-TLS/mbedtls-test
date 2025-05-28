@@ -35,14 +35,14 @@ private Map<String, Callable<Void>> instrumented_node_job(String node_label, Str
 }
 
 Map<String, Callable<Void>> gen_simple_windows_jobs(BranchInfo info, String label, String script) {
-    return instrumented_node_job('windows', label) {
+    return instrumented_node_job('mbedtls-windows', label) {
         try {
             dir('src') {
                 deleteDir()
                 checkout_repo.checkout_repo(info)
                 timeout(time: common.perJobTimeout.time,
                         unit: common.perJobTimeout.unit) {
-                    analysis.record_inner_timestamps('windows', label) {
+                    analysis.record_inner_timestamps('mbedtls-windows', label) {
                         bat script
                     }
                 }
@@ -58,10 +58,10 @@ Map<String, Callable<Void>> gen_simple_windows_jobs(BranchInfo info, String labe
 
 def node_label_for_platform(platform) {
     switch (platform) {
-    case ~/^(debian|ubuntu|arm-compilers).*-amd64/: return 'container-host';
-    case ~/^(debian|ubuntu|arm-compilers).*-arm64/: return 'container-host-arm64';
-    case ~/^freebsd(-.*)?/: return 'freebsd';
-    case ~/^windows(-.*)?/: return 'windows';
+    case ~/^(debian|ubuntu|arm-compilers).*-amd64/: return 'mbedtls-container-host';
+    case ~/^(debian|ubuntu|arm-compilers).*-arm64/: return 'mbedtls-container-host-arm64';
+    case ~/^freebsd(-.*)?/: return 'mbedtls-freebsd';
+    case ~/^windows(-.*)?/: return 'mbedtls-windows';
     default: return platform;
     }
 }
@@ -113,13 +113,13 @@ def platform_lacks_tls_tools(platform) {
  *
  *     All hook parameters are closures that are called with no arguments.
  *     They can be null, in which case the hook does nothing. The code runs
- *     on a 'container-host' executor, in the directory containing the
+ *     on a 'mbedtls-container-host' executor, in the directory containing the
  *     source code.
  */
 Map<String, Callable<Void>> gen_docker_job(Map<String, Closure> hooks,
                                            BranchInfo info,
                                            String job_name,
-                                           String node_label = 'container-host',
+                                           String node_label = 'mbedtls-container-host',
                                            String platform,
                                            String script_in_docker) {
     return instrumented_node_job(node_label, job_name) {
@@ -354,7 +354,7 @@ def gen_windows_testing_job(BranchInfo info, String toolchain) {
 
     // Return one job per workgroup
     return test_configs.groupBy({ item -> (String) item.group }).collectEntries { group, items ->
-        return instrumented_node_job('windows', group) {
+        return instrumented_node_job('mbedtls-windows', group) {
             try {
                 stage('checkout') {
                     dir("src") {
@@ -388,7 +388,7 @@ def gen_windows_testing_job(BranchInfo info, String toolchain) {
                     writeFile file: 'windows_testing.py', text: windows_testing
                 }
 
-                analysis.record_inner_timestamps('windows', group) {
+                analysis.record_inner_timestamps('mbedtls-windows', group) {
                     /* Execute each test in a workgroup serially. If any exceptions are thrown store them, and continue
                      * with the next test. This replicates the preexisting behaviour windows_testing.py and
                      * jobs.failFast = false */
@@ -630,13 +630,13 @@ def gen_coverity_push_jobs(BranchInfo info) {
     def job_name = 'coverity-push'
 
     if (info.branch == "development") {
-        jobs << instrumented_node_job('container-host', job_name) {
+        jobs << instrumented_node_job('mbedtls-container-host', job_name) {
             try {
                 dir("src") {
                     deleteDir()
                     checkout_repo.checkout_tls_repo(info)
                     sshagent([env.GIT_CREDENTIALS_ID]) {
-                        analysis.record_inner_timestamps('container-host', job_name) {
+                        analysis.record_inner_timestamps('mbedtls-container-host', job_name) {
                             // Git complains about non-fast-forward operations when trying to push a shallow commit
                             sh 'git fetch --unshallow && git push origin HEAD:coverity_scan'
                         }
@@ -710,7 +710,7 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
     return job(platform) {
         /* Take the lock on the master node, so we don't tie up an executor while waiting */
         lock(tag) {
-            def node_label = arch == 'amd64' ? 'dockerfile-builder' : "container-host-$arch"
+            def node_label = arch == 'amd64' ? 'mbedtls-dockerfile-builder' : "mbedtls-container-host-$arch"
             analysis.node_record_timestamps(node_label, platform) {
                 def image_exists = false
                 if (!overwrite) {
