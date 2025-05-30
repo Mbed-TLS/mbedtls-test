@@ -68,8 +68,15 @@ void checkout_framework_repo(BranchInfo info) {
         if (env.FRAMEWORK_REPO && branch) {
             echo "Applying framework override ($branch)"
             checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, branch))
-        } else if (fileExists('.git')) {
-            echo "Using default framework version"
+        } else {
+            String commit = sh(
+                script: "git -C .. submodule status --cached framework | sed 's/^.\\([^ ]*\\).*/\\1/'",
+                returnStdout: true
+            ).trim()
+            if (commit) {
+                echo "Using default framework version $commit"
+                checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, commit))
+            }
         }
     }
 }
@@ -82,8 +89,8 @@ void checkout_tf_psa_crypto_repo(BranchInfo info) {
                 throw new IllegalStateException("The first checkout of the framework must be made on a Unix node")
             }
             info.framework_override = sh(
-                    script: "git -C framework log -n1 --pretty=%H",
-                    returnStdout: true
+                script: "git submodule status --cached framework | sed 's/^.\\([^ ]*\\) .*/\\1/'",
+                returnStdout: true
             ).trim()
             echo "Setting framework override to commit $info.framework_override"
         }
@@ -99,8 +106,15 @@ void checkout_tf_psa_crypto_repo(BranchInfo info) {
                 echo "Applying tf-psa-crypto override ($branch)"
             }
             checkout_report_errors(parametrized_repo(env.TF_PSA_CRYPTO_REPO, branch))
-        } else if (fileExists('.git')) {
-            echo "Using default tf-psa-crypto version"
+        } else {
+            String commit = sh(
+                script: "git -C .. submodule status --cached tf-psa-crypto | sed 's/^.\\([^ ]*\\).*/\\1/'",
+                returnStdout: true
+            ).trim()
+            if (commit) {
+                echo "Using default tf-psa-crypto version $commit"
+                checkout_report_errors(parametrized_repo(env.TF_PSA_CRYPTO_REPO, commit))
+            }
         }
     }
 
@@ -143,39 +157,15 @@ void checkout_repo(BranchInfo info) {
         if (!info.stash) {
             lock(resource: "stash-lock/${env.BUILD_TAG}-${stashName}") {
                 if (!info.stash) {
-                    try {
-                        // Set global config so its picked up when cloning submodules
-                        String extra_overrides = ''
-                        if (env.IS_RESTRICTED) {
-                            extra_overrides = '''
-git config --global url.git@github.com:Mbed-TLS/TF-PSA-Crypto-restricted.insteadof https://github.com/Mbed-TLS/TF-PSA-Crypto
-git config --global url.git@github.com:Mbed-TLS/mbedtls-framework-restricted.insteadof https://github.com/Mbed-TLS/mbedtls-framework
-'''
-                        }
-                        sh """
-set -eux
-git config --global url.git@github.com:.insteadOf https://github.com/
-$extra_overrides
-"""
-                        switch (info.repo) {
-                            case 'tls':
-                                checkout_tls_repo(info)
-                                break
-                            case 'tf-psa-crypto':
-                                checkout_tf_psa_crypto_repo(info)
-                                break
-                            default:
-                                error("Invalid repo: ${info.repo}")
-                        }
-                    } finally {
-                        // Clean up global config
-                        sh '''
-set -eux
-# Git will return a non-zero exit status when unsetting non-existent values
-git config --global --unset url.git@github.com:.insteadOf || true
-git config --global --unset url.git@github.com:Mbed-TLS/TF-PSA-Crypto-restricted.insteadof || true
-git config --global --unset url.git@github.com:Mbed-TLS/mbedtls-framework-restricted.insteadof || true
-'''
+                    switch (info.repo) {
+                        case 'tls':
+                            checkout_tls_repo(info)
+                            break
+                        case 'tf-psa-crypto':
+                            checkout_tf_psa_crypto_repo(info)
+                            break
+                        default:
+                            error("Invalid repo: ${info.repo}")
                     }
 
                     stash name: stashName, includes: '**/*', useDefaultExcludes: false
@@ -245,7 +235,7 @@ Map<String, Object> parametrized_repo(String repo, String branch) {
         branches: [[name: branch]],
         extensions: [
             [$class: 'CloneOption', timeout: 60, honorRefspec: true, shallow: true],
-            [$class: 'SubmoduleOption', recursiveSubmodules: true, parentCredentials: true, shallow: true],
+            [$class: 'SubmoduleOption', disableSubmodules: true],
             [$class: 'LocalBranch', localBranch: localBranch],
         ],
     ]
