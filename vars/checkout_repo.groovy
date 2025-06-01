@@ -74,7 +74,7 @@ void checkout_framework_repo(BranchInfo info) {
                 returnStdout: true
             ).trim()
             if (commit) {
-                echo "Using default framework version $commit"
+                echo "Cloning default framework version $commit from $env.FRAMEWORK_REPO"
                 checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, commit))
             }
         }
@@ -112,7 +112,7 @@ void checkout_tf_psa_crypto_repo(BranchInfo info) {
                 returnStdout: true
             ).trim()
             if (commit) {
-                echo "Using default tf-psa-crypto version $commit"
+                echo "Cloning default tf-psa-crypto version $commit from $env.TF_PSA_CRYPTO_REPO"
                 checkout_report_errors(parametrized_repo(env.TF_PSA_CRYPTO_REPO, commit))
             }
         }
