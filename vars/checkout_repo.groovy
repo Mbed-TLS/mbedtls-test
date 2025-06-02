@@ -17,6 +17,7 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+import hudson.AbortException
 import hudson.model.Result
 import hudson.plugins.git.GitSCM
 import hudson.scm.NullSCM
@@ -60,6 +61,24 @@ Map<String, String> checkout_report_errors(scm_config) {
     }
 }
 
+Map<String, String> try_checkout_from_repos(List<String> maybe_repos, String branch) {
+    List<String> repos = maybe_repos.findAll()
+    if (repos.size() == 0) {
+        throw new IllegalArgumentException("No repos specified")
+    }
+
+    int i = 0;
+    for (; i < repos.size() - 1; i++) {
+        try {
+            return checkout(parametrized_repo(repos[i], branch))
+        } catch (AbortException e) {
+            echo "Cloning $branch from ${repos[i]} failed:\n$e.message\nTrying fallback repo ${repos[i+1]}"
+        }
+    }
+
+    return checkout_report_errors(parametrized_repo(repos[i], branch))
+}
+
 void checkout_framework_repo(BranchInfo info) {
     if (env.TARGET_REPO == 'framework' && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
@@ -67,7 +86,7 @@ void checkout_framework_repo(BranchInfo info) {
         def branch = env.FRAMEWORK_BRANCH ?: info.framework_override
         if (env.FRAMEWORK_REPO && branch) {
             echo "Applying framework override ($branch)"
-            checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, branch))
+            try_checkout_from_repos([env.FRAMEWORK_REPO, env.FRAMEWORK_FALLBACK_REPO], branch)
         } else {
             String commit = sh(
                 script: "git -C .. submodule status --cached framework | sed 's/^.\\([^ ]*\\).*/\\1/'",
@@ -75,7 +94,7 @@ void checkout_framework_repo(BranchInfo info) {
             ).trim()
             if (commit) {
                 echo "Cloning default framework version $commit from $env.FRAMEWORK_REPO"
-                checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, commit))
+                try_checkout_from_repos([env.FRAMEWORK_REPO, env.FRAMEWORK_FALLBACK_REPO], commit)
             }
         }
     }
@@ -105,7 +124,7 @@ void checkout_tf_psa_crypto_repo(BranchInfo info) {
             if (info.repo != 'tf-psa-crypto') {
                 echo "Applying tf-psa-crypto override ($branch)"
             }
-            checkout_report_errors(parametrized_repo(env.TF_PSA_CRYPTO_REPO, branch))
+            try_checkout_from_repos([env.TF_PSA_CRYPTO_REPO, env.TF_PSA_CRYPTO_FALLBACK_REPO], branch)
         } else {
             String commit = sh(
                 script: "git -C .. submodule status --cached tf-psa-crypto | sed 's/^.\\([^ ]*\\).*/\\1/'",
@@ -113,7 +132,7 @@ void checkout_tf_psa_crypto_repo(BranchInfo info) {
             ).trim()
             if (commit) {
                 echo "Cloning default tf-psa-crypto version $commit from $env.TF_PSA_CRYPTO_REPO"
-                checkout_report_errors(parametrized_repo(env.TF_PSA_CRYPTO_REPO, commit))
+                try_checkout_from_repos([env.TF_PSA_CRYPTO_REPO, env.TF_PSA_CRYPTO_FALLBACK_REPO], commit)
             }
         }
     }

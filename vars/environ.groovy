@@ -37,7 +37,9 @@ void set_pr_environment(String target_repo, boolean is_production) {
         set_common_pr_production_environment()
             if (env.IS_RESTRICTED) {
                 env.FRAMEWORK_REPO = 'git@github.com:Mbed-TLS/mbedtls-framework-restricted.git'
+                env.FRAMEWORK_FALLBACK_REPO = 'git@github.com:Mbed-TLS/mbedtls-framework.git'
                 env.TF_PSA_CRYPTO_REPO = 'git@github.com:Mbed-TLS/TF-PSA-Crypto-restricted.git'
+                env.TF_PSA_CRYPTO_FALLBACK_REPO = 'git@github.com:Mbed-TLS/TF-PSA-Crypto.git'
                 env.MBED_TLS_REPO = 'git@github.com:Mbed-TLS/mbedtls-restricted.git'
             } else {
                 env.FRAMEWORK_REPO = 'git@github.com:Mbed-TLS/mbedtls-framework.git'
