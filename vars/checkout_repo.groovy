@@ -81,7 +81,7 @@ Map<String, String> try_checkout_from_repos(List<String> maybe_repos, String bra
 
 String get_submodule_commit(String working_dir = '.', String submodule) {
     return sh(
-        script: "git -C $working_dir submodule status --cached $submodule | sed 's/^.\\([^ ]*\\).*/\\1/'",
+        script: "git -C $working_dir rev-parse HEAD:$submodule || true",
         returnStdout: true
     ).trim()
 }
