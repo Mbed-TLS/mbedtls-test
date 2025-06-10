@@ -79,6 +79,13 @@ Map<String, String> try_checkout_from_repos(List<String> maybe_repos, String bra
     return checkout_report_errors(parametrized_repo(repos[i], branch))
 }
 
+String get_submodule_commit(String working_dir = '.', String submodule) {
+    return sh(
+        script: "git -C $working_dir submodule status --cached $submodule | sed 's/^.\\([^ ]*\\).*/\\1/'",
+        returnStdout: true
+    ).trim()
+}
+
 void checkout_framework_repo(BranchInfo info) {
     if (env.TARGET_REPO == 'framework' && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
@@ -88,10 +95,7 @@ void checkout_framework_repo(BranchInfo info) {
             echo "Applying framework override ($branch)"
             try_checkout_from_repos([env.FRAMEWORK_REPO, env.FRAMEWORK_FALLBACK_REPO], branch)
         } else {
-            String commit = sh(
-                script: "git -C .. submodule status --cached framework | sed 's/^.\\([^ ]*\\).*/\\1/'",
-                returnStdout: true
-            ).trim()
+            String commit = get_submodule_commit('..', 'framework')
             if (commit) {
                 echo "Cloning default framework version $commit from $env.FRAMEWORK_REPO"
                 try_checkout_from_repos([env.FRAMEWORK_REPO, env.FRAMEWORK_FALLBACK_REPO], commit)
@@ -107,10 +111,7 @@ void checkout_tf_psa_crypto_repo(BranchInfo info) {
             if (!isUnix()) {
                 throw new IllegalStateException("The first checkout of the framework must be made on a Unix node")
             }
-            info.framework_override = sh(
-                script: "git submodule status --cached framework | sed 's/^.\\([^ ]*\\) .*/\\1/'",
-                returnStdout: true
-            ).trim()
+            info.framework_override = get_submodule_commit('framework')
             echo "Setting framework override to commit $info.framework_override"
         }
     } else {
@@ -126,10 +127,7 @@ void checkout_tf_psa_crypto_repo(BranchInfo info) {
             }
             try_checkout_from_repos([env.TF_PSA_CRYPTO_REPO, env.TF_PSA_CRYPTO_FALLBACK_REPO], branch)
         } else {
-            String commit = sh(
-                script: "git -C .. submodule status --cached tf-psa-crypto | sed 's/^.\\([^ ]*\\).*/\\1/'",
-                returnStdout: true
-            ).trim()
+            String commit = get_submodule_commit('..', 'tf-psa-crypto')
             if (commit) {
                 echo "Cloning default tf-psa-crypto version $commit from $env.TF_PSA_CRYPTO_REPO"
                 try_checkout_from_repos([env.TF_PSA_CRYPTO_REPO, env.TF_PSA_CRYPTO_FALLBACK_REPO], commit)
