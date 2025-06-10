@@ -18,6 +18,8 @@
  */
 
 import hudson.plugins.git.GitSCM
+import hudson.scm.NullSCM
+import org.jenkinsci.plugins.workflow.multibranch.SCMVar
 
 def set_common_environment() {
     /* Do moderately parallel builds. This overrides the default in all.sh
@@ -51,10 +53,17 @@ void set_pr_environment(String target_repo, boolean is_production) {
     }
 }
 
+/** <p> Extract the repo url from the {@link GitSCM} object returned by {@link SCMVar scm}
+ *  and set {@code env.GITHUB_ORG}, {@code env.GITHUB_REPO} and {@code env.IS_RESTRICTED}
+ *  based on the result if they were not initialized before. The values of these objects
+ *  correspond to the origin repo of the Jenkinsfile, so MbedTLS/mbedtls-test for all
+ *  release / parametrized jobs. </p>
+ *
+ *  <p> If the branch {@code scm} points to is deleted before this method is called
+ *  (eg. when a PR exits the merge queue), it degenerates to an instance of {@link NullSCM},
+ *  and the variables above remain uninitialized. </p>
+ */
 void parse_scm_repo() {
-    /* Extract owner and repository from the repo url - needed for testing Github merge queues
-     * "scm" might degenerate to a NullSCM object if the branch we are testing is deleted durin the test.
-     *  This tends to happen during merge queue runs */
     if (!env.GITHUB_ORG && scm instanceof GitSCM) {
         def (org, repo) = scm.userRemoteConfigs[0].url.replaceFirst(/.*:/, '').split('/')[-2..-1]
         repo = repo.replaceFirst(/\.git$/, '')
