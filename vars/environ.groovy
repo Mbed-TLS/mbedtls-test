@@ -53,11 +53,12 @@ void set_pr_environment(String target_repo, boolean is_production) {
     }
 }
 
-/** <p> Extract the repo url from the {@link GitSCM} object returned by {@link SCMVar scm}
- *  and set {@code env.GITHUB_ORG}, {@code env.GITHUB_REPO} and {@code env.IS_RESTRICTED}
- *  based on the result if they were not initialized before. The values of these objects
- *  correspond to the origin repo of the Jenkinsfile, so MbedTLS/mbedtls-test for all
- *  release / parametrized jobs. </p>
+/** <p> Extract the repository URL from the {@link GitSCM} object returned by
+ *  {@link SCMVar scm} and set {@code env.GITHUB_ORG}, {@code env.GITHUB_REPO}
+ *  and {@code env.IS_RESTRICTED} accordingly if they were not initialized
+ *  before. The repository URL refers to the repository containing the job's
+ *  Jenkinsfile, so MbedTLS/mbedtls-test for all release/parametrized jobs and
+ *  the PR's target repository for PR jobs. </p>
  *
  *  <p> If the branch {@code scm} points to is deleted before this method is called
  *  (eg. when a PR exits the merge queue), it degenerates to an instance of {@link NullSCM},
