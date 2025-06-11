@@ -1,3 +1,4 @@
 void run_pr_job() {
-    mbedtls.run_pr_job('tf-psa-crypto', true, 'development', env.CHANGE_BRANCH ?: env.BRANCH_NAME)
+    environ.parse_scm_repo()
+    mbedtls.run_pr_job('tf-psa-crypto', true, env.IS_RESTRICTED ? 'development-restricted' : 'development', env.CHANGE_BRANCH ?: env.BRANCH_NAME)
 }

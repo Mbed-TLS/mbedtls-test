@@ -17,6 +17,7 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+import hudson.AbortException
 import hudson.model.Result
 import hudson.plugins.git.GitSCM
 import hudson.scm.NullSCM
@@ -60,6 +61,36 @@ Map<String, String> checkout_report_errors(scm_config) {
     }
 }
 
+Map<String, String> try_checkout_from_repos(List<String> maybe_repos, String branch) {
+    List<String> repos = maybe_repos.findAll()
+    if (repos.size() == 0) {
+        throw new IllegalArgumentException("No repos specified")
+    }
+
+    int i = 0;
+    for (; i < repos.size() - 1; i++) {
+        try {
+            return checkout(parametrized_repo(repos[i], branch))
+        } catch (AbortException e) {
+            echo "Cloning $branch from ${repos[i]} failed:\n$e.message\nTrying fallback repo ${repos[i+1]}"
+        }
+    }
+
+    return checkout_report_errors(parametrized_repo(repos[i], branch))
+}
+
+String get_submodule_commit(String working_dir = '.', String submodule) {
+    try {
+        return sh(
+            script: "git -C $working_dir rev-parse HEAD:$submodule",
+            returnStdout: true
+        ).trim()
+    } catch (AbortException e) {
+        echo e.message
+        return ''
+    }
+}
+
 void checkout_framework_repo(BranchInfo info) {
     if (env.TARGET_REPO == 'framework' && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
@@ -67,9 +98,13 @@ void checkout_framework_repo(BranchInfo info) {
         def branch = env.FRAMEWORK_BRANCH ?: info.framework_override
         if (env.FRAMEWORK_REPO && branch) {
             echo "Applying framework override ($branch)"
-            checkout_report_errors(parametrized_repo(env.FRAMEWORK_REPO, branch))
-        } else if (fileExists('.git')) {
-            echo "Using default framework version"
+            try_checkout_from_repos([env.FRAMEWORK_REPO, env.FRAMEWORK_FALLBACK_REPO], branch)
+        } else {
+            String commit = get_submodule_commit('..', 'framework')
+            if (commit) {
+                echo "Cloning default framework version $commit from $env.FRAMEWORK_REPO"
+                try_checkout_from_repos([env.FRAMEWORK_REPO, env.FRAMEWORK_FALLBACK_REPO], commit)
+            }
         }
     }
 }
@@ -81,10 +116,7 @@ void checkout_tf_psa_crypto_repo(BranchInfo info) {
             if (!isUnix()) {
                 throw new IllegalStateException("The first checkout of the framework must be made on a Unix node")
             }
-            info.framework_override = sh(
-                    script: "git -C framework log -n1 --pretty=%H",
-                    returnStdout: true
-            ).trim()
+            info.framework_override = get_submodule_commit('framework')
             echo "Setting framework override to commit $info.framework_override"
         }
     } else {
@@ -98,9 +130,13 @@ void checkout_tf_psa_crypto_repo(BranchInfo info) {
             if (info.repo != 'tf-psa-crypto') {
                 echo "Applying tf-psa-crypto override ($branch)"
             }
-            checkout_report_errors(parametrized_repo(env.TF_PSA_CRYPTO_REPO, branch))
-        } else if (fileExists('.git')) {
-            echo "Using default tf-psa-crypto version"
+            try_checkout_from_repos([env.TF_PSA_CRYPTO_REPO, env.TF_PSA_CRYPTO_FALLBACK_REPO], branch)
+        } else {
+            String commit = get_submodule_commit('..', 'tf-psa-crypto')
+            if (commit) {
+                echo "Cloning default tf-psa-crypto version $commit from $env.TF_PSA_CRYPTO_REPO"
+                try_checkout_from_repos([env.TF_PSA_CRYPTO_REPO, env.TF_PSA_CRYPTO_FALLBACK_REPO], commit)
+            }
         }
     }
 
@@ -121,32 +157,18 @@ Map<String, String> checkout_tls_repo(BranchInfo info) {
         scm_config = parametrized_repo(env.MBED_TLS_REPO, info.branch)
     }
 
-    // Use bilingual scripts when manipulating the git config
-    def sh_or_bat = isUnix() ? {args -> sh(args)} : {args -> bat(args)}
-    // Set global config so its picked up when cloning submodules
-    sh_or_bat 'git config --global url.git@github.com:.insteadOf https://github.com/'
-    try {
-        def result = checkout_report_errors(scm_config)
+    def result = checkout_report_errors(scm_config)
 
-        dir('tf-psa-crypto') {
-            checkout_tf_psa_crypto_repo(info)
-        }
-
-        dir('framework') {
-            checkout_framework_repo(info)
-        }
-
-        // After the clone, replicate it in the local config, so it is effective when running inside docker
-        sh_or_bat '''
-git config url.git@github.com:.insteadOf https://github.com/ && \
-git submodule foreach --recursive git config url.git@github.com:.insteadOf https://github.com/
-'''
-        write_overrides(info)
-        return result
-    } finally {
-        // Clean up global config
-        sh_or_bat 'git config --global --unset url.git@github.com:.insteadOf'
+    dir('tf-psa-crypto') {
+        checkout_tf_psa_crypto_repo(info)
     }
+
+    dir('framework') {
+        checkout_framework_repo(info)
+    }
+
+    write_overrides(info)
+    return result
 }
 
 void checkout_repo(BranchInfo info) {
@@ -235,7 +257,7 @@ Map<String, Object> parametrized_repo(String repo, String branch) {
         branches: [[name: branch]],
         extensions: [
             [$class: 'CloneOption', timeout: 60, honorRefspec: true, shallow: true],
-            [$class: 'SubmoduleOption', recursiveSubmodules: true, parentCredentials: true, shallow: true],
+            [$class: 'SubmoduleOption', disableSubmodules: true],
             [$class: 'LocalBranch', localBranch: localBranch],
         ],
     ]
