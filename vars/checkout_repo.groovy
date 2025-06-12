@@ -246,14 +246,13 @@ Map<String, Object> parametrized_repo(String repo, String branch) {
         $class: 'GitSCM',
         userRemoteConfigs: [[
             url: repo,
-            refspec: "+$remoteRef:refs/remotes/origin/$localBranch",
+            refspec: remoteRef,
             credentialsId: env.GIT_CREDENTIALS_ID
         ]],
         branches: [[name: branch]],
         extensions: [
             [$class: 'CloneOption', timeout: 60, honorRefspec: true, shallow: true],
             [$class: 'SubmoduleOption', disableSubmodules: true],
-            [$class: 'LocalBranch', localBranch: localBranch],
         ],
     ]
 }
