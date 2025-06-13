@@ -240,20 +240,28 @@ Map<String, String> checkout_mbed_os_example_repo(String repo, String branch) {
  *     A {@link Map} representing a {@link GitSCM} object.
  */
 Map<String, Object> parametrized_repo(String repo, String branch) {
-    String remoteRef = branch.replaceFirst('^((refs/)?remotes/)?origin/', '')
-    String localBranch = branch.replaceFirst('^(refs/)?(heads/|tags/|(remotes/)?origin/)?','')
+    String source_ref, remote_tracking_branch
+    // Check if branch is a SHA-1 or SHA-256 commit hash.
+    if ((branch.length() == 40 || branch.length() == 64) && branch ==~ /\p{XDigit}*+/) {
+        // Use 'detached' as the remote tracking branch's name.
+        // This prevents warnings about ambiguous refnames.
+        source_ref = branch
+        remote_tracking_branch = 'detached'
+    } else {
+        source_ref = branch.replaceFirst('^((refs/)?remotes/)?origin/', '')
+        remote_tracking_branch = branch.replaceFirst('^(refs/)?(heads/|tags/|(remotes/)?origin/)?','')
+    }
     return [
         $class: 'GitSCM',
         userRemoteConfigs: [[
             url: repo,
-            refspec: "+$remoteRef:refs/remotes/origin/$localBranch",
+            refspec: "+$source_ref:refs/remotes/origin/$remote_tracking_branch",
             credentialsId: env.GIT_CREDENTIALS_ID
         ]],
         branches: [[name: branch]],
         extensions: [
             [$class: 'CloneOption', timeout: 60, honorRefspec: true, shallow: true],
             [$class: 'SubmoduleOption', disableSubmodules: true],
-            [$class: 'LocalBranch', localBranch: localBranch],
         ],
     ]
 }
