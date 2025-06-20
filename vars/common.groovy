@@ -403,7 +403,7 @@ void maybe_notify_github(String state, String description, String context=null) 
     }
 
     if (context == null) {
-        def ci = is_open_ci_env ? 'TF OpenCI' : 'Internal CI'
+        def ci = is_open_ci_env ? 'New CI (testing)' : 'Internal CI'
         def job = env.BRANCH_NAME ==~ /PR-\d+-merge/ ? 'Interface stability tests' : 'PR tests'
         context = "$ci: $job"
     }
