@@ -154,8 +154,11 @@ Map<String, String> checkout_tls_repo(BranchInfo info) {
 
     def result = checkout_report_errors(scm_config)
 
-    dir('tf-psa-crypto') {
-        checkout_tf_psa_crypto_repo(info)
+    // Do not attempt to clone tf-psa-crypto if the submodule is not present (mbedtls-3.6)
+    if (get_submodule_commit('tf-psa-crypto')) {
+        dir('tf-psa-crypto') {
+            checkout_tf_psa_crypto_repo(info)
+        }
     }
 
     dir('framework') {
