@@ -778,9 +778,17 @@ aws ecr get-login-password --region eu-west-1 | docker login --username AWS --pa
                             // Generate download URL for armclang
                             if (platform.startsWith('arm-compilers')) {
                                 withCredentials((common.is_open_ci_env || common.is_new_ci_env) ? [] : [aws(credentialsId: 'armclang-readonly-keys')]) {
-                                    sh '''
-aws s3 presign s3://trustedfirmware-private/armclang/ARMCompiler6.21_standalone_linux-x86_64.tar.gz >armc6_url
-'''
+                                    final String bucket, region
+                                    if (common.is_new_ci_env) {
+                                        bucket = "openci-trustedfirmware-private-$env.INFRA_ENV"
+                                        region = 'eu-west-1'
+                                    } else {
+                                        bucket = 'trustedfirmware-private'
+                                        region = 'us-east-1'
+                                    }
+                                    sh """\
+aws s3 presign --region $region s3://$bucket/armclang/ARMCompiler6.21_standalone_linux-x86_64.tar.gz >armc6_url
+"""
                                     extra_build_args +=
                                         ' --secret id=armc6_url,src=./armc6_url'
                                 }
