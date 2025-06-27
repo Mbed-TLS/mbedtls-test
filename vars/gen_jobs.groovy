@@ -759,6 +759,7 @@ aws s3 presign s3://$bucket/armclang/ARMCompiler6.21_standalone_linux-x86_64.tar
 
                             analysis.record_inner_timestamps(node_label, platform) {
                                 sh """\
+cat ./armc6_url
 # Use BuildKit and a remote build cache to pull only the reuseable layers
 # from the last successful build for this platform
 DOCKER_BUILDKIT=1 docker build \
