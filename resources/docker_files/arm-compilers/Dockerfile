@@ -52,7 +52,7 @@ ARG ARMC6_SHA256=4bcdf9f719a8140b152b699fce8242a68b612cb0cb59f811ae11eb48302d1ef
 RUN --mount=type=secret,id=armc6_url,required=true \
     --mount=type=bind,target=/run/context \
     { \
-        curl "$(cat /run/secrets/armc6_url)" | tee /dev/fd/3 | \
+        curl -vs "$(cat /run/secrets/armc6_url)" | tee /dev/fd/3 | \
         tar --exclude license_terms --exclude releasenotes.html -zx; \
     } 3>&1 | { \
         echo "$ARMC6_SHA256  /dev/fd/3" | sha256sum -c; \
