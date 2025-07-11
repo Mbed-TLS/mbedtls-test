@@ -19,7 +19,7 @@ It is likely that a strict subset would work, but I didn't try.
 """
 
 from statistics import quantiles
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 import os
 import sys
 
@@ -85,10 +85,14 @@ def gather_statuses(server, job_name, since_timestamp_ms):
         if build_info["timestamp"] < since_timestamp_ms:
             continue
 
-        if build_info["result"] == "SUCCESS":
+        status = build_info["result"]
+        if status == "SUCCESS":
             nb_good += 1
         else:
             nb_bad += 1
+            # ts = int(build_info["timestamp"]) // 1000
+            # dt = datetime.fromtimestamp(ts, UTC).strftime("%Y-%m-%d %H:%M:%S")
+            # print("Non-success:", status, "at", dt)
 
     return nb_good, nb_bad
 
