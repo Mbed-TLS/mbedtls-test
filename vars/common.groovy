@@ -217,6 +217,7 @@ String docker_script(
     return """\
 docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS -e VERBOSE_LOGS $env_args --rm --entrypoint $entrypoint \
     -w /var/lib/build -v `pwd`/src:/var/lib/build \
+    --sysctl net.ipv6.conf.all.disable_ipv6=1 \
     --cap-add SYS_PTRACE $docker_repo:$docker_image $entrypoint_arguments
 """
 }
