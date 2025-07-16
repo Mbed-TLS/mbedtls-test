@@ -304,6 +304,7 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
                                 checkout_repo.checkout_repo(info)
                             }
                             get_docker_image(platform)
+                            sh docker_script(platform, 'sh', '-c "python3 --version && python3 -c \'import platform; print(platform.system())\'"')
                             def all_sh_help = sh(
                                 script: docker_script(
                                     platform, "./tests/scripts/all.sh", "--help"
