@@ -101,6 +101,17 @@ void run_pr_job(String target_repo, boolean is_production, Collection<String> tl
             }
         }
 
+        node('container-host') {
+            sh '''
+ls -lh /etc/docker/
+cat /etc/docker/daemon.json || true
+docker network ls
+for n in $(docker network ls -q); do docker network inspect $n; done
+'''
+        }
+
+        return
+
         List<BranchInfo> infos
 
         try {
