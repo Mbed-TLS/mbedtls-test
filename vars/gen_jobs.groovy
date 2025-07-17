@@ -713,6 +713,9 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
             /* Take the lock only once we are running on a node.
              * This prevents a low-priority job from hogging the lock, when a high-priority job (eg. a merge queue job)
              * is added to the queue later.
+             * The locking order may be reverted to (lock -> node) once we transition to using a dedicated node label
+             * for building arm64 dockerfiles instead of container-host-arm64 (see the definition of node_label above),
+             * as this would reduce contention for the nodes enough to eliminate concerns about the priority inversion.
              */
             lock(tag) {
                 def image_exists = false
