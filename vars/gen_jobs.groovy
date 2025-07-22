@@ -295,7 +295,18 @@ ${extra_setup_code}
                     } else {
                         dir('src') {
                             analysis.record_inner_timestamps(node_label, job_name) {
-                                sh './steps.sh'
+                                try {
+                                    sh './steps.sh'
+                                } catch (err) {
+                                    /* It's rare that we run out of disk
+                                     * space during a build. But it happens,
+                                     * and it's hard to diagnose from the
+                                     * compiler error messages. So show
+                                     * a little information that might
+                                     * give a hint. */
+                                    sh 'echo Disk space after cleanup:; df'
+                                    throw err
+                                }
                             }
                         }
                     }
@@ -405,7 +416,22 @@ def gen_windows_testing_job(BranchInfo info, String toolchain) {
 
                                     timeout(time: common.perJobTimeout.time + common.perJobTimeout.windowsTestingOffset,
                                         unit: common.perJobTimeout.unit) {
-                                        bat "python windows_testing.py src logs $extra_args -b $toolchain"
+                                        try {
+                                            bat "python windows_testing.py src logs $extra_args -b $toolchain"
+                                        } catch (err) {
+                                            /* It's rare that we run out of disk
+                                             * space during a build. But it happens,
+                                             * and it's hard to diagnose from the
+                                             * compiler error messages. So show
+                                             * a little information that might
+                                             * give a hint. */
+                                            bat """
+echo Disk space after cleanup: && \
+dir | find /I " bytes free" && \
+dir %TMPDIR% | find /I " bytes free"
+"""
+                                            throw err
+                                        }
                                     }
                                 }
                             }
