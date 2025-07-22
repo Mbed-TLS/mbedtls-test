@@ -708,10 +708,16 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
     common.docker_tags[platform] = tag
 
     return job(platform) {
-        /* Take the lock on the master node, so we don't tie up an executor while waiting */
-        lock(tag) {
-            def node_label = arch == 'amd64' ? 'dockerfile-builder' : "container-host-$arch"
-            analysis.node_record_timestamps(node_label, platform) {
+        def node_label = arch == 'amd64' ? 'dockerfile-builder' : "container-host-$arch"
+        analysis.node_record_timestamps(node_label, platform) {
+            /* Take the lock only once we are running on a node.
+             * This prevents a low-priority job from hogging the lock, when a high-priority job (eg. a merge queue job)
+             * is added to the queue later.
+             * The locking order may be reverted to (lock -> node) once we transition to using a dedicated node label
+             * for building arm64 dockerfiles instead of container-host-arm64 (see the definition of node_label above),
+             * as this would reduce contention for the nodes enough to eliminate concerns about the priority inversion.
+             */
+            lock(tag) {
                 def image_exists = false
                 if (!overwrite) {
                     image_exists = sh(script: check_docker_image, returnStatus: true) == 0
