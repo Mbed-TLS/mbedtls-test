@@ -63,7 +63,7 @@ import org.mbed.tls.jenkins.BranchInfo
     'cc' : 'cc'
 ]
 
-@Field final String docker_repo_name = is_open_ci_env ? 'trustedfirmware/ci-amd64-mbed-tls-ubuntu' : 'jenkins-mbedtls'
+@Field final String docker_repo_name = is_open_ci_env ? 'docker.io/trustedfirmware/ci-amd64-mbed-tls-ubuntu' : 'jenkins-mbedtls'
 @Field final String docker_ecr = '666618195821.dkr.ecr.eu-west-1.amazonaws.com'
 @Field final String docker_repo = is_open_ci_env ? docker_repo_name : "$docker_ecr/$docker_repo_name"
 
