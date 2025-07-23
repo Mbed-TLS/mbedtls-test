@@ -734,6 +734,28 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
     return job(platform) {
         def node_label = arch == 'amd64' ? 'dockerfile-builder' : "container-host-$arch"
         analysis.node_record_timestamps(node_label, platform) {
+            if (common.is_open_ci_env) {
+                withCredentials([string(credentialsId: 'DOCKER_AUTH', variable: 'TOKEN')]) {
+                    sh """\
+mkdir -p ${env.HOME}/.docker
+cat > ${env.HOME}/.docker/config.json << EOF
+{
+        "auths": {
+                "https://index.docker.io/v1/": {
+                        "auth": "\${TOKEN}"
+                }
+        }
+}
+EOF
+chmod 0600 ${env.HOME}/.docker/config.json
+"""
+                }
+            } else {
+                sh """\
+aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin $common.docker_ecr
+"""
+            }
+
             /* Take the lock only once we are running on a node.
              * This prevents a low-priority job from hogging the lock, when a high-priority job (eg. a merge queue job)
              * is added to the queue later.
@@ -752,28 +774,6 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
                         try {
                             writeFile file: 'Dockerfile', text: dockerfile
                             def extra_build_args = ''
-
-                            if (common.is_open_ci_env) {
-                                withCredentials([string(credentialsId: 'DOCKER_AUTH', variable: 'TOKEN')]) {
-                                    sh """\
-mkdir -p ${env.HOME}/.docker
-cat > ${env.HOME}/.docker/config.json << EOF
-{
-        "auths": {
-                "https://index.docker.io/v1/": {
-                        "auth": "\${TOKEN}"
-                }
-        }
-}
-EOF
-chmod 0600 ${env.HOME}/.docker/config.json
-"""
-                                }
-                            } else {
-                                sh """\
-aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin $common.docker_ecr
-"""
-                            }
 
                             // Generate download URL for armclang
                             if (platform.startsWith('arm-compilers')) {
