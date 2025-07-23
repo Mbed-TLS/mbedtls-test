@@ -45,6 +45,8 @@ import org.mbed.tls.jenkins.BranchInfo
 /* Indicates if CI is running on the new CI (hosted on https://ci.trustedfirmware.org/) */
 @Field final boolean is_new_ci_env = !is_open_ci_env && (env.JENKINS_URL ==~ /\S+(trustedfirmware)\S+/)
 
+@Field final String ci_name = is_open_ci_env ? 'TF OpenCI' : is_new_ci_env ? 'New CI (testing)' : 'Internal CI'
+
 /*
  * This controls the timeout each job has. It does not count the time spent in
  * waiting queues and setting up the environment.
@@ -429,9 +431,8 @@ void maybe_notify_github(String state, String description, String context=null) 
     }
 
     if (context == null) {
-        def ci = is_open_ci_env ? 'TF OpenCI' : 'Internal CI'
         def job = env.BRANCH_NAME ==~ /PR-\d+-merge/ ? 'Interface stability tests' : 'PR tests'
-        context = "$ci: $job"
+        context = "$ci_name: $job"
     }
 
     githubNotify context: context,
@@ -483,8 +484,7 @@ Logs: ${env.BUILD_URL}
 """
         recipients = env.TEST_PASS_EMAIL_ADDRESS
     }
-    String subject = ((is_open_ci_env ? "TF Open CI" : "Internal CI") + " ${name} " + \
-           (failed ? "failed" : "passed") + "! (branches: ${branches})")
+    String subject = "$ci_name $name ${failed ? 'failed' : 'passed'}! (branches: ${branches})"
     echo """\
 To: $recipients
 Subject: $subject
