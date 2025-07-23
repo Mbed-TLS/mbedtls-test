@@ -106,7 +106,7 @@ void run_pr_job(String target_repo, boolean is_production, Collection<String> tl
         try {
             common.maybe_notify_github('PENDING', 'In progress')
 
-            if (common.is_open_ci_env && is_merge_queue) {
+            if (is_merge_queue) {
                 // Fake required checks that don't run in the merge queue
                 def skipped_checks = [
                     'DCO',
