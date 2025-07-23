@@ -130,7 +130,7 @@ Note that Groovy does not have global variables as such. Each module (`*.groovy`
 The entry point of the pipeline runs on the Jenkins master node. Because all jobs start on this node, we should not do much on the master node. In particular, we don't check out the code to test on the master. All computation-heavy or I/O-heavy processing must be performed on an executor:
 
 ```
-node (label) {
+common.mbedtls_node (label) {
     // IO-heavy or computation-heavy code
 }
 ```

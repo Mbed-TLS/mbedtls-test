@@ -94,6 +94,16 @@ import org.mbed.tls.jenkins.BranchInfo
  * Populated by init_docker_images() / gen_jobs.gen_dockerfile_builder_job(platform). */
 @Field static docker_tags = [:]
 
+/** Launch an executor with any adjustments that are required by the current CI
+ *
+ * @param label The "node label" as used everywhere else in our CI scripts
+ * @param body A closure to run in the context of the executor
+ * @return The return value of the closure
+ */
+def <T> T mbedtls_node(String label, Closure<T> body) {
+    return node(is_new_ci_env ? "mbedtls-$label" : label, body)
+}
+
 /* Compute the git object ID of the Dockerfile.
 * Equivalent to the `git hash-object <file>` command. */
 @NonCPS
@@ -257,7 +267,7 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
             }
 
             list_components_jobs << gen_jobs.job(info.prefix + 'all-platforms') {
-                node('container-host') {
+                mbedtls_node('container-host') {
                     try {
                         // Log the environment for debugging purposes
                         sh script: 'export'
@@ -315,7 +325,7 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
 
             linux_platforms.each { platform ->
                 list_components_jobs << gen_jobs.job(info.prefix + platform) {
-                    node(gen_jobs.node_label_for_platform(platform)) {
+                    mbedtls_node(gen_jobs.node_label_for_platform(platform)) {
                         try {
                             dir('src') {
                                 deleteDir()
