@@ -734,7 +734,7 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
     return job(platform) {
         def node_label = arch == 'amd64' ? 'dockerfile-builder' : "container-host-$arch"
         analysis.node_record_timestamps(node_label, platform) {
-            if (common.is_open_ci_env) {
+            if (common.is_open_ci_env || common.is_new_ci_env) {
                 withCredentials([string(credentialsId: 'DOCKER_AUTH', variable: 'TOKEN')]) {
                     sh """\
 mkdir -p ${env.HOME}/.docker
@@ -750,7 +750,9 @@ EOF
 chmod 0600 ${env.HOME}/.docker/config.json
 """
                 }
-            } else {
+            }
+
+            if (!common.is_open_ci_env) {
                 sh """\
 aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin $common.docker_ecr
 """
