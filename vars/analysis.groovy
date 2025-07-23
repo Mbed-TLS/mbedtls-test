@@ -64,7 +64,7 @@ void record_timestamps(String group, String job_name, Callable<Void> body, Strin
             body()
         }
         if (node_label != null) {
-            node(node_label, stamped_body)
+            common.mbedtls_node(node_label, stamped_body)
         } else {
             stamped_body()
         }
