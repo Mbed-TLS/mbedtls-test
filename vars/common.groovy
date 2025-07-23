@@ -63,9 +63,9 @@ import org.mbed.tls.jenkins.BranchInfo
     'cc' : 'cc'
 ]
 
-@Field docker_repo_name = is_open_ci_env ? 'ci-amd64-mbed-tls-ubuntu' : 'jenkins-mbedtls'
-@Field docker_ecr = is_open_ci_env ? "trustedfirmware" : "666618195821.dkr.ecr.eu-west-1.amazonaws.com"
-@Field docker_repo = "$docker_ecr/$docker_repo_name"
+@Field final String docker_repo_name = is_open_ci_env ? 'trustedfirmware/ci-amd64-mbed-tls-ubuntu' : 'jenkins-mbedtls'
+@Field final String docker_ecr = '666618195821.dkr.ecr.eu-west-1.amazonaws.com'
+@Field final String docker_repo = is_open_ci_env ? docker_repo_name : "$docker_ecr/$docker_repo_name"
 
 /* List of Linux platforms. When a job can run on multiple Linux platforms,
  * it runs on the first element of the list that supports this job. */
