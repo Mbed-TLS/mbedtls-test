@@ -39,8 +39,11 @@ import org.kohsuke.github.GHPermissionType
 
 import org.mbed.tls.jenkins.BranchInfo
 
-/* Indicates if CI is running on Open CI (hosted on https://ci.trustedfirmware.org/) */
-@Field is_open_ci_env = env.JENKINS_URL ==~ /\S+(trustedfirmware)\S+/
+/* Indicates if CI is running on Open CI (hosted on https://mbedtls.trustedfirmware.org/) */
+@Field final boolean is_open_ci_env = env.JENKINS_URL ==~ /\S+(mbedtls\.trustedfirmware\.org)\S+/
+
+/* Indicates if CI is running on the new CI (hosted on https://ci.trustedfirmware.org/) */
+@Field final boolean is_new_ci_env = !is_open_ci_env && (env.JENKINS_URL ==~ /\S+(trustedfirmware)\S+/)
 
 /*
  * This controls the timeout each job has. It does not count the time spent in
@@ -63,8 +66,8 @@ import org.mbed.tls.jenkins.BranchInfo
     'cc' : 'cc'
 ]
 
-@Field final String docker_repo_name = is_open_ci_env ? 'docker.io/trustedfirmware/ci-amd64-mbed-tls-ubuntu' : 'jenkins-mbedtls'
-@Field final String docker_ecr = '666618195821.dkr.ecr.eu-west-1.amazonaws.com'
+@Field final String docker_repo_name = (is_open_ci_env || is_new_ci_env) ? 'docker.io/trustedfirmware/ci-amd64-mbed-tls-ubuntu' : 'jenkins-mbedtls'
+@Field final String docker_ecr = is_new_ci_env ? env.PRIVATE_CONTAINER_REGISTRY : '666618195821.dkr.ecr.eu-west-1.amazonaws.com'
 @Field final String docker_repo = is_open_ci_env ? docker_repo_name : "$docker_ecr/$docker_repo_name"
 
 /* List of Linux platforms. When a job can run on multiple Linux platforms,
@@ -488,7 +491,7 @@ $emailbody
 
 @NonCPS
 boolean pr_author_has_write_access(String repo_name, int pr) {
-    String credentials = is_open_ci_env ? 'mbedtls-github-token' : 'd015f9b1-4800-4a81-86b3-9dbadc18ee00'
+    String credentials = (is_open_ci_env || is_new_ci_env) ? 'mbedtls-github-token' : 'd015f9b1-4800-4a81-86b3-9dbadc18ee00'
     def github = Connector.connect(null, Connector.lookupScanCredentials(currentBuild.rawBuild.parent, null, credentials))
     def repo = github.getRepository(repo_name)
     return repo.getPermission(repo.getPullRequest(pr).user) in [GHPermissionType.ADMIN, GHPermissionType.WRITE]
