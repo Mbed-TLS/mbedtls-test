@@ -723,7 +723,7 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
     def tag = "$image-${common.git_hash_object(dockerfile)}-$arch"
     def cache = "$image-cache-$arch"
     def check_docker_image
-    if (common.is_open_ci_env) {
+    if (common.is_open_ci_env || common.is_new_ci_env) {
         check_docker_image = "docker manifest inspect $common.docker_repo:$tag >/dev/null"
     } else {
         check_docker_image = "aws ecr describe-images --region eu-west-1 --repository-name $common.docker_repo --image-ids imageTag=$tag"
