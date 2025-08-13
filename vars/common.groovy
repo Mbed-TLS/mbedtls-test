@@ -282,7 +282,16 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
                 mbedtls_node('container-host') {
                     try {
                         // Log the environment for debugging purposes
-                        sh script: 'export'
+                        sh script: '''\
+export
+id -u
+id -g
+groups
+uname -a
+sudo sysctl vm.mmap_rnd_bits
+type git || true
+cat /proc/cmdline || true
+'''
 
                         dir('src') {
                             deleteDir()
@@ -330,6 +339,16 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
             linux_platforms.each { platform ->
                 list_components_jobs << gen_jobs.job(info.prefix + platform) {
                     mbedtls_node(gen_jobs.node_label_for_platform(platform)) {
+                        sh script: '''\
+export
+id -u
+id -g
+groups
+uname -a
+sudo sysctl vm.mmap_rnd_bits
+type git || true
+cat /proc/cmdline || true
+'''
                         try {
                             dir('src') {
                                 deleteDir()
