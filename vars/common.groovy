@@ -39,8 +39,13 @@ import org.kohsuke.github.GHPermissionType
 
 import org.mbed.tls.jenkins.BranchInfo
 
-/* Indicates if CI is running on Open CI (hosted on https://ci.trustedfirmware.org/) */
-@Field is_open_ci_env = env.JENKINS_URL ==~ /\S+(trustedfirmware)\S+/
+/* Indicates if CI is running on Open CI (hosted on https://mbedtls.trustedfirmware.org/) */
+@Field final boolean is_open_ci_env = env.JENKINS_URL ==~ /\S+(mbedtls\.trustedfirmware\.org)\S+/
+
+/* Indicates if CI is running on the new CI (hosted on https://ci.trustedfirmware.org/) */
+@Field final boolean is_new_ci_env = !is_open_ci_env && (env.JENKINS_URL ==~ /\S+(trustedfirmware)\S+/)
+
+@Field final String ci_name = is_open_ci_env ? 'TF OpenCI' : is_new_ci_env ? 'New CI (testing)' : 'Internal CI'
 
 /*
  * This controls the timeout each job has. It does not count the time spent in
@@ -63,9 +68,9 @@ import org.mbed.tls.jenkins.BranchInfo
     'cc' : 'cc'
 ]
 
-@Field docker_repo_name = is_open_ci_env ? 'ci-amd64-mbed-tls-ubuntu' : 'jenkins-mbedtls'
-@Field docker_ecr = is_open_ci_env ? "trustedfirmware" : "666618195821.dkr.ecr.eu-west-1.amazonaws.com"
-@Field docker_repo = "$docker_ecr/$docker_repo_name"
+@Field final String docker_repo_name = (is_open_ci_env || is_new_ci_env) ? 'docker.io/trustedfirmware/ci-amd64-mbed-tls-ubuntu' : 'jenkins-mbedtls'
+@Field final String docker_ecr = is_new_ci_env ? env.PRIVATE_CONTAINER_REGISTRY : '666618195821.dkr.ecr.eu-west-1.amazonaws.com'
+@Field final String docker_repo = is_open_ci_env ? docker_repo_name : "$docker_ecr/$docker_repo_name"
 
 /* List of Linux platforms. When a job can run on multiple Linux platforms,
  * it runs on the first element of the list that supports this job. */
@@ -90,6 +95,16 @@ import org.mbed.tls.jenkins.BranchInfo
 /* Maps platform names to the tag of the docker image used to test that platform.
  * Populated by init_docker_images() / gen_jobs.gen_dockerfile_builder_job(platform). */
 @Field static docker_tags = [:]
+
+/** Launch an executor with any adjustments that are required by the current CI
+ *
+ * @param label The "node label" as used everywhere else in our CI scripts
+ * @param body A closure to run in the context of the executor
+ * @return The return value of the closure
+ */
+def <T> T mbedtls_node(String label, Closure<T> body) {
+    return node(is_new_ci_env ? "mbedtls-$label" : label, body)
+}
 
 /* Compute the git object ID of the Dockerfile.
 * Equivalent to the `git hash-object <file>` command. */
@@ -196,7 +211,7 @@ docker pull $docker_repo:$docker_image
 """
             else
                 sh """\
-aws ecr get-login-password | docker login --username AWS --password-stdin $docker_ecr
+aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin $docker_ecr
 docker pull $docker_repo:$docker_image
 """
             break
@@ -214,6 +229,15 @@ String docker_script(
 ) {
     def docker_image = get_docker_tag(platform)
     def env_args = env_vars.collect({ e -> "-e $e" }).join(' ')
+
+    String extra_setup = ''
+    if (platform.endsWith('-amd64')) {
+        /* Ubuntu 23.10 (Kernel 6.6) increased the default address bits used for ASLR from 28 to 32 on amd64.
+         * This breaks the address and memory sanitizers shipped in older releases.
+         * Use sysctl to restore the old default. */
+        extra_setup = 'sudo sysctl vm.mmap_rnd_bits=28'
+    }
+
     /* Docker disables IPv6 networking by default, but some combination of docker daemon and linux kernel versions
      * causes GnuTLS to attempt using an IPv6 address anyways, so we manually disable all IPv6 inside the container.
      * We also ignore the fact that the IPv6 tests are not executed in analyze_outcomes.py.
@@ -221,6 +245,7 @@ String docker_script(
      * See: Mbed-TLS/mbedtls-test#176 and Mbed-TLS/mbedtls-test#213
      */
     return """\
+$extra_setup
 docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS -e VERBOSE_LOGS $env_args --rm --entrypoint $entrypoint \
     -w /var/lib/build -v `pwd`/src:/var/lib/build \
     --sysctl net.ipv6.conf.all.disable_ipv6=1 \
@@ -254,7 +279,7 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
             }
 
             list_components_jobs << gen_jobs.job(info.prefix + 'all-platforms') {
-                node('container-host') {
+                mbedtls_node('container-host') {
                     try {
                         // Log the environment for debugging purposes
                         sh script: 'export'
@@ -304,7 +329,7 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
 
             linux_platforms.each { platform ->
                 list_components_jobs << gen_jobs.job(info.prefix + platform) {
-                    node(gen_jobs.node_label_for_platform(platform)) {
+                    mbedtls_node(gen_jobs.node_label_for_platform(platform)) {
                         try {
                             dir('src') {
                                 deleteDir()
@@ -417,9 +442,8 @@ void maybe_notify_github(String state, String description, String context=null) 
     }
 
     if (context == null) {
-        def ci = is_open_ci_env ? 'TF OpenCI' : 'Internal CI'
         def job = env.BRANCH_NAME ==~ /PR-\d+-merge/ ? 'Interface stability tests' : 'PR tests'
-        context = "$ci: $job"
+        context = "$ci_name: $job"
     }
 
     githubNotify context: context,
@@ -471,8 +495,7 @@ Logs: ${env.BUILD_URL}
 """
         recipients = env.TEST_PASS_EMAIL_ADDRESS
     }
-    String subject = ((is_open_ci_env ? "TF Open CI" : "Internal CI") + " ${name} " + \
-           (failed ? "failed" : "passed") + "! (branches: ${branches})")
+    String subject = "$ci_name $name ${failed ? 'failed' : 'passed'}! (branches: ${branches})"
     echo """\
 To: $recipients
 Subject: $subject
@@ -489,7 +512,7 @@ $emailbody
 
 @NonCPS
 boolean pr_author_has_write_access(String repo_name, int pr) {
-    String credentials = is_open_ci_env ? 'mbedtls-github-token' : 'd015f9b1-4800-4a81-86b3-9dbadc18ee00'
+    String credentials = (is_open_ci_env || is_new_ci_env) ? 'mbedtls-github-token' : 'd015f9b1-4800-4a81-86b3-9dbadc18ee00'
     def github = Connector.connect(null, Connector.lookupScanCredentials(currentBuild.rawBuild.parent, null, credentials))
     def repo = github.getRepository(repo_name)
     return repo.getPermission(repo.getPullRequest(pr).user) in [GHPermissionType.ADMIN, GHPermissionType.WRITE]
