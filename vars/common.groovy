@@ -229,6 +229,15 @@ String docker_script(
 ) {
     def docker_image = get_docker_tag(platform)
     def env_args = env_vars.collect({ e -> "-e $e" }).join(' ')
+
+    String extra_setup = ''
+    if (platform.endsWith('-amd64')) {
+        /* Ubuntu 23.10 (Kernel 6.6) increased the default address bits used for ASLR from 28 to 32 on amd64.
+         * This breaks the address and memory sanitizers shipped in older releases.
+         * Use sysctl to restore the old default. */
+        extra_setup = 'sudo sysctl vm.mmap_rnd_bits=28 >/dev/null'
+    }
+
     /* Docker disables IPv6 networking by default, but some combination of docker daemon and linux kernel versions
      * causes GnuTLS to attempt using an IPv6 address anyways, so we manually disable all IPv6 inside the container.
      * We also ignore the fact that the IPv6 tests are not executed in analyze_outcomes.py.
@@ -236,6 +245,7 @@ String docker_script(
      * See: Mbed-TLS/mbedtls-test#176 and Mbed-TLS/mbedtls-test#213
      */
     return """\
+$extra_setup
 docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS -e VERBOSE_LOGS $env_args --rm --entrypoint $entrypoint \
     -w /var/lib/build -v `pwd`/src:/var/lib/build \
     --sysctl net.ipv6.conf.all.disable_ipv6=1 \
