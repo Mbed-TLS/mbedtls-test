@@ -377,7 +377,8 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
         if (env.JOB_TYPE == 'PR') {
             // Do not run release components in PR jobs
             info.all_sh_components = info.all_sh_components.findAll {
-                component, platform -> !component.startsWith('release')
+                // Disable test_mx32 in PR jobs while the infra team work on transitioning to a kernel that supports the x32 ABI (x86-64 ILP32)
+                component, platform -> !component.startsWith('release') && component != 'test_mx32'
             }
         }
 
