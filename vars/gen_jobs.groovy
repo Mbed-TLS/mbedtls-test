@@ -321,6 +321,7 @@ def gen_windows_testing_job(BranchInfo info, String toolchain) {
     def prefix = "${info.prefix}Windows-${toolchain}"
     def build_configs, arches, build_systems, retargeted
     if (toolchain == 'mingw') {
+        assert info.supports_legacy_build_systems
         build_configs = ['mingw']
         arches = ['x64']
         build_systems = ['shipped']
@@ -328,7 +329,7 @@ def gen_windows_testing_job(BranchInfo info, String toolchain) {
     } else {
         build_configs = ['Release', 'Debug']
         arches = ['Win32', 'x64']
-        build_systems = ['shipped', 'cmake']
+        build_systems = info.supports_legacy_build_systems ? ['shipped', 'cmake'] : ['cmake']
         retargeted = [false, true]
     }
 
@@ -446,8 +447,11 @@ def gen_windows_jobs(BranchInfo info) {
         info, info.prefix + 'win32-msvc15_64',
         preamble + scripts.win32_msvc15_64_test_bat
     )
-    for (build in ['mingw'] + info.supported_vs_versions) {
+    for (build in info.supported_vs_versions) {
         jobs = jobs + gen_windows_testing_job(info, build)
+    }
+    if (info.supports_legacy_build_systems) {
+        jobs = jobs + gen_windows_testing_job(info, 'mingw')
     }
     return jobs
 }

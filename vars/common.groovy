@@ -275,6 +275,9 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
                             /* At the time of writing, all supported branches (3.6, development)
                              * advertise support for Visual Studio 2017 (VS 15.0) and above. */
                             info.supported_vs_versions = ['2017']
+
+                            // Detect support for legacy build systems (< Mbed TLS 4.0)
+                            info.supports_legacy_build_systems = fileExists('Makefile')
                         }
 
                         String platform = linux_platforms[0]
