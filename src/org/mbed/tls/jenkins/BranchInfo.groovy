@@ -51,6 +51,9 @@ class BranchInfo {
      *  done. */
     public String python_requirements_override_file
 
+    /** All of the Visual Studio versions supported by this branch */
+    public List<String> supported_vs_versions
+
     /** Keep track of builds that fail */
     final Set<String> failed_builds
     final Set<String> outcome_stashes
@@ -66,6 +69,7 @@ class BranchInfo {
         this.has_min_requirements = false
         this.python_requirements_override_content = ''
         this.python_requirements_override_file = ''
+        this.supported_vs_versions = []
         this.failed_builds = []
         this.outcome_stashes = []
         this.coverage_details = 'Code coverage job did not run'
