@@ -446,7 +446,7 @@ def gen_windows_jobs(BranchInfo info) {
         info, info.prefix + 'win32-msvc15_64',
         preamble + scripts.win32_msvc15_64_test_bat
     )
-    for (build in common.get_supported_windows_builds()) {
+    for (build in ['mingw'] + info.supported_vs_versions) {
         jobs = jobs + gen_windows_testing_job(info, build)
     }
     return jobs

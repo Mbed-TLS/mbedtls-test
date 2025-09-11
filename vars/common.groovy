@@ -271,6 +271,10 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
                                     info.python_requirements_override_file = 'override.requirements.txt'
                                 }
                             }
+
+                            /* At the time of writing, all supported branches (3.6, development)
+                             * advertise support for Visual Studio 2017 (VS 15.0) and above. */
+                            info.supported_vs_versions = ['2017']
                         }
 
                         String platform = linux_platforms[0]
@@ -379,15 +383,6 @@ void check_every_all_sh_component_will_be_run(Collection<BranchInfo> infos) {
         )
         error(error_lines.join('\n'))
     }
-}
-
-def get_supported_windows_builds() {
-    def vs_builds = []
-    /* At the time of writing, all supported branches (3.6, development)
-     * advertise support for Visual Studio 2017 (VS 15.0) and above. */
-    vs_builds = ['2017']
-    echo "vs_builds = ${vs_builds}"
-    return ['mingw'] + vs_builds
 }
 
 /* In the PR job (recognized because we set the BRANCH_NAME environment
