@@ -321,7 +321,10 @@ def gen_windows_testing_job(BranchInfo info, String toolchain) {
     def prefix = "${info.prefix}Windows-${toolchain}"
     def build_configs, arches, build_systems, retargeted
     if (toolchain == 'mingw') {
-        assert info.supports_legacy_build_systems
+        if (!info.supports_legacy_build_systems) {
+            // The mingw toolchain uses the legacy shipped Makefiles
+            return [:]
+        }
         build_configs = ['mingw']
         arches = ['x64']
         build_systems = ['shipped']
@@ -450,9 +453,7 @@ def gen_windows_jobs(BranchInfo info) {
     for (build in info.supported_vs_versions) {
         jobs = jobs + gen_windows_testing_job(info, build)
     }
-    if (info.supports_legacy_build_systems) {
-        jobs = jobs + gen_windows_testing_job(info, 'mingw')
-    }
+    jobs = jobs + gen_windows_testing_job(info, 'mingw')
     return jobs
 }
 
