@@ -54,8 +54,11 @@ class BranchInfo {
     /** All of the Visual Studio versions supported by this branch */
     public List<String> supported_vs_versions
 
-    /** Whether this branch supports builds using legacy, non-CMake build systems */
-    boolean supports_legacy_build_systems
+    /** Whether this branch has shipped Makefiles */
+    public boolean has_shipped_makefiles
+
+    /** Whether this branch has shipped Visual Studio solution files */
+    public boolean has_shipped_vs_solutions
 
     /** Keep track of builds that fail */
     final Set<String> failed_builds
@@ -73,7 +76,8 @@ class BranchInfo {
         this.python_requirements_override_content = ''
         this.python_requirements_override_file = ''
         this.supported_vs_versions = []
-        this.supports_legacy_build_systems = false
+        this.has_shipped_makefiles = false
+        this.has_shipped_vs_solutions = false
         this.failed_builds = []
         this.outcome_stashes = []
         this.coverage_details = 'Code coverage job did not run'

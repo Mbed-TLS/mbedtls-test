@@ -292,7 +292,8 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
                             info.supported_vs_versions = ['2017']
 
                             // Detect support for legacy build systems (< Mbed TLS 4.0)
-                            info.supports_legacy_build_systems = fileExists('Makefile')
+                            info.has_shipped_makefiles    = fileExists('Makefile')
+                            info.has_shipped_vs_solutions = fileExists('visualc/VS2017')
                         }
 
                         String platform = linux_platforms[0]
