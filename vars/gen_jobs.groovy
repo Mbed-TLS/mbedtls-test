@@ -321,6 +321,10 @@ def gen_windows_testing_job(BranchInfo info, String toolchain) {
     def prefix = "${info.prefix}Windows-${toolchain}"
     def build_configs, arches, build_systems, retargeted
     if (toolchain == 'mingw') {
+        if (!info.has_shipped_makefiles) {
+            // The mingw toolchain uses the legacy shipped Makefiles
+            return [:]
+        }
         build_configs = ['mingw']
         arches = ['x64']
         build_systems = ['shipped']
@@ -328,7 +332,7 @@ def gen_windows_testing_job(BranchInfo info, String toolchain) {
     } else {
         build_configs = ['Release', 'Debug']
         arches = ['Win32', 'x64']
-        build_systems = ['shipped', 'cmake']
+        build_systems = info.has_shipped_vs_solutions ? ['shipped', 'cmake'] : ['cmake']
         retargeted = [false, true]
     }
 
@@ -434,21 +438,22 @@ def gen_windows_jobs(BranchInfo info) {
     }
 
     def jobs = [:]
-    jobs = jobs + gen_simple_windows_jobs(
+    jobs << gen_simple_windows_jobs(
         info, info.prefix + 'win32-mingw',
         preamble + scripts.win32_mingw_test_bat
     )
-    jobs = jobs + gen_simple_windows_jobs(
+    jobs << gen_simple_windows_jobs(
         info, info.prefix + 'win32_msvc15_32',
         preamble + scripts.win32_msvc15_32_test_bat
     )
-    jobs = jobs + gen_simple_windows_jobs(
+    jobs << gen_simple_windows_jobs(
         info, info.prefix + 'win32-msvc15_64',
         preamble + scripts.win32_msvc15_64_test_bat
     )
-    for (build in common.get_supported_windows_builds()) {
-        jobs = jobs + gen_windows_testing_job(info, build)
+    for (build in info.supported_vs_versions) {
+        jobs << gen_windows_testing_job(info, build)
     }
+    jobs << gen_windows_testing_job(info, 'mingw')
     return jobs
 }
 
@@ -509,7 +514,7 @@ def gen_all_example_jobs(BranchInfo info = null) {
             for (compiler in example.value['compilers']) {
                 for (platform in example.value['platforms']()) {
                     if (examples.raas_for_platform[platform]) {
-                        jobs = jobs + gen_mbed_os_example_job(
+                        jobs << gen_mbed_os_example_job(
                             info,
                             example.value['repo'],
                             example.value['branch'],
@@ -659,34 +664,34 @@ def gen_release_jobs(BranchInfo info, boolean run_examples=true) {
 
     if (env.RUN_ALL_SH == "true") {
         info.all_sh_components.each({component, platform ->
-            jobs = jobs + gen_all_sh_jobs(info, platform, component)
+            jobs << gen_all_sh_jobs(info, platform, component)
         })
     }
 
     if (info.repo == 'tls') {
         if (env.RUN_BASIC_BUILD_TEST == "true") {
-            jobs = jobs + gen_code_coverage_job(info, 'ubuntu-16.04-amd64');
+            jobs << gen_code_coverage_job(info, 'ubuntu-16.04-amd64');
         }
 
         /* FreeBSD all.sh jobs */
         if (env.RUN_FREEBSD == "true") {
             for (platform in common.bsd_platforms) {
                 for (component in common.freebsd_all_sh_components) {
-                    jobs = jobs + gen_all_sh_jobs(info, platform, component)
+                    jobs << gen_all_sh_jobs(info, platform, component)
                 }
             }
         }
 
         if (env.RUN_WINDOWS_TEST == "true") {
-            jobs = jobs + gen_windows_jobs(info)
+            jobs << gen_windows_jobs(info)
         }
 
         if (run_examples) {
-            jobs = jobs + gen_all_example_jobs(info)
+            jobs << gen_all_example_jobs(info)
         }
 
         if (env.PUSH_COVERITY == "true") {
-            jobs = jobs + gen_coverity_push_jobs(info)
+            jobs << gen_coverity_push_jobs(info)
         }
     }
 
