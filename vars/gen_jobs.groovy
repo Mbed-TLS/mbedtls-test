@@ -464,7 +464,17 @@ def gen_abi_api_checking_job(BranchInfo info, String platform) {
     if (!(env.BRANCH_NAME ==~ /PR-\d+-merge/)) {
         hooks.post_checkout = {
             sshagent([env.GIT_CREDENTIALS_ID]) {
-                sh "git fetch --depth 1 origin '+${env.CHANGE_TARGET}:refs/remotes/origin/${env.CHANGE_TARGET}'"
+                sh """
+# Fetch CHANGE_TARGET. The refname matches the behaviour of the PR-merge jobs
+git fetch --depth 1 origin '+${env.CHANGE_TARGET}:refs/remotes/origin/${env.CHANGE_TARGET}'
+
+# Recursively fetch the submodule pointers used by the most recently fetched commit in the parent repo
+git submodule foreach --recursive '
+    if commit=\$(git -C "\$toplevel" rev-parse "FETCH_HEAD:\$sm_path"); then
+        git fetch --depth 1 origin \$commit
+    fi'
+"""
+
             }
         }
     }
