@@ -468,7 +468,10 @@ def gen_abi_api_checking_job(BranchInfo info, String platform) {
 # Fetch CHANGE_TARGET. The refname matches the behaviour of the PR-merge jobs
 git fetch --depth 1 origin '+${env.CHANGE_TARGET}:refs/remotes/origin/${env.CHANGE_TARGET}'
 
-# Recursively fetch the submodule pointers used by the most recently fetched commit in the parent repo
+# Recursively fetch the submodule pointers used by the most recently fetched commit in the parent repo.
+# We fetch the submodules used by CHANGE_TARGET from the current (newer) version's repo -
+# this is guaranteed to work if the submodule pointers are only ever updated to descendant commits of
+# the previous pointer.
 git submodule foreach --recursive '
     if commit=\$(git -C "\$toplevel" rev-parse "FETCH_HEAD:\$sm_path"); then
         git fetch --depth 1 origin \$commit
