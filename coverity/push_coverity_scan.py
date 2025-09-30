@@ -282,7 +282,7 @@ def main() -> int:
     parser.add_argument('-e', '--email', help='Email address to send build notifications to',
                         required=True)
     parser.add_argument('-s', '--build-step', help='Command to run to build the project',
-                        default = 'make -j{}'.format(cpu_count()))
+                        default = 'make -f scripts/legacy.make -j{}'.format(cpu_count()))
     parser.add_argument('-t', '--token', help='Coverity Scan Token')
     parser.add_argument('-l', '--log', help='File to log to')
     parser.add_argument('-m', '--backupdir', help='Directory to backup tar files to')
@@ -293,7 +293,7 @@ def main() -> int:
                         choices=['linux64', 'linux-ARM64', 'freebsd64', 'win64'],
                         default='linux64')
     parser.add_argument('-p', '--pre-build-step', help='Command to run pre-build',
-                        default='make neat && make generated_files')
+                        default='make -f scripts/legacy.make neat && make -f scripts/legacy.make generated_files')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Verbose logging to stdout')
     parser.add_argument('mbedtlsdir', help='Mbed TLS directory')
