@@ -46,6 +46,7 @@ import jenkins
 # top-level multibranch job.
 
 JENKINS_SERVERS = {
+    "New": "https://ci.trustedfirmware.org/",
     "Open": "https://mbedtls.trustedfirmware.org/",
     "Internal": "https://jenkins-mbedtls.oss.arm.com/",
 }
