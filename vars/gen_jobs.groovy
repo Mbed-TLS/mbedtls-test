@@ -464,23 +464,23 @@ def gen_abi_api_checking_job(BranchInfo info, String platform) {
     if (!(env.BRANCH_NAME ==~ /PR-\d+-merge/)) {
         hooks.post_checkout = {
             sshagent([env.GIT_CREDENTIALS_ID]) {
-                sh """
+                sh '''
 # Fetch CHANGE_TARGET. The refname matches the behaviour of the PR-merge jobs
-echo "origin URL: \$(git remote get-url origin)"
-git fetch --depth 1 origin '+${env.CHANGE_TARGET}:refs/remotes/origin/${env.CHANGE_TARGET}'
-echo "commit: \$(git rev-parse FETCH_HEAD)"
+echo "origin URL: $(git remote get-url origin)"
+git fetch --depth 1 origin "+$CHANGE_TARGET:refs/remotes/origin/$CHANGE_TARGET"
+echo "commit: $(git rev-parse FETCH_HEAD)"
 
 # Recursively fetch the submodule pointers used by the most recently fetched commit in the parent repo.
 # We fetch the submodules used by CHANGE_TARGET from the current (newer) version's repo -
 # this is guaranteed to work if the submodule pointers are only ever updated to descendant commits of
 # the previous pointer.
 git submodule foreach --recursive '
-    if commit=\$(git -C "\$toplevel" rev-parse "FETCH_HEAD:\$sm_path"); then
-        echo "origin URL: \$(git remote get-url origin)"
-        echo "commit: \$commit"
-        git fetch --depth 1 origin \$commit
+    if commit=$(git -C "$toplevel" rev-parse "FETCH_HEAD:$sm_path"); then
+        echo "origin URL: $(git remote get-url origin)"
+        echo "commit: $commit"
+        git fetch --depth 1 origin $commit
     fi'
-"""
+'''
 
             }
         }
