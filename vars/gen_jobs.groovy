@@ -465,7 +465,7 @@ def gen_abi_api_checking_job(BranchInfo info, String platform) {
         sshagent([env.GIT_CREDENTIALS_ID]) {
             sh '''
 echo "origin URL: $(git remote get-url origin)"
-if [ "$CHECKOUT_METHOD" = parametrized ]; then
+if [ "$CHECKOUT_METHOD" = "parametrized" ]; then
     # Fetch CHANGE_TARGET. The refname matches the behaviour of the PR-merge jobs
     git fetch --depth 1 origin "+$CHANGE_TARGET:refs/remotes/origin/$CHANGE_TARGET"
 else
