@@ -461,13 +461,17 @@ def gen_abi_api_checking_job(BranchInfo info, String platform) {
     String job_name = "${info.prefix}ABI-API-checking"
 
     Map<String, Closure> hooks = [:]
-    if (env.CHECKOUT_METHOD == 'parametrized') {
-        hooks.post_checkout = {
-            sshagent([env.GIT_CREDENTIALS_ID]) {
-                sh '''
-# Fetch CHANGE_TARGET. The refname matches the behaviour of the PR-merge jobs
+    hooks.post_checkout = {
+        sshagent([env.GIT_CREDENTIALS_ID]) {
+            sh '''
 echo "origin URL: $(git remote get-url origin)"
-git fetch --depth 1 origin "+$CHANGE_TARGET:refs/remotes/origin/$CHANGE_TARGET"
+if [ "$CHECKOUT_METHOD" = parametrized ]; then
+    # Fetch CHANGE_TARGET. The refname matches the behaviour of the PR-merge jobs
+    git fetch --depth 1 origin "+$CHANGE_TARGET:refs/remotes/origin/$CHANGE_TARGET"
+else
+    # Coerce FETCH_HEAD to refs/remotes/origin/$CHANGE_TARGET to match the fetch above
+    git update-ref FETCH_HEAD "refs/remotes/origin/$CHANGE_TARGET"
+fi
 echo "commit: $(git rev-parse FETCH_HEAD)"
 
 # Recursively fetch the submodule pointers used by the most recently fetched commit in the parent repo.
@@ -481,8 +485,6 @@ git submodule foreach --recursive '
         git fetch --depth 1 origin $commit
     fi'
 '''
-
-            }
         }
     }
 
