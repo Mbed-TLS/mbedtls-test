@@ -461,7 +461,7 @@ def gen_abi_api_checking_job(BranchInfo info, String platform) {
     String job_name = "${info.prefix}ABI-API-checking"
 
     Map<String, Closure> hooks = [:]
-    if (!(env.BRANCH_NAME ==~ /PR-\d+-merge/)) {
+    if (env.CHECKOUT_METHOD == 'parametrized') {
         hooks.post_checkout = {
             sshagent([env.GIT_CREDENTIALS_ID]) {
                 sh '''
