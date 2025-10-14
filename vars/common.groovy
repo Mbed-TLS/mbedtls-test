@@ -415,19 +415,28 @@ void maybe_notify_github(String state, String description, String context=null) 
         description = description.take(MAX_DESCRIPTION_LENGTH - 1) + '…'
     }
 
+    def ctxs
     if (context == null) {
+        if (env.BRANCH_NAME ==~ /PR-\d+-merge/) {
+            ctxs = ['ABI stability tests', 'Storage format tests']
+        } else {
+            ctxs = ['PR tests']
+        }
         def ci = is_open_ci_env ? 'TF OpenCI' : 'Internal CI'
-        def job = env.BRANCH_NAME ==~ /PR-\d+-merge/ ? 'Interface stability tests' : 'PR tests'
-        context = "$ci: $job"
+        ctxs = ctxs.collect {ctx -> "$ci: $ctx"}
+    } else {
+        ctxs = [context]
     }
 
-    githubNotify context: context,
-                 status: state,
-                 description: description,
-                /* Set owner and repository explicitly in case the multibranch pipeline uses multiple repos
--                * Needed for testing Github merge queues */
-                 account: env.GITHUB_ORG,
-                 repo: env.GITHUB_REPO
+    ctxs.each { ctx ->
+        githubNotify context: ctx,
+                     status: state,
+                     description: description,
+                    /* Set owner and repository explicitly in case the multibranch pipeline uses multiple repos
+-                    * Needed for testing Github merge queues */
+                     account: env.GITHUB_ORG,
+                     repo: env.GITHUB_REPO
+    }
 }
 
 def archive_zipped_log_files(job_name) {
