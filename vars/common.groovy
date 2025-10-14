@@ -403,8 +403,11 @@ void check_every_all_sh_component_will_be_run(Collection<BranchInfo> infos) {
  *                     description for a given context. If it is omitted, this
  *                     method determines the correct context from is_open_ci_env
  *                     and BRANCH_NAME.
+ * prepend_ci (optional): a boolean value that determines whether the CI ID
+ *                        computed from is_open_ci_env should be prepended to the
+ *                        supplied context.
  */
-void maybe_notify_github(String state, String description, String context=null) {
+void maybe_notify_github(String state, String description, String context=null, boolean prepend_ci=(context==null)) {
     if (!env.BRANCH_NAME) {
         return;
     }
@@ -422,10 +425,13 @@ void maybe_notify_github(String state, String description, String context=null) 
         } else {
             ctxs = ['PR tests']
         }
-        def ci = is_open_ci_env ? 'TF OpenCI' : 'Internal CI'
-        ctxs = ctxs.collect {ctx -> "$ci: $ctx"}
     } else {
         ctxs = [context]
+    }
+
+    if (prepend_ci) {
+        def ci = is_open_ci_env ? 'TF OpenCI' : 'Internal CI'
+        ctxs = ctxs.collect {ctx -> "$ci: $ctx"}
     }
 
     ctxs.each { ctx ->
