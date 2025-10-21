@@ -407,9 +407,13 @@ void check_every_all_sh_component_will_be_run(Collection<BranchInfo> infos) {
  *                        computed from is_open_ci_env should be prepended to the
  *                        supplied context.
  */
-void maybe_notify_github(String state, String description, String context=null, boolean prepend_ci=(context==null)) {
+void maybe_notify_github(String state, String description, String context=null, Boolean prepend_ci=null) {
     if (!env.BRANCH_NAME) {
         return;
+    }
+
+    if (prepend_ci == null) {
+        prepend_ci = context == null
     }
 
     /* Truncate the description. Otherwise githubNotify fails. */
