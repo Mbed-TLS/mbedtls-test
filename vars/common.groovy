@@ -403,10 +403,17 @@ void check_every_all_sh_component_will_be_run(Collection<BranchInfo> infos) {
  *                     description for a given context. If it is omitted, this
  *                     method determines the correct context from is_open_ci_env
  *                     and BRANCH_NAME.
+ * prepend_ci (optional): a boolean value that determines whether the CI ID
+ *                        computed from is_open_ci_env should be prepended to the
+ *                        supplied context.
  */
-void maybe_notify_github(String state, String description, String context=null) {
+void maybe_notify_github(String state, String description, String context=null, Boolean prepend_ci=null) {
     if (!env.BRANCH_NAME) {
         return;
+    }
+
+    if (prepend_ci == null) {
+        prepend_ci = context == null
     }
 
     /* Truncate the description. Otherwise githubNotify fails. */
@@ -415,19 +422,31 @@ void maybe_notify_github(String state, String description, String context=null) 
         description = description.take(MAX_DESCRIPTION_LENGTH - 1) + '…'
     }
 
+    def ctxs
     if (context == null) {
-        def ci = is_open_ci_env ? 'TF OpenCI' : 'Internal CI'
-        def job = env.BRANCH_NAME ==~ /PR-\d+-merge/ ? 'Interface stability tests' : 'PR tests'
-        context = "$ci: $job"
+        if (env.BRANCH_NAME ==~ /PR-\d+-merge/) {
+            ctxs = ['ABI stability tests', 'Storage format tests']
+        } else {
+            ctxs = ['PR tests']
+        }
+    } else {
+        ctxs = [context]
     }
 
-    githubNotify context: context,
-                 status: state,
-                 description: description,
-                /* Set owner and repository explicitly in case the multibranch pipeline uses multiple repos
--                * Needed for testing Github merge queues */
-                 account: env.GITHUB_ORG,
-                 repo: env.GITHUB_REPO
+    if (prepend_ci) {
+        def ci = is_open_ci_env ? 'TF OpenCI' : 'Internal CI'
+        ctxs = ctxs.collect {ctx -> "$ci: $ctx"}
+    }
+
+    ctxs.each { ctx ->
+        githubNotify context: ctx,
+                     status: state,
+                     description: description,
+                    /* Set owner and repository explicitly in case the multibranch pipeline uses multiple repos
+-                    * Needed for testing Github merge queues */
+                     account: env.GITHUB_ORG,
+                     repo: env.GITHUB_REPO
+    }
 }
 
 def archive_zipped_log_files(job_name) {

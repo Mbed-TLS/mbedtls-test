@@ -491,8 +491,31 @@ git submodule foreach --recursive '
     String script_in_docker = """
 tests/scripts/list-identifiers.sh --internal
 # Workaround for abi_check.py failing to properly escape slashes in ref names
-scripts/abi_check.py -o \$(git rev-parse 'origin/${env.CHANGE_TARGET}^{commit}') -n HEAD -s identifiers --brief
+old_commit=\$(git rev-parse 'origin/${env.CHANGE_TARGET}^{commit}')
+scripts/abi_check.py --no-check-storage            -o "\$old_commit" -n HEAD -s identifiers --brief || touch abi_check.failed
+scripts/abi_check.py --no-check-api --no-check-abi -o "\$old_commit" -n HEAD -s identifiers --brief || touch storage_check.failed
 """
+
+    hooks.post_success = {
+        boolean abi_check_failed     = fileExists('abi_check.failed')
+        boolean storage_check_failed = fileExists('storage_check.failed')
+        if (abi_check_failed) {
+            common.maybe_notify_github('FAILURE', 'abi_check.py: ABI/API check failed', 'ABI stability tests', true)
+        } else {
+            common.maybe_notify_github('SUCCESS', 'All tests passed', 'ABI stability tests', true)
+        }
+        if (storage_check_failed) {
+            common.maybe_notify_github('FAILURE', 'abi_check.py: Storage format check failed', 'Storage format tests', true)
+        } else {
+            common.maybe_notify_github('SUCCESS', 'All tests passed', 'Storage format tests', true)
+        }
+        if (abi_check_failed || storage_check_failed) {
+            /* Disable automatic status report in mbedtls.run_tls_tests()
+             * so we don't overwrite the ones we sent above */
+            currentBuild.result = 'FAILURE'
+            error('Failure in abi_check.py')
+        }
+    }
 
     return gen_docker_job(hooks, info, job_name, platform, script_in_docker)
 }

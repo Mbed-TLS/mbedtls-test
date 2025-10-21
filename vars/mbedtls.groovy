@@ -48,7 +48,11 @@ void run_tls_tests(Collection<BranchInfo> infos) {
         def failed_names = infos.collectMany({ info -> info.failed_builds}).sort().join(" ")
         echo "Caught: ${err}"
         echo "Failed jobs: ${failed_names}"
-        common.maybe_notify_github('FAILURE', "Failures: ${failed_names}")
+        if (currentBuild.resultIsWorseOrEqualTo('FAILURE') && (env.BRANCH_NAME ==~ /PR-\d+-merge/)) {
+            echo 'The results of abi_check.py have already been reported, skipping Github notification'
+        } else {
+            common.maybe_notify_github('FAILURE', "Failures: ${failed_names}")
+        }
         throw err
     }
 }
