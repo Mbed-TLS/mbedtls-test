@@ -6,15 +6,21 @@
 
 set -e
 
-list () {
+arch=$(uname -m)
+case $arch in
+    aarch64) arch=arm64;;
+    x86_64) arch=amd64;;
+esac
+
+list_one_dockerfile () {
     dir="${1%/Dockerfile}"
     dir="${dir%/}"
     hash="$(git hash-object "$dir/Dockerfile")"
     base="$(basename -- "$dir")"
-    echo "$base-$hash-amd64"
-    if [ "$base" != "arm-compilers" ]; then
-        echo "$base-$hash-arm64"
+    if [ "$base" = "arm-compilers" ] && [ "$arch" != "amd64" ]; then
+        continue
     fi
+    echo "$base-$hash-$arch"
 }
 
 if [ $# -eq 0 ]; then
@@ -22,5 +28,5 @@ if [ $# -eq 0 ]; then
 fi
 
 for d in "$@"; do
-    list "$d"
+    list_one_dockerfile "$d"
 done
