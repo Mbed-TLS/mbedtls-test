@@ -311,10 +311,11 @@ RUN useradd -m user
 
 # Create workspace
 ARG AGENT_WORKDIR=/var/lib/builds
-RUN mkdir -p ${AGENT_WORKDIR} && chown user:user ${AGENT_WORKDIR}
-USER user
 ENV AGENT_WORKDIR=${AGENT_WORKDIR}
+RUN mkdir -p ${AGENT_WORKDIR} && chown -R user:user ${AGENT_WORKDIR}
 
+# From now on, run as the unprivileged user.
+USER user
 WORKDIR ${AGENT_WORKDIR}
 
 ENTRYPOINT ["bash"]
