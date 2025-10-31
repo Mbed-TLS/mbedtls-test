@@ -351,5 +351,11 @@ RUN mkdir -p ${AGENT_WORKDIR} && chown -R user:user ${AGENT_WORKDIR}
 USER user
 WORKDIR ${AGENT_WORKDIR}
 
+RUN \
+    # Make it possible to do git commits, e.g. to test prepare_release.py.
+    git config --global user.name 'Contained User' && \
+    git config --global user.email 'contained.user@unknown.invalid' && \
+    :
+
 ENTRYPOINT ["bash"]
 
