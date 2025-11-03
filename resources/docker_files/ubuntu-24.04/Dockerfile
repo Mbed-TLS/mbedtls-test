@@ -100,6 +100,8 @@ RUN apt-get update -q && apt-get install -yq \
         # to install several Python packages (done by individual jobs)
         python3-pip \
         # to install several Python packages (done by individual jobs)
+        python3-setuptools \
+        # to install several Python packages (done by individual jobs)
         python3-venv \
         # provides some useful scripts for adding and removing repositories
         software-properties-common \
@@ -316,16 +318,12 @@ RUN git clone --branch uncrustify-0.75.1 https://github.com/uncrustify/uncrustif
     cd uncrustify && mkdir build && cd build && cmake .. && make install && \
     cd .. && rm -rf uncrustify
 
-# Install Python pip packages
-#
-# The pip wrapper scripts can get out of sync with pip due to upgrading it
-# outside the package manager, so invoke the module directly.
+# Prepare Python.
+# The tooling that comes with the operating system is good enough.
 RUN python3 -m pip config set global.progress_bar off && \
-    python3 -m pip install setuptools --upgrade && \
-    true
-
-#Upgrade pip to the latest version
-RUN  python3 -m pip install --upgrade pip
+    # Instruct pip that it's ok to install packages as a user
+    # (either "user" or the developer who runs "docker -u ...").
+    python3 -m pip config set global.break-system-packages true
 
 # Make sure we have a UTF-8 locale
 RUN locale && \
