@@ -22,6 +22,7 @@ build () {
     fi
     tag="$("$list_sh" "$1")"
     sudo docker build --network=host -t "$tag" -f "$1" "${1%/*}"
+    echo "Built $tag"
 }
 
 for d in "$@"; do
