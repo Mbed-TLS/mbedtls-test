@@ -683,11 +683,15 @@ def gen_release_jobs(BranchInfo info, boolean run_examples=true) {
         info.all_sh_components.each({component, platform ->
             jobs << gen_all_sh_jobs(info, platform, component)
         })
+    } else {
+        echo "Skipping all.sh testing because RUN_ALL_SH is not true"
     }
 
     if (info.repo == 'tls') {
         if (env.RUN_BASIC_BUILD_TEST == "true") {
             jobs << gen_code_coverage_job(info, 'ubuntu-16.04-amd64');
+        } else {
+            echo "Skipping code coverage job because RUN_BASIC_BUILD_TEST is not true"
         }
 
         /* FreeBSD all.sh jobs */
@@ -697,18 +701,26 @@ def gen_release_jobs(BranchInfo info, boolean run_examples=true) {
                     jobs << gen_all_sh_jobs(info, platform, component)
                 }
             }
+        } else {
+            echo "Skipping FreeBSD testing because RUN_FREEBSD is not true"
         }
 
         if (env.RUN_WINDOWS_TEST == "true") {
             jobs << gen_windows_jobs(info)
+        } else {
+            echo "Skipping Windows testing because RUN_WINDOWS_TEST is not true"
         }
 
         if (run_examples) {
             jobs << gen_all_example_jobs(info)
+        } else {
+            echo "Skipping examples testing because run_examples is false"
         }
 
         if (env.PUSH_COVERITY == "true") {
             jobs << gen_coverity_push_jobs(info)
+        } else {
+            echo "Skipping Coverity push because PUSH_COVERITY is not true"
         }
     }
 
