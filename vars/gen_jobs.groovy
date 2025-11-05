@@ -300,9 +300,10 @@ ${extra_setup_code}
                 } finally {
                     dir('src') {
                         analysis.stash_outcomes(info, job_name)
-                    }
-                    dir('src/tests/') {
-                        common.archive_zipped_log_files(job_name)
+                        common.archive_release_artifacts(info)
+                        dir('tests') {
+                            common.archive_zipped_log_files(job_name)
+                        }
                     }
                 }
             }

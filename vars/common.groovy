@@ -427,6 +427,21 @@ void maybe_notify_github(String state, String description, String context=null) 
                  repo: env.GITHUB_REPO
 }
 
+def archive_release_artifacts(BranchInfo info) {
+    /* Look for files with an extension in a directory called
+     * `release-artifacts`, which is where `prepare_release.py` drops
+     * its artifacts. Skip dot files and don't look in subdirectories.
+     * Look not just immediately under the root but also look in
+     * e.g. `tf-psa-crypto/release-artifacts`.
+     */
+    archiveArtifacts(
+        artifacts: '**/release-artifacts/*.*',
+        excludes: '**/.*',
+        fingerprint: true,
+        allowEmptyArchive: true
+    )
+}
+
 def archive_zipped_log_files(job_name) {
     sh """\
 for i in *.log; do
