@@ -15,9 +15,10 @@ The [`mbedtls-test` repository](https://github.com/Mbed-TLS/mbedtls-test) contai
 
 ### Jenkins instances
 
-At the time of writing, there are two instances of Jenkins:
+At the time of writing, there are three instances of Jenkins:
 
-* [OpenCI](https://mbedtls.trustedfirmware.org/), maintained by Linaro ([issue board: TFC](https://linaro.atlassian.net/browse/TFC-526)) on behalf of TrustedFirmware. The OpenCI instance is public. Only Mbed TLS team members (including non-Arm employees) can have accounts (access is via [the `trusted-firmware-mbed-tls-openci-users` team in `trusted-firmware-ci` on GitHub](https://github.com/orgs/trusted-firmware-ci/teams/trusted-firmware-mbed-tls-openci-users/members)), but everyone can see test results.
+* [OpenCI](https://ci.trustedfirmware.org/view/Mbed-TLS/), maintained by arm ([issue board: TFC](https://linaro.atlassian.net/browse/TFC-526)) on behalf of TrustedFirmware. The OpenCI instance is public. Only Mbed TLS team members (including non-Arm employees) can have accounts (access is via [the `trusted-firmware-mbed-tls-openci-users` team in `trusted-firmware-ci` on GitHub](https://github.com/orgs/trusted-firmware-ci/teams/trusted-firmware-mbed-tls-openci-users/members)), but everyone can see test results.
+* [OpenCI (legacy)](https://mbedtls.trustedfirmware.org/), maintained by Linaro ([issue board: TFC](https://linaro.atlassian.net/browse/TFC-526)) on behalf of TrustedFirmware. The OpenCI instance is public. Only Mbed TLS team members (including non-Arm employees) can have accounts (access is via [the `trusted-firmware-mbed-tls-openci-users` team in `trusted-firmware-ci` on GitHub](https://github.com/orgs/trusted-firmware-ci/teams/trusted-firmware-mbed-tls-openci-users/members)), but everyone can see test results.
 * [Arm Internal CI](https://jenkins-mbedtls.oss.arm.com/), maintained by Arm ([issue board: OSSDEVOPS project](https://jira.arm.com/projects/OSSDEVOPS)). This instance is only accessible to Arm employees from within the Arm network.
 
 The two instances mostly have the same capabilities, but they can differ in terms of Jenkins versions, available plugins, OS versions, etc.
@@ -28,11 +29,11 @@ On OpenCI, the jobs are defined by YAML configuration files managed in a Gerrit 
 
 The main jobs on OpenCI are:
 
-* [`mbed-tls-framework-multibranch`](https://mbedtls.trustedfirmware.org/job/mbed-tls-framework-multibranch/): invoked automatically on pull requests in the [`mbedtls-framework` repository](https://github.com/Mbed-TLS/mbedtls-framework).
-* [`mbed-tls-nightly-tests`](https://mbedtls.trustedfirmware.org/job/mbed-tls-nightly-tests/): invoke daily on each maintained branch.
-* [`mbed-tls-pr-head`](https://mbedtls.trustedfirmware.org/job/mbed-tls-pr-head/), [`mbed-tls-pr-merge`](https://mbedtls.trustedfirmware.org/job/mbed-tls-pr-merge/): invoked on pull requests in the [`mbedtls` repository](https://github.com/Mbed-TLS/mbedtls). See [“Groovy entry points”](#groovy-entry-points) below. These jobs are meant to be triggered from GitHub. If you want to run them manually on an arbitrary branch, use [`mbed-tls-restricted-pr-test-parametrized`](https://mbedtls.trustedfirmware.org/job/mbed-tls-restricted-pr-test-parametrized/).
-* [`mbedtls-restricted-release-new`](https://mbedtls.trustedfirmware.org/job/mbedtls-restricted-release-new/): run the full release job on a given branch.
-* [`mbed-tls-tf-psa-crypto-multibranch`](https://mbedtls.trustedfirmware.org/job/mbed-tls-tf-psa-crypto-multibranch/): invoked automatically on pull requests in the [`TF-PSA-Crypto` repository](https://github.com/Mbed-TLS/TF-PSA-Crypto).
+* [`mbed-tls-framework-multibranch`](https://ci.trustedfirmware.org/view/Mbed-TLS/job/mbed-tls-framework-multibranch/): invoked automatically on pull requests in the [`mbedtls-framework` repository](https://github.com/Mbed-TLS/mbedtls-framework).
+* [`mbed-tls-nightly-tests`](https://ci.trustedfirmware.org/view/Mbed-TLS/job/mbed-tls-nightly-tests/): invoke daily on each maintained branch.
+* [`mbed-tls-pr-head`](https://ci.trustedfirmware.org/view/Mbed-TLS/job/mbed-tls-pr-head/), [`mbed-tls-pr-merge`](https://ci.trustedfirmware.org/view/Mbed-TLS/job/mbed-tls-pr-merge/): invoked on pull requests in the [`mbedtls` repository](https://github.com/Mbed-TLS/mbedtls). See [“Groovy entry points”](#groovy-entry-points) below. These jobs are meant to be triggered from GitHub. If you want to run them manually on an arbitrary branch, use [`mbed-tls-restricted-pr-test-parametrized`](https://ci.trustedfirmware.org/view/Mbed-TLS/job/mbed-tls-restricted-pr-test-parametrized/).
+* [`mbedtls-restricted-release-new`](https://ci.trustedfirmware.org/view/Mbed-TLS/job/mbedtls-restricted-release-new/): run the full release job on a given branch.
+* [`mbed-tls-tf-psa-crypto-multibranch`](https://ci.trustedfirmware.org/view/Mbed-TLS/job/mbed-tls-tf-psa-crypto-multibranch/): invoked automatically on pull requests in the [`TF-PSA-Crypto` repository](https://github.com/Mbed-TLS/TF-PSA-Crypto).
 * `ci-testing` jobs are meant for testing changes to the CI scripts. See [“Validation tools”](#validation-tools) below.
 
 The internal CI has a similar set of jobs.
@@ -142,7 +143,7 @@ The label identifies what features the executor needs to have. In particular, th
 * `freebsd`
 * `windows`
 
-The full list of available labels can be found in TODO for OpenCI and the [labels dashboard](https://jenkins-mbedtls.oss.arm.com/labelsdashboard/) (configured at [admin page](https://jenkins-mbedtls.oss.arm.com/manage/configureClouds/)) on the internal CI.
+The full list of available labels can be found at the [labels dashboard](https://jenkins-mbedtls.oss.arm.com/labelsdashboard/) (configured at [admin page](https://jenkins-mbedtls.oss.arm.com/manage/configureClouds/)) on the internal CI.
 
 ## Docker images
 
@@ -166,8 +167,8 @@ As discussed in [“Versioning”](#versioning), remember that the `mbedtls-test
 
 To validate changes, first upload your changes to a branch in the `mbedtls-test` repository. (Forks are not supported.) Use your personal namespace, i.e. branches called `dev/${your_github_username}/${some_meaningful_name}`. There are two test jobs that cover the common cases:
 
-* [`mbedtls-release-ci-testing`](https://mbedtls.trustedfirmware.org/job/mbedtls-release-ci-testing/): runs a full CI with a chosen branch of `mbedtls-test` on a chosen commit from any repository. Note that in addition to selecting your `mbedtls-test` branch in the dropdown, you need to check one or more of the boxes selecting what will run (`RUN_xxx` variables), otherwise not much will happen.
-* [`mbed-tls-restricted-pr-test-parametrized`](https://mbedtls.trustedfirmware.org/job/mbed-tls-restricted-pr-test-parametrized/): runs the PR tests. Useful for what the release job doesn't cover — mainly “Interface stability tests” (formerly known as “ABI-API-check”).
+* [`mbedtls-release-ci-testing`](https://ci.trustedfirmware.org/view/Mbed-TLS/job/mbedtls-release-ci-testing/): runs a full CI with a chosen branch of `mbedtls-test` on a chosen commit from any repository. Note that in addition to selecting your `mbedtls-test` branch in the dropdown, you need to check one or more of the boxes selecting what will run (`RUN_xxx` variables), otherwise not much will happen.
+* [`mbed-tls-restricted-pr-test-parametrized`](https://ci.trustedfirmware.org/view/Mbed-TLS/job/mbed-tls-restricted-pr-test-parametrized/): runs the PR tests. Useful for what the release job doesn't cover — mainly “Interface stability tests” (formerly known as “ABI-API-check”).
 
 There are similar jobs on the internal CI.
 
