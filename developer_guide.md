@@ -21,7 +21,7 @@ At the time of writing, there are three instances of Jenkins:
 * [OpenCI (legacy)](https://mbedtls.trustedfirmware.org/), maintained by Linaro ([issue board: TFC](https://linaro.atlassian.net/browse/TFC-526)) on behalf of TrustedFirmware. The OpenCI instance is public. Only Mbed TLS team members (including non-Arm employees) can have accounts (access is via [the `trusted-firmware-mbed-tls-openci-users` team in `trusted-firmware-ci` on GitHub](https://github.com/orgs/trusted-firmware-ci/teams/trusted-firmware-mbed-tls-openci-users/members)), but everyone can see test results.
 * [Arm Internal CI](https://jenkins-mbedtls.oss.arm.com/), maintained by Arm ([issue board: OSSDEVOPS project](https://jira.arm.com/projects/OSSDEVOPS)). This instance is only accessible to Arm employees from within the Arm network.
 
-The two instances mostly have the same capabilities, but they can differ in terms of Jenkins versions, available plugins, OS versions, etc.
+The three instances mostly have the same capabilities, but they can differ in terms of Jenkins versions, available plugins, OS versions, etc.
 
 #### Jenkins jobs
 
@@ -143,7 +143,7 @@ The label identifies what features the executor needs to have. In particular, th
 * `freebsd`
 * `windows`
 
-The full list of available labels can be found at the [labels dashboard](https://jenkins-mbedtls.oss.arm.com/labelsdashboard/) (configured at [admin page](https://jenkins-mbedtls.oss.arm.com/manage/configureClouds/)) on the internal CI.
+The full list of available labels can be found in TODO for OpenCI and the [labels dashboard](https://jenkins-mbedtls.oss.arm.com/labelsdashboard/) (configured at [admin page](https://jenkins-mbedtls.oss.arm.com/manage/configureClouds/)) on the internal CI.
 
 ## Docker images
 
