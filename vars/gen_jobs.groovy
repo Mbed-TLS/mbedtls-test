@@ -278,7 +278,7 @@ ${extra_setup_code}
                 try {
                     if (use_docker) {
                         analysis.record_inner_timestamps(node_label, job_name) {
-                            if ((common.is_legacy_open_ci_env || common.is_new_ci_env) && platform.startsWith('arm-compilers')) {
+                            if ((common.is_legacy_open_ci_env || common.is_openci_env) && platform.startsWith('arm-compilers')) {
                                 withCredentials([string(credentialsId: 'MBEDTLS_ARMCLANG_UBL_CODE', variable:'MBEDTLS_ARMCLANG_UBL_CODE')]) {
                                     sh common.docker_script(
                                         platform,
@@ -723,7 +723,7 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
     def tag = "$image-${common.git_hash_object(dockerfile)}-$arch"
     def cache = "$image-cache-$arch"
     def check_docker_image
-    if (common.is_legacy_open_ci_env || common.is_new_ci_env) {
+    if (common.is_legacy_open_ci_env || common.is_openci_env) {
         check_docker_image = "docker manifest inspect $common.docker_repo:$tag >/dev/null"
     } else {
         check_docker_image = "aws ecr describe-images --region eu-west-1 --repository-name $common.docker_repo_name --image-ids imageTag=$tag"
@@ -734,7 +734,7 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
     return job(platform) {
         def node_label = arch == 'amd64' ? 'dockerfile-builder' : "container-host-$arch"
         analysis.node_record_timestamps(node_label, platform) {
-            if (common.is_legacy_open_ci_env || common.is_new_ci_env) {
+            if (common.is_legacy_open_ci_env || common.is_openci_env) {
                 withCredentials([string(credentialsId: 'DOCKER_AUTH', variable: 'TOKEN')]) {
                     sh """\
 mkdir -p ${env.HOME}/.docker
@@ -779,9 +779,9 @@ aws ecr get-login-password --region eu-west-1 | docker login --username AWS --pa
 
                             // Generate download URL for armclang
                             if (platform.startsWith('arm-compilers')) {
-                                withCredentials((common.is_legacy_open_ci_env || common.is_new_ci_env) ? [] : [aws(credentialsId: 'armclang-readonly-keys')]) {
+                                withCredentials((common.is_legacy_open_ci_env || common.is_openci_env) ? [] : [aws(credentialsId: 'armclang-readonly-keys')]) {
                                     final String bucket, region
-                                    if (common.is_new_ci_env) {
+                                    if (common.is_openci_env) {
                                         bucket = "openci-trustedfirmware-private-$env.INFRA_ENV"
                                         region = 'eu-west-1'
                                     } else {

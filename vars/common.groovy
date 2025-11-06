@@ -43,9 +43,9 @@ import org.mbed.tls.jenkins.BranchInfo
 @Field final boolean is_legacy_open_ci_env = env.JENKINS_URL ==~ /\S+(mbedtls\.trustedfirmware\.org)\S+/
 
 /* Indicates if CI is running on the new CI (hosted on https://ci.trustedfirmware.org/) */
-@Field final boolean is_new_ci_env = !is_legacy_open_ci_env && (env.JENKINS_URL ==~ /\S+(trustedfirmware)\S+/)
+@Field final boolean is_openci_env = !is_legacy_open_ci_env && (env.JENKINS_URL ==~ /\S+(trustedfirmware)\S+/)
 
-@Field final String ci_name = is_legacy_open_ci_env ? 'TF OpenCI (legacy)' : is_new_ci_env ? 'TF OpenCI' : 'Internal CI'
+@Field final String ci_name = is_legacy_open_ci_env ? 'TF OpenCI (legacy)' : is_openci_env ? 'TF OpenCI' : 'Internal CI'
 
 /*
  * This controls the timeout each job has. It does not count the time spent in
@@ -68,8 +68,8 @@ import org.mbed.tls.jenkins.BranchInfo
     'cc' : 'cc'
 ]
 
-@Field final String docker_repo_name = (is_legacy_open_ci_env || is_new_ci_env) ? 'docker.io/trustedfirmware/ci-amd64-mbed-tls-ubuntu' : 'jenkins-mbedtls'
-@Field final String docker_ecr = is_new_ci_env ? env.PRIVATE_CONTAINER_REGISTRY : '666618195821.dkr.ecr.eu-west-1.amazonaws.com'
+@Field final String docker_repo_name = (is_legacy_open_ci_env || is_openci_env) ? 'docker.io/trustedfirmware/ci-amd64-mbed-tls-ubuntu' : 'jenkins-mbedtls'
+@Field final String docker_ecr = is_openci_env ? env.PRIVATE_CONTAINER_REGISTRY : '666618195821.dkr.ecr.eu-west-1.amazonaws.com'
 @Field final String docker_repo = is_legacy_open_ci_env ? docker_repo_name : "$docker_ecr/$docker_repo_name"
 
 /* List of Linux platforms. When a job can run on multiple Linux platforms,
@@ -103,7 +103,7 @@ import org.mbed.tls.jenkins.BranchInfo
  * @return The return value of the closure
  */
 def <T> T mbedtls_node(String label, Closure<T> body) {
-    return node(is_new_ci_env ? "mbedtls-$label" : label, body)
+    return node(is_openci_env ? "mbedtls-$label" : label, body)
 }
 
 /* Compute the git object ID of the Dockerfile.
@@ -501,7 +501,7 @@ $emailbody
 
 @NonCPS
 boolean pr_author_has_write_access(String repo_name, int pr) {
-    String credentials = (is_legacy_open_ci_env || is_new_ci_env) ? 'mbedtls-github-token' : 'd015f9b1-4800-4a81-86b3-9dbadc18ee00'
+    String credentials = (is_legacy_open_ci_env || is_openci_env) ? 'mbedtls-github-token' : 'd015f9b1-4800-4a81-86b3-9dbadc18ee00'
     def github = Connector.connect(null, Connector.lookupScanCredentials(currentBuild.rawBuild.parent, null, credentials))
     def repo = github.getRepository(repo_name)
     return repo.getPermission(repo.getPullRequest(pr).user) in [GHPermissionType.ADMIN, GHPermissionType.WRITE]
