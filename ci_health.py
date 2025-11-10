@@ -50,8 +50,11 @@ JENKINS_SERVERS = {
     "Open": "https://mbedtls.trustedfirmware.org/",
     "Internal": "https://jenkins-mbedtls.oss.arm.com/",
 }
-PR_JOB_NAMES = ("mbed-tls-pr-head", "mbed-tls-tf-psa-crypto-multibranch",
-                "mbed-tls-framework-multibranch")
+PR_JOBS = (
+    ("  tf-psa-crypto", "mbed-tls-tf-psa-crypto-multibranch"),
+    ("        mbedtls", "mbed-tls-pr-head"),
+    ("      framework", "mbed-tls-framework-multibranch"),
+)
 NIGHTLY_JOB_NAME = "mbed-tls-nightly-tests"
 
 DAYS = 7
@@ -126,7 +129,7 @@ def report_success_rate(name, nb_good, nb_bad):
         print("No nightly!!!")
         return
     success_percent = int(nb_good / nb_runs * 100)
-    print(f"{name}: {success_percent}% success (out of {nb_runs})")
+    print(f"  {name}: {success_percent}% success (out of {nb_runs})")
 
 
 def main():
@@ -154,9 +157,9 @@ def main():
         nb_good, nb_bad = gather_statuses(server, NIGHTLY_JOB_NAME, since_timestamp_ms)
         report_success_rate(NIGHTLY_JOB_NAME, nb_good, nb_bad)
 
-        for pr_job_name in PR_JOB_NAMES:
-            durations_ms = gather_durations_ms(server, pr_job_name, since_timestamp_ms)
-            report_summary_durations(pr_job_name, durations_ms)
+        for display_name, job_name in PR_JOBS:
+            durations_ms = gather_durations_ms(server, job_name, since_timestamp_ms)
+            report_summary_durations(display_name, durations_ms)
 
 
 main()
