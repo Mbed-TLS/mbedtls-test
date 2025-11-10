@@ -106,7 +106,7 @@ def h_m_from_ms(ms):
     return f"{hours}:{minutes:02}"
 
 
-def report_summary_durations(durations_ms):
+def report_summary_durations(name, durations_ms):
     """Print out relevant statistical indicators about this list of durations."""
     # Filter any runs shorter than 5 mins, those were probably aborted early
     durations_ms = [d for d in durations_ms if d >= 5 * 60 * 1000]
@@ -115,18 +115,17 @@ def report_summary_durations(durations_ms):
     deciles = quantiles(durations_ms, n=10)
     median = h_m_from_ms(deciles[4])  # 5th decile, but zero-based indexing
     nineth_dec = h_m_from_ms(deciles[8])
-    print(f"50% of PR jobs took at most {median} (out of {nb_runs})")
-    print(f"10% of PR jobs took at least {nineth_dec} (out of {nb_runs})")
+    print(f"{name}: median {median}, slowest 10% {nineth_dec} (out of {nb_runs})")
 
 
-def report_success_rate(nb_good, nb_bad):
+def report_success_rate(name, nb_good, nb_bad):
     """Print out success rate for a job."""
     nb_runs = nb_good + nb_bad
     if nb_runs == 0:
         print("No nightly!!!")
         return
     success_percent = int(nb_good / nb_runs * 100)
-    print(f"Nightly success rate: {success_percent}% (out of {nb_runs})")
+    print(f"{name}: {success_percent}% success (out of {nb_runs})")
 
 
 def main():
@@ -152,10 +151,10 @@ def main():
         )
 
         nb_good, nb_bad = gather_statuses(server, NIGHTLY_JOB_NAME, since_timestamp_ms)
-        report_success_rate(nb_good, nb_bad)
+        report_success_rate(NIGHTLY_JOB_NAME, nb_good, nb_bad)
 
         durations_ms = gather_durations_ms(server, PR_JOB_NAME, since_timestamp_ms)
-        report_summary_durations(durations_ms)
+        report_summary_durations(PR_JOB_NAME, durations_ms)
 
 
 main()
