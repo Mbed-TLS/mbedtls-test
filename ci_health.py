@@ -50,7 +50,8 @@ JENKINS_SERVERS = {
     "Open": "https://mbedtls.trustedfirmware.org/",
     "Internal": "https://jenkins-mbedtls.oss.arm.com/",
 }
-PR_JOB_NAME = "mbed-tls-pr-head"
+PR_JOB_NAMES = ("mbed-tls-pr-head", "mbed-tls-tf-psa-crypto-multibranch",
+                "mbed-tls-framework-multibranch")
 NIGHTLY_JOB_NAME = "mbed-tls-nightly-tests"
 
 DAYS = 7
@@ -153,8 +154,9 @@ def main():
         nb_good, nb_bad = gather_statuses(server, NIGHTLY_JOB_NAME, since_timestamp_ms)
         report_success_rate(NIGHTLY_JOB_NAME, nb_good, nb_bad)
 
-        durations_ms = gather_durations_ms(server, PR_JOB_NAME, since_timestamp_ms)
-        report_summary_durations(PR_JOB_NAME, durations_ms)
+        for pr_job_name in PR_JOB_NAMES:
+            durations_ms = gather_durations_ms(server, pr_job_name, since_timestamp_ms)
+            report_summary_durations(pr_job_name, durations_ms)
 
 
 main()
