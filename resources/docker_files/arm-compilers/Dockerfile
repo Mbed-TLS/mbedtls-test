@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 #
 # arm-compilers/Dockerfile
+# Dummy line to change filehash for testing
 #
 #  Copyright (c) 2018-2022, ARM Limited, All Rights Reserved
 #  SPDX-License-Identifier: Apache-2.0
