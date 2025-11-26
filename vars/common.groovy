@@ -39,8 +39,13 @@ import org.kohsuke.github.GHPermissionType
 
 import org.mbed.tls.jenkins.BranchInfo
 
-/* Indicates if CI is running on Open CI (hosted on https://ci.trustedfirmware.org/) */
-@Field is_open_ci_env = env.JENKINS_URL ==~ /\S+(trustedfirmware)\S+/
+/* Indicates if CI is running on Open CI (hosted on https://mbedtls.trustedfirmware.org/) */
+@Field final boolean is_legacy_open_ci_env = env.JENKINS_URL ==~ /\S+(mbedtls\.trustedfirmware\.org)\S+/
+
+/* Indicates if CI is running on the new CI (hosted on https://ci.trustedfirmware.org/) */
+@Field final boolean is_openci_env = !is_legacy_open_ci_env && (env.JENKINS_URL ==~ /\S+(trustedfirmware)\S+/)
+
+@Field final String ci_name = is_legacy_open_ci_env ? 'TF OpenCI (legacy)' : is_openci_env ? 'TF OpenCI' : 'Internal CI'
 
 /*
  * This controls the timeout each job has. It does not count the time spent in
@@ -63,9 +68,9 @@ import org.mbed.tls.jenkins.BranchInfo
     'cc' : 'cc'
 ]
 
-@Field docker_repo_name = is_open_ci_env ? 'ci-amd64-mbed-tls-ubuntu' : 'jenkins-mbedtls'
-@Field docker_ecr = is_open_ci_env ? "trustedfirmware" : "666618195821.dkr.ecr.eu-west-1.amazonaws.com"
-@Field docker_repo = "$docker_ecr/$docker_repo_name"
+@Field final String docker_repo_name = (is_legacy_open_ci_env || is_openci_env) ? 'docker.io/trustedfirmware/ci-amd64-mbed-tls-ubuntu' : 'jenkins-mbedtls'
+@Field final String docker_ecr = is_openci_env ? env.PRIVATE_CONTAINER_REGISTRY : '666618195821.dkr.ecr.eu-west-1.amazonaws.com'
+@Field final String docker_repo = is_legacy_open_ci_env ? docker_repo_name : "$docker_ecr/$docker_repo_name"
 
 /* List of Linux platforms. When a job can run on multiple Linux platforms,
  * it runs on the first element of the list that supports this job. */
@@ -90,6 +95,16 @@ import org.mbed.tls.jenkins.BranchInfo
 /* Maps platform names to the tag of the docker image used to test that platform.
  * Populated by init_docker_images() / gen_jobs.gen_dockerfile_builder_job(platform). */
 @Field static docker_tags = [:]
+
+/** Launch an executor with any adjustments that are required by the current CI
+ *
+ * @param label The "node label" as used everywhere else in our CI scripts
+ * @param body A closure to run in the context of the executor
+ * @return The return value of the closure
+ */
+def <T> T mbedtls_node(String label, Closure<T> body) {
+    return node(is_openci_env ? "mbedtls-$label" : label, body)
+}
 
 /* Compute the git object ID of the Dockerfile.
 * Equivalent to the `git hash-object <file>` command. */
@@ -190,13 +205,13 @@ def get_docker_image(platform) {
     def docker_image = get_docker_tag(platform)
     for (int attempt = 1; attempt <= 3; attempt++) {
         try {
-            if (is_open_ci_env)
+            if (is_legacy_open_ci_env)
                 sh """\
 docker pull $docker_repo:$docker_image
 """
             else
                 sh """\
-aws ecr get-login-password | docker login --username AWS --password-stdin $docker_ecr
+aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin $docker_ecr
 docker pull $docker_repo:$docker_image
 """
             break
@@ -254,7 +269,7 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
             }
 
             list_components_jobs << gen_jobs.job(info.prefix + 'all-platforms') {
-                node('container-host') {
+                mbedtls_node('container-host') {
                     try {
                         // Log the environment for debugging purposes
                         sh script: 'export'
@@ -312,7 +327,7 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
 
             linux_platforms.each { platform ->
                 list_components_jobs << gen_jobs.job(info.prefix + platform) {
-                    node(gen_jobs.node_label_for_platform(platform)) {
+                    mbedtls_node(gen_jobs.node_label_for_platform(platform)) {
                         try {
                             dir('src') {
                                 deleteDir()
@@ -416,9 +431,8 @@ void maybe_notify_github(String state, String description, String context=null) 
     }
 
     if (context == null) {
-        def ci = is_open_ci_env ? 'TF OpenCI' : 'Internal CI'
         def job = env.BRANCH_NAME ==~ /PR-\d+-merge/ ? 'Interface stability tests' : 'PR tests'
-        context = "$ci: $job"
+        context = "$ci_name: $job"
     }
 
     githubNotify context: context,
@@ -470,8 +484,7 @@ Logs: ${env.BUILD_URL}
 """
         recipients = env.TEST_PASS_EMAIL_ADDRESS
     }
-    String subject = ((is_open_ci_env ? "TF Open CI" : "Internal CI") + " ${name} " + \
-           (failed ? "failed" : "passed") + "! (branches: ${branches})")
+    String subject = "$ci_name $name ${failed ? 'failed' : 'passed'}! (branches: ${branches})"
     echo """\
 To: $recipients
 Subject: $subject
@@ -488,7 +501,7 @@ $emailbody
 
 @NonCPS
 boolean pr_author_has_write_access(String repo_name, int pr) {
-    String credentials = is_open_ci_env ? 'mbedtls-github-token' : 'd015f9b1-4800-4a81-86b3-9dbadc18ee00'
+    String credentials = (is_legacy_open_ci_env || is_openci_env) ? 'mbedtls-github-token' : 'd015f9b1-4800-4a81-86b3-9dbadc18ee00'
     def github = Connector.connect(null, Connector.lookupScanCredentials(currentBuild.rawBuild.parent, null, credentials))
     def repo = github.getRepository(repo_name)
     return repo.getPermission(repo.getPullRequest(pr).user) in [GHPermissionType.ADMIN, GHPermissionType.WRITE]

@@ -278,7 +278,7 @@ ${extra_setup_code}
                 try {
                     if (use_docker) {
                         analysis.record_inner_timestamps(node_label, job_name) {
-                            if (common.is_open_ci_env && platform.startsWith('arm-compilers')) {
+                            if ((common.is_legacy_open_ci_env || common.is_openci_env) && platform.startsWith('arm-compilers')) {
                                 withCredentials([string(credentialsId: 'MBEDTLS_ARMCLANG_UBL_CODE', variable:'MBEDTLS_ARMCLANG_UBL_CODE')]) {
                                     sh common.docker_script(
                                         platform,
@@ -723,10 +723,10 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
     def tag = "$image-${common.git_hash_object(dockerfile)}-$arch"
     def cache = "$image-cache-$arch"
     def check_docker_image
-    if (common.is_open_ci_env) {
-        check_docker_image = "docker manifest inspect $common.docker_repo:$tag > /dev/null 2>&1"
+    if (common.is_legacy_open_ci_env || common.is_openci_env) {
+        check_docker_image = "docker manifest inspect $common.docker_repo:$tag >/dev/null"
     } else {
-        check_docker_image = "aws ecr describe-images --repository-name $common.docker_repo_name --image-ids imageTag=$tag"
+        check_docker_image = "aws ecr describe-images --region eu-west-1 --repository-name $common.docker_repo_name --image-ids imageTag=$tag"
     }
 
     common.docker_tags[platform] = tag
@@ -734,6 +734,30 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
     return job(platform) {
         def node_label = arch == 'amd64' ? 'dockerfile-builder' : "container-host-$arch"
         analysis.node_record_timestamps(node_label, platform) {
+            if (common.is_legacy_open_ci_env || common.is_openci_env) {
+                withCredentials([string(credentialsId: 'DOCKER_AUTH', variable: 'TOKEN')]) {
+                    sh """\
+mkdir -p ${env.HOME}/.docker
+cat > ${env.HOME}/.docker/config.json << EOF
+{
+        "auths": {
+                "https://index.docker.io/v1/": {
+                        "auth": "\${TOKEN}"
+                }
+        }
+}
+EOF
+chmod 0600 ${env.HOME}/.docker/config.json
+"""
+                }
+            }
+
+            if (!common.is_legacy_open_ci_env) {
+                sh """\
+aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin $common.docker_ecr
+"""
+            }
+
             /* Take the lock only once we are running on a node.
              * This prevents a low-priority job from hogging the lock, when a high-priority job (eg. a merge queue job)
              * is added to the queue later.
@@ -753,34 +777,20 @@ def gen_dockerfile_builder_job(String platform, boolean overwrite=false) {
                             writeFile file: 'Dockerfile', text: dockerfile
                             def extra_build_args = ''
 
-                            if (common.is_open_ci_env) {
-                                withCredentials([string(credentialsId: 'DOCKER_AUTH', variable: 'TOKEN')]) {
-                                    sh """\
-mkdir -p ${env.HOME}/.docker
-cat > ${env.HOME}/.docker/config.json << EOF
-{
-        "auths": {
-                "https://index.docker.io/v1/": {
-                        "auth": "\${TOKEN}"
-                }
-        }
-}
-EOF
-chmod 0600 ${env.HOME}/.docker/config.json
-"""
-                                }
-                            } else {
-                                sh """\
-aws ecr get-login-password | docker login --username AWS --password-stdin $common.docker_ecr
-"""
-                            }
-
                             // Generate download URL for armclang
                             if (platform.startsWith('arm-compilers')) {
-                                withCredentials(common.is_open_ci_env ? [] : [aws(credentialsId: 'armclang-readonly-keys')]) {
-                                    sh '''
-aws s3 presign s3://trustedfirmware-private/armclang/ARMCompiler6.21_standalone_linux-x86_64.tar.gz >armc6_url
-'''
+                                withCredentials((common.is_legacy_open_ci_env || common.is_openci_env) ? [] : [aws(credentialsId: 'armclang-readonly-keys')]) {
+                                    final String bucket, region
+                                    if (common.is_openci_env) {
+                                        bucket = "openci-trustedfirmware-private-$env.INFRA_ENV"
+                                        region = 'eu-west-1'
+                                    } else {
+                                        bucket = 'trustedfirmware-private'
+                                        region = 'us-east-1'
+                                    }
+                                    sh """\
+aws s3 presign --region $region s3://$bucket/armclang/ARMCompiler6.21_standalone_linux-x86_64.tar.gz >armc6_url
+"""
                                     extra_build_args +=
                                         ' --secret id=armc6_url,src=./armc6_url'
                                 }
