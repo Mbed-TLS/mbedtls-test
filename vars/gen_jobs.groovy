@@ -277,12 +277,13 @@ ${extra_setup_code}
                     if (use_docker) {
                         analysis.record_inner_timestamps(node_label, job_name) {
                             if ((common.is_legacy_open_ci_env || common.is_openci_env) && platform.startsWith('arm-compilers')) {
-                                withCredentials([string(credentialsId: 'MBEDTLS_ARMCLANG_UBL_CODE', variable:'MBEDTLS_ARMCLANG_UBL_CODE')]) {
+                                withCredentials([file(credentialsId: 'MBEDTLS_ARMCLANG_UBL_FILE', variable: 'MBEDTLS_ARMCLANG_UBL_FILE')]) {
                                     sh common.docker_script(
                                         platform,
                                         '/bin/sh',
-                                        '-c \'exec $ARMC6_BIN_DIR/armlm activate -code "$MBEDTLS_ARMCLANG_UBL_CODE"\'',
-                                        ['MBEDTLS_ARMCLANG_UBL_CODE']
+                                        "-c 'exec \$ARMC6_BIN_DIR/armlm import --file ${MBEDTLS_ARMCLANG_UBL_FILE}'",
+                                        [],
+                                        ["${MBEDTLS_ARMCLANG_UBL_FILE}:${MBEDTLS_ARMCLANG_UBL_FILE}:ro"]
                                     )
                                 }
                             }

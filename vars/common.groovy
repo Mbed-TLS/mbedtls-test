@@ -228,10 +228,12 @@ String docker_script(
     String platform,
     String entrypoint,
     String entrypoint_arguments='',
-    Iterable<String> env_vars=[]
+    Iterable<String> env_vars=[],
+    Iterable<String> volumes = []
 ) {
     def docker_image = get_docker_tag(platform)
     def env_args = env_vars.collect({ e -> "-e $e" }).join(' ')
+    def volume_args = volumes.collect({ v -> "-v $v" }).join(' ')
     /* Docker disables IPv6 networking by default, but some combination of docker daemon and linux kernel versions
      * causes GnuTLS to attempt using an IPv6 address anyways, so we manually disable all IPv6 inside the container.
      * We also ignore the fact that the IPv6 tests are not executed in analyze_outcomes.py.
@@ -241,6 +243,7 @@ String docker_script(
     return """\
 docker run -u \$(id -u):\$(id -g) -e MAKEFLAGS -e VERBOSE_LOGS $env_args --rm --entrypoint $entrypoint \
     -w /var/lib/build -v `pwd`/src:/var/lib/build \
+    $volume_args \
     --sysctl net.ipv6.conf.all.disable_ipv6=1 \
     --cap-add SYS_PTRACE $docker_repo:$docker_image $entrypoint_arguments
 """
