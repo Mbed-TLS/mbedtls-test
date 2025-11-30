@@ -62,7 +62,7 @@ RUN ./install_*.sh \
         --no-interactive \
         --quiet
 
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt/src
@@ -124,20 +124,12 @@ RUN cd /opt && \
         ln -s "$PWD/$x" "/usr/local/bin/${x##*/}-${v}"; \
     done
 
-# Install Python pip packages
-#
-# The pip wrapper scripts can get out of sync with pip due to upgrading it
-# outside the package manager, so invoke the module directly.
+# Prepare Python.
+# The tooling that comes with the operating system is good enough.
 RUN python3 -m pip config set global.progress_bar off && \
-    # Ubuntu 20.04 ships pip 20.0.2. We want the ability to specify both
-    # a versioned requirement and an unversioned requirement for the
-    # same package (e.g. `pip install foo bar foo==42`), and this is
-    # only possible since pip 20.3. So upgrade pip to the latest
-    # release at the time of writing (use a fixed version to avoid
-    # surprises when rebuilding the image).
-    python3 -m pip install 'pip==23.2.1' && \
-    python3 -m pip install setuptools --upgrade && \
-    true
+    # Instruct pip that it's ok to install packages as a user
+    # (either "user" or the developer who runs "docker -u ...").
+    python3 -m pip config set global.break-system-packages true
 
 # Install ARM Compiler 6.21
 ARG ARMC6_INSTALL_DIR=/usr/local/ARM_Compiler_6.21
