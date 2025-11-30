@@ -77,7 +77,6 @@ import org.mbed.tls.jenkins.BranchInfo
 @Field final List<String> linux_platforms = [
     'ubuntu-16.04-amd64',
     'ubuntu-18.04-amd64', 'ubuntu-18.04-arm64',
-    'ubuntu-20.04-amd64', 'ubuntu-20.04-arm64',
     'ubuntu-22.04-amd64', 'ubuntu-22.04-arm64',
     'arm-compilers-amd64',
 ]
