@@ -192,6 +192,30 @@ RUN apt-get update -q && apt-get install -yq \
         ; \
     fi && rm -rf /var/lib/apt/lists/
 
+# Install Python 3.6 and make it the default `python3` in $PATH.
+# This is the minimum Python version that we declare as required for
+# Mbed TLS 2.28 LTS.
+RUN wget -q https://github.com/pyenv/pyenv/archive/refs/tags/v2.4.0.tar.gz && \
+    tar -xzf v2.4.0.tar.gz && \
+    rm v2.4.0.tar.gz && \
+    cd pyenv-*/ && \
+    bin/pyenv install 3.6 && \
+    ln -s ~/.pyenv/versions/3.6.*/bin/*3.6 /usr/local/bin/ && \
+    ln -s python3.6 /usr/local/bin/python3 && \
+    ln -s pip3.6 /usr/local/bin/pip3 && \
+    ln -s "$PWD/src/pyenv" /usr/local/bin/
+
+RUN python3 -m pip config set global.progress_bar off && \
+    # Python 3.6 from pyenv comes with pip 18.1.
+    # We want the ability to specify both a versioned requirement and an
+    # unversioned requirement for the same package (e.g.
+    # `pip install foo bar foo==42`), and this is only possible since
+    # pip 20.3. So upgrade pip, to the last version that still supports
+    # Python 3.6.
+    python3 -m pip install 'pip<22' --upgrade && \
+    python3 -m pip install setuptools --upgrade && \
+    true
+
 # Install exact upstream versions of OpenSSL and GnuTLS
 #
 # Distro packages tend to include patches that disrupt our testing scripts,
@@ -317,30 +341,6 @@ RUN wget -q https://github.com/lvc/abi-compliance-checker/archive/2.3.tar.gz && 
 # The version in Ubuntu 16.04 is too old, we want at least the version below
 RUN git clone --branch 1.1 https://github.com/lvc/abi-dumper.git && \
     cd abi-dumper && make install prefix=/usr && cd .. && rm -rf abi-dumper
-
-# Install Python 3.6 and make it the default `python3` in $PATH.
-# This is the minimum Python version that we declare as required for
-# Mbed TLS 2.28 LTS.
-RUN wget -q https://github.com/pyenv/pyenv/archive/refs/tags/v2.4.0.tar.gz && \
-    tar -xzf v2.4.0.tar.gz && \
-    rm v2.4.0.tar.gz && \
-    cd pyenv-*/ && \
-    bin/pyenv install 3.6 && \
-    ln -s ~/.pyenv/versions/3.6.*/bin/*3.6 /usr/local/bin/ && \
-    ln -s python3.6 /usr/local/bin/python3 && \
-    ln -s pip3.6 /usr/local/bin/pip3 && \
-    ln -s "$PWD/src/pyenv" /usr/local/bin/
-
-RUN python3 -m pip config set global.progress_bar off && \
-    # Python 3.6 from pyenv comes with pip 18.1.
-    # We want the ability to specify both a versioned requirement and an
-    # unversioned requirement for the same package (e.g.
-    # `pip install foo bar foo==42`), and this is only possible since
-    # pip 20.3. So upgrade pip, to the last version that still supports
-    # Python 3.6.
-    python3 -m pip install 'pip<22' --upgrade && \
-    python3 -m pip install setuptools --upgrade && \
-    true
 
 # Add user
 RUN useradd -m user
