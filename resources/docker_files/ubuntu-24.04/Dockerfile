@@ -95,6 +95,8 @@ RUN apt-get update -q && apt-get install -yq \
         m4 \
         # to build Mbed TLS and others
         make \
+        # to build Mbed TLS (alternative CMake backend)
+        ninja-build \
         # to build GnuTLS with locally-compiled nettle
         pkg-config \
         # to install several Python packages (done by individual jobs)

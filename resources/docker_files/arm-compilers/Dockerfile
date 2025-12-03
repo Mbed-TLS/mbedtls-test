@@ -92,6 +92,8 @@ RUN apt-get update -q && apt-get install -yq \
         libstdc++6:i386 \
         # needed for armcc (see locale-gen below)
         locales \
+        # to build Mbed TLS (alternative CMake backend)
+        ninja-build \
         # to install several Python packages (done by individual jobs)
         python3-pip \
         # to install several Python packages (done by individual jobs)
