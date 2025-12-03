@@ -45,15 +45,11 @@ import jenkins
 # list of "sub-jobs", and the builds are associated to those sub-jobs, no the
 # top-level multibranch job.
 
-JENKINS_SERVERS = {
-    "New": "https://ci.trustedfirmware.org/",
-    "Open": "https://mbedtls.trustedfirmware.org/",
-    "Internal": "https://jenkins-mbedtls.oss.arm.com/",
-}
+JENKINS_URL = "https://ci.trustedfirmware.org/"
 PR_JOBS = (
-    ("  tf-psa-crypto", "mbed-tls-tf-psa-crypto-multibranch"),
-    ("        mbedtls", "mbed-tls-pr-head"),
-    ("      framework", "mbed-tls-framework-multibranch"),
+    ("tf-psa-crypto", "mbed-tls-tf-psa-crypto-multibranch"),
+    ("      mbedtls", "mbed-tls-pr-head"),
+    ("    framework", "mbed-tls-framework-multibranch"),
 )
 NIGHTLY_JOB_NAME = "mbed-tls-nightly-tests"
 
@@ -116,10 +112,16 @@ def report_summary_durations(name, durations_ms):
     durations_ms = [d for d in durations_ms if d >= 5 * 60 * 1000]
     nb_runs = len(durations_ms)
 
-    deciles = quantiles(durations_ms, n=10)
-    median = h_m_from_ms(deciles[4])  # 5th decile, but zero-based indexing
-    nineth_dec = h_m_from_ms(deciles[8])
-    print(f"{name}: median {median}, slowest 10% {nineth_dec} (out of {nb_runs})")
+    if len(durations_ms) == 0:
+        print(f"{name}: no runs")
+    elif len(durations_ms) == 1:
+        single = h_m_from_ms(durations_ms[0])
+        print(f"{name}: single run: {single}")
+    else:
+        deciles = quantiles(durations_ms, n=10)
+        median = h_m_from_ms(deciles[4])  # 5th decile, but zero-based indexing
+        nineth_dec = h_m_from_ms(deciles[8])
+        print(f"{name}: median {median}, slowest 10% {nineth_dec} (out of {nb_runs})")
 
 
 def report_success_rate(name, nb_good, nb_bad):
@@ -129,7 +131,7 @@ def report_success_rate(name, nb_good, nb_bad):
         print("No nightly!!!")
         return
     success_percent = int(nb_good / nb_runs * 100)
-    print(f"  {name}: {success_percent}% success (out of {nb_runs})")
+    print(f"{name}: {success_percent}% success (out of {nb_runs})")
 
 
 def main():
@@ -145,21 +147,19 @@ def main():
     since_date = datetime.now() - timedelta(days=DAYS)
     since_timestamp_ms = int(since_date.timestamp()) * 1000
 
-    for name, url in JENKINS_SERVERS.items():
-        print(f"{name} CI health indicators:")
-        # Note: setting an explicit timeout avoids an incompatibility
-        # with some versions of the underlying urllib3, see
-        # https://bugs.launchpad.net/python-jenkins/+bug/2018567
-        server = jenkins.Jenkins(
-            url, username=gh_username, password=gh_token, timeout=60
-        )
+    # Note: setting an explicit timeout avoids an incompatibility
+    # with some versions of the underlying urllib3, see
+    # https://bugs.launchpad.net/python-jenkins/+bug/2018567
+    server = jenkins.Jenkins(
+        JENKINS_URL, username=gh_username, password=gh_token, timeout=60
+    )
 
-        nb_good, nb_bad = gather_statuses(server, NIGHTLY_JOB_NAME, since_timestamp_ms)
-        report_success_rate(NIGHTLY_JOB_NAME, nb_good, nb_bad)
+    nb_good, nb_bad = gather_statuses(server, NIGHTLY_JOB_NAME, since_timestamp_ms)
+    report_success_rate(NIGHTLY_JOB_NAME, nb_good, nb_bad)
 
-        for display_name, job_name in PR_JOBS:
-            durations_ms = gather_durations_ms(server, job_name, since_timestamp_ms)
-            report_summary_durations(display_name, durations_ms)
+    for display_name, job_name in PR_JOBS:
+        durations_ms = gather_durations_ms(server, job_name, since_timestamp_ms)
+        report_summary_durations(display_name, durations_ms)
 
 
 main()
