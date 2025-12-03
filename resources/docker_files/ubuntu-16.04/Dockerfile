@@ -192,6 +192,21 @@ RUN apt-get update -q && apt-get install -yq \
         ; \
     fi && rm -rf /var/lib/apt/lists/
 
+# Install the minimum versions of CMake that we advertize:
+# * CMake 3.10.2 in Mbed TLS 3.6 LTS
+# * CMake 3.20.2 in TF-PSA-Crypto 1.0. and Mbed TLS 4.0.0
+RUN cd /opt && \
+    wget -q https://github.com/Kitware/CMake/releases/download/v3.10.2/cmake-3.10.2-linux-$(uname -m).tar.gz && \
+    tar -xzf cmake-3.10.2-linux-$(uname -m).tar.gz && \
+    rm cmake-3.10.2-linux-$(uname -m).tar.gz && \
+    wget -q https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2-linux-$(uname -m).tar.gz && \
+    tar -xzf cmake-3.20.2-linux-$(uname -m).tar.gz && \
+    rm cmake-3.20.2-linux-$(uname -m).tar.gz && \
+    for x in cmake-*-$(uname -m)/bin/*; do \
+        v="${x#*-}"; v="${v%%-*}"; \
+        ln -s "$PWD/$x" "/usr/local/bin/${x##*/}-${v}"; \
+    done
+
 # Install Python 3.6 and make it the default `python3` in $PATH.
 # This was the minimum Python version that we declared as required for
 # Mbed TLS 2.28 LTS, and is still the version with which we run pylint and
