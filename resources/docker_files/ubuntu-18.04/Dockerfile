@@ -91,6 +91,8 @@ RUN apt-get update -q && apt-get install -yq \
         python3-pip \
         # to install several Python packages (done by individual jobs)
         python3-venv \
+        # minimum version of Python officially required for Mbed TLS 3.6 LTS
+        python3.8-venv \
         # for Mbed TLS tests
         valgrind \
         # to download things installed from other places

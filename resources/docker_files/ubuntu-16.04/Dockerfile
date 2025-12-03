@@ -193,14 +193,19 @@ RUN apt-get update -q && apt-get install -yq \
     fi && rm -rf /var/lib/apt/lists/
 
 # Install Python 3.6 and make it the default `python3` in $PATH.
+# This was the minimum Python version that we declared as required for
+# Mbed TLS 2.28 LTS, and is still the version with which we run pylint and
+# mypy as of November 2025.
+# Install Python 3.8.
 # This is the minimum Python version that we declare as required for
-# Mbed TLS 2.28 LTS.
+# Mbed TLS 3.6 LTS.
 RUN wget -q https://github.com/pyenv/pyenv/archive/refs/tags/v2.4.0.tar.gz && \
     tar -xzf v2.4.0.tar.gz && \
     rm v2.4.0.tar.gz && \
     cd pyenv-*/ && \
     bin/pyenv install 3.6 && \
-    ln -s ~/.pyenv/versions/3.6.*/bin/*3.6 /usr/local/bin/ && \
+    bin/pyenv install 3.8 && \
+    ln -s ~/.pyenv/versions/3.*/bin/*3.* /usr/local/bin/ && \
     ln -s python3.6 /usr/local/bin/python3 && \
     ln -s pip3.6 /usr/local/bin/pip3 && \
     ln -s "$PWD/src/pyenv" /usr/local/bin/
