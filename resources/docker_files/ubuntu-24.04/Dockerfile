@@ -139,6 +139,11 @@ RUN apt-get update -q && apt-get install -yq \
     esac && \
     rm -rf /var/lib/apt/lists/ 
 
+# Make sure we have a UTF-8 locale
+RUN locale && \
+    locale-gen "en_US.UTF-8" && \
+    dpkg-reconfigure locales
+
 # For installing clang-latest, we add the LLVM package source
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 15CF4D18AF4F7421 && \
     # add an apt package source from https://apt.llvm.org/ 
@@ -328,11 +333,6 @@ RUN python3 -m pip config set global.progress_bar off && \
     # Instruct pip that it's ok to install packages as a user
     # (either "user" or the developer who runs "docker -u ...").
     python3 -m pip config set global.break-system-packages true
-
-# Make sure we have a UTF-8 locale
-RUN locale && \
-    locale-gen "en_US.UTF-8" && \
-    dpkg-reconfigure locales
 
 # Add user
 RUN useradd -m user

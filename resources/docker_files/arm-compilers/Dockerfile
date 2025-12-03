@@ -100,6 +100,11 @@ RUN apt-get update -q && apt-get install -yq \
         python3-venv \
     && rm -rf /var/lib/apt/lists/
 
+# Set locale for ARMCC to work
+RUN locale && \
+    locale-gen "en_US.UTF-8" && \
+    dpkg-reconfigure locales
+
 # Install Python pip packages
 #
 # The pip wrapper scripts can get out of sync with pip due to upgrading it
@@ -114,11 +119,6 @@ RUN python3 -m pip config set global.progress_bar off && \
     python3 -m pip install 'pip==23.2.1' && \
     python3 -m pip install setuptools --upgrade && \
     true
-
-# Set locale for ARMCC to work
-RUN locale && \
-    locale-gen "en_US.UTF-8" && \
-    dpkg-reconfigure locales
 
 # Install ARM Compiler 6.21
 ARG ARMC6_INSTALL_DIR=/usr/local/ARM_Compiler_6.21

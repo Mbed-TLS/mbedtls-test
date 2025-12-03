@@ -150,6 +150,11 @@ RUN apt-get update -q && apt-get install -yq \
     ln -s /usr/bin/gcc-4.7 /usr/local/bin/gcc-earliest && \
     ln -s /usr/bin/clang-3.5 /usr/local/bin/clang-earliest 
 
+# Make sure we have a UTF-8 locale
+RUN locale && \
+    locale-gen "en_US.UTF-8" && \
+    dpkg-reconfigure locales
+
 # Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
 # gcc-multilib conflicts with cross-compiler packages that we'll install later,
 # so don't keep it around. Just let it install its dependencies
@@ -336,11 +341,6 @@ RUN python3 -m pip config set global.progress_bar off && \
     python3 -m pip install 'pip<22' --upgrade && \
     python3 -m pip install setuptools --upgrade && \
     true
-
-# Make sure we have a UTF-8 locale
-RUN locale && \
-    locale-gen "en_US.UTF-8" && \
-    dpkg-reconfigure locales
 
 # Add user
 RUN useradd -m user
