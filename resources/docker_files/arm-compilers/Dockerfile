@@ -80,6 +80,8 @@ RUN apt-get update -q && apt-get install -yq \
         build-essential \
         # to build Mbed TLS
         cmake \
+        # for test_driver.py (since TF-PSA-Crypto 1.1)
+        exuberant-ctags \
         # to check out Mbed TLS and others
         git \
         # for 32-bit Mbed TLS testing and armcc

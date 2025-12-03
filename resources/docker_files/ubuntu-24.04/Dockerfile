@@ -105,6 +105,8 @@ RUN apt-get update -q && apt-get install -yq \
         python3-venv \
         # provides some useful scripts for adding and removing repositories
         software-properties-common \
+        # for test_driver.py (since TF-PSA-Crypto 1.1)
+        universal-ctags \
         # for Mbed TLS tests
         valgrind \
         # to download things installed from other places

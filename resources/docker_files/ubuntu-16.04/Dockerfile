@@ -63,6 +63,8 @@ RUN apt-get update -q && apt-get install -yq \
         curl \
         # to build Mbed TLS's documentation
         doxygen \
+        # for test_driver.py (since TF-PSA-Crypto 1.1)
+        exuberant-ctags \
         # to run tests in specific time.
         faketime \
         # to cross-build Mbed TLS
