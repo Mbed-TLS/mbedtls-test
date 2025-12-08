@@ -188,6 +188,20 @@ void checkout_repo(BranchInfo info) {
                             error("Invalid repo: ${info.repo}")
                     }
 
+                    echo 'Clone all remaining submodules without dedicated handlers'
+                    sh '''
+# Initialize submodule variables (required by `git submodule status`)
+git submodule init
+git submodule foreach 'git submodule init'
+
+# Only split unquoted expansions on newlines
+IFS='
+'
+for module in $(git submodule status --recursive | sed -n 's/^-[^ ]* //p'); do
+    git -C "$module" submodule update --recursive --init --depth=1 .
+done
+'''
+
                     stash name: stashName, includes: '**/*', useDefaultExcludes: false
                     info.stash = stashName
                     needUnstash = false
