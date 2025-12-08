@@ -658,7 +658,7 @@ def gen_coverity_push_jobs(BranchInfo info) {
             try {
                 dir("src") {
                     deleteDir()
-                    checkout_repo.checkout_tls_repo(info)
+                    checkout_repo.checkout_repo(info)
                     sshagent([env.GIT_CREDENTIALS_ID]) {
                         analysis.record_inner_timestamps('container-host', job_name) {
                             // Git complains about non-fast-forward operations when trying to push a shallow commit

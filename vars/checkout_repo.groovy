@@ -86,7 +86,7 @@ String get_submodule_commit(String working_dir = '.', String submodule) {
     ).trim()
 }
 
-void checkout_framework_repo(BranchInfo info) {
+private void checkout_framework_repo(BranchInfo info) {
     if (env.TARGET_REPO == 'framework' && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
     } else {
@@ -104,7 +104,7 @@ void checkout_framework_repo(BranchInfo info) {
     }
 }
 
-void checkout_tf_psa_crypto_repo(BranchInfo info) {
+private void checkout_tf_psa_crypto_repo(BranchInfo info) {
     if (env.TARGET_REPO == 'tf-psa-crypto' && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
         if (!info.framework_override) {
@@ -140,7 +140,7 @@ void checkout_tf_psa_crypto_repo(BranchInfo info) {
     }
 }
 
-Map<String, String> checkout_tls_repo(BranchInfo info) {
+private Map<String, String> checkout_tls_repo(BranchInfo info) {
     if (info.repo != 'tls') {
         throw new IllegalArgumentException("checkout_tls_repo() called with BranchInfo for repo '$info.repo'")
     }
