@@ -134,7 +134,7 @@ Map<String, Callable<Void>> gen_docker_job(Map<String, Closure> hooks,
                     }
                 }
             }
-            stage(job_name) {
+            stage("${job_name}.inner") {
                 dir('src') {
                     writeFile file: 'steps.sh', text: """\
 #!/bin/sh
@@ -399,7 +399,7 @@ def gen_windows_testing_job(BranchInfo info, String toolchain) {
                     def exceptions = items.findResults { item ->
                         def job_name = (String) item.job_name
                         try {
-                            stage(job_name) {
+                            stage("${job_name}.inner") {
                                 common.report_errors(job_name) {
                                     def extra_args = ''
                                     if (toolchain != 'mingw') {
