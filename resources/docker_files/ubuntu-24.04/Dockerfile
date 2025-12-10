@@ -1,6 +1,6 @@
-# ubuntu-20.04/Dockerfile
+# ubuntu-24.04/Dockerfile
 #
-#  Copyright (c) 2018-2022, ARM Limited, All Rights Reserved
+#  Copyright (c) 2018-2023, ARM Limited, All Rights Reserved
 #  SPDX-License-Identifier: Apache-2.0
 #
 #  Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -20,10 +20,10 @@
 # Purpose
 # -------
 #
-# This docker file is for creating the ubuntu-20.04 image that is used in the
+# This docker file is for creating the ubuntu-24.04 image that is used in the
 # CI. It can also be used for reproducing and testing CI failures.
 
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt/src
@@ -46,9 +46,9 @@ RUN apt-get update -q && apt-get install -yq \
         # for Mbed TLS tests
         abi-compliance-checker \
         # Note that there is a known issue #5332 that stock abi tools
-        # in ubuntu20.04 do not fail as expected.
+        # in ubuntu24.04 do not fail as expected.
         # https://github.com/ARMmbed/mbedtls/issues/5332
-        # Do not activae 20.04 until that is resolved
+        # Do not activae 24.04 until that is resolved
         # to use with abi-compliance-tester
         abi-dumper \
         # to update the autoconf files in nettle 2.7 with support for aarch64
@@ -56,7 +56,7 @@ RUN apt-get update -q && apt-get install -yq \
         # to build Mbed TLS: gcc, binutils, make, etc.
         build-essential \
         # to generate malformed files
-        bsdmainutils \
+        bsdextrautils \
         # to build Mbed TLS
         clang \
         # to build Mbed TLS
@@ -65,8 +65,12 @@ RUN apt-get update -q && apt-get install -yq \
         doxygen \
         # to run tests in specific time.
         faketime \
+        # build dependency of GCC
+        flex \
         # to cross-build Mbed TLS
         gcc-mingw-w64-i686 \
+        # to build Mbed TLS using latest gcc version available from Ubuntu
+        gcc-14 \
         # to check out Mbed TLS and others
         git \
         # to build Mbed TLS's documentation
@@ -75,10 +79,14 @@ RUN apt-get update -q && apt-get install -yq \
         lcov \
         # to build GnuTLS (nettle with public key support aka hogweed)
         libgmp-dev \
+        # build dependency of GCC
+        libisl-dev libmpfr-dev libmpc-dev \
         # to build GnuTLS >= 3.6 (could also use --with-included-unistring)
         libunistring-dev \
         # to build GnuTLS
         libtasn1-6-dev \
+        # build dependency of GCC
+        libzstd-dev \
         # to have a UTF-8 locale (see locale-gen below)
         locales \
         # used by compat.sh and ssl-opt.sh
@@ -92,7 +100,11 @@ RUN apt-get update -q && apt-get install -yq \
         # to install several Python packages (done by individual jobs)
         python3-pip \
         # to install several Python packages (done by individual jobs)
+        python3-setuptools \
+        # to install several Python packages (done by individual jobs)
         python3-venv \
+        # provides some useful scripts for adding and removing repositories
+        software-properties-common \
         # for Mbed TLS tests
         valgrind \
         # to download things installed from other places
@@ -121,7 +133,18 @@ RUN apt-get update -q && apt-get install -yq \
             libstdc++6:armhf \
             ;; \
     esac && \
-    rm -rf /var/lib/apt/lists/
+    rm -rf /var/lib/apt/lists/ 
+
+# For installing clang-latest, we add the LLVM package source
+RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 15CF4D18AF4F7421 && \
+    # add an apt package source from https://apt.llvm.org/ 
+    add-apt-repository 'deb http://apt.llvm.org/noble/ llvm-toolchain-noble-18 main' -y && \
+    apt-get install -yq \
+        # to build Mbed TLS using latest stable clang version at the time of writing
+        clang-20 && \
+    # create symbolic links for latest gcc and clang versions
+    ln -s /usr/bin/clang-20 /usr/local/bin/clang-latest && \
+    ln -s /usr/bin/gcc-14 /usr/local/bin/gcc-latest
 
 # Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
 # gcc-multilib conflicts with cross-compiler packages that we'll install later,
@@ -158,6 +181,23 @@ RUN if [ "$(uname -m)" = aarch64 ]; then \
         libc6-dev-armel-cross \
         libc6-dev-armhf-cross \
     && rm -rf /var/lib/apt/lists/
+
+# Install a snapshot of GCC that we want to test with.
+# GCC 15 will break our code: https://github.com/Mbed-TLS/mbedtls/issues/9814
+# During a transition period, we will use a snapshot of GCC 15 to test the
+# fix for that issue.
+# Eventually, gcc-latest should become GCC 15. This will cause test failures
+# on branches that don't have the fix yet, which is why we don't make
+# GCC 15 be gcc-latest immediately.
+RUN wget -q https://mirror.koddos.net/gcc/releases/gcc-15.1.0/gcc-15.1.0.tar.xz && \
+    tar -xf gcc-15.1.0.tar.xz && \
+    rm gcc-15.1.0.tar.xz && \
+    cd gcc-15.1.0 && \
+    ./configure --prefix=/usr/local/gcc-15 --program-suffix=-15 --disable-bootstrap --enable-languages=c,c++,lto && \
+    make && \
+    make install && \
+    cd .. && \
+    rm -rf gcc-15.1.0
 
 # Install exact upstream versions of OpenSSL and GnuTLS
 #
@@ -278,20 +318,12 @@ RUN git clone --branch uncrustify-0.75.1 https://github.com/uncrustify/uncrustif
     cd uncrustify && mkdir build && cd build && cmake .. && make install && \
     cd .. && rm -rf uncrustify
 
-# Install Python pip packages
-#
-# The pip wrapper scripts can get out of sync with pip due to upgrading it
-# outside the package manager, so invoke the module directly.
+# Prepare Python.
+# The tooling that comes with the operating system is good enough.
 RUN python3 -m pip config set global.progress_bar off && \
-    # Ubuntu 20.04 ships pip 20.0.2. We want the ability to specify both
-    # a versioned requirement and an unversioned requirement for the
-    # same package (e.g. `pip install foo bar foo==42`), and this is
-    # only possible since pip 20.3. So upgrade pip to the latest
-    # release at the time of writing (use a fixed version to avoid
-    # surprises when rebuilding the image).
-    python3 -m pip install 'pip==23.2.1' && \
-    python3 -m pip install setuptools --upgrade && \
-    true
+    # Instruct pip that it's ok to install packages as a user
+    # (either "user" or the developer who runs "docker -u ...").
+    python3 -m pip config set global.break-system-packages true
 
 # Make sure we have a UTF-8 locale
 RUN locale && \
