@@ -197,7 +197,9 @@ git submodule foreach 'git submodule init'
 # Only split unquoted expansions on newlines
 IFS='
 '
-for module in $(git submodule status --recursive | sed -n 's/^-[^ ]* //p'); do
+# Get list of missing submodules (lines starting with '-')
+missing_submodules=$(git submodule status --recursive | awk '/^-/{print $2}')
+for module in $missing_submodules; do
     git -C "$module" submodule update --recursive --init --depth=1 .
 done
 '''
