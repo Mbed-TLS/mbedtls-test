@@ -1,5 +1,8 @@
 #!/usr/bin/env groovy
-
+/*
+ *  Copyright The Mbed TLS Contributors
+ *  SPDX-License-Identifier: Apache-2.0
+ */
 /*
  * This script takes the following parameters:
  *
@@ -9,7 +12,10 @@
  * Build options
  *  - BUILD_UBUNTU_16_04_AMD64_DOCKER_IMAGE
  *  - BUILD_UBUNTU_18_04_AMD64_DOCKER_IMAGE
+ *  - BUILD_UBUNTU_18_04_ARM64_DOCKER_IMAGE
  *  - BUILD_UBUNTU_24_04_AMD64_DOCKER_IMAGE
+ *  - BUILD_UBUNTU_24_04_ARM64_DOCKER_IMAGE
+ *  - BUILD_ARM_COMPILERS_AMD64_DOCKER_IMAGE
  *
  * Environment variables:
  *  - GIT_CREDENTIALS_ID
