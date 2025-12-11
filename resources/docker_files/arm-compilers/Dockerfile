@@ -127,8 +127,9 @@ RUN mkdir $ARMC5_BIN_DIR && \
 ARG ARMLMD_LICENSE_FILE=17010@aws-armlmd.license.aws.arm.com
 ENV ARMLMD_LICENSE_FILE=${ARMLMD_LICENSE_FILE}
 
-# Add user
-RUN useradd -m user
+# Remove the ubuntu(uid:1000) user and add our own - this matches the behaviour of older
+# Ubuntu base images and is required for User-based licenses to work.
+RUN userdel -r ubuntu && useradd -m user
 
 # Create workspace
 # Note: scripts/min_requirements.py need a writable
