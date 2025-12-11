@@ -283,9 +283,9 @@ ${extra_setup_code}
                                     sh common.docker_script(
                                         platform,
                                         '/bin/sh',
-                                        "-c 'exec \$ARMC6_BIN_DIR/armlm import --file ${MBEDTLS_ARMCLANG_UBL_FILE}'",
+                                        '-c \'exec $ARMC6_BIN_DIR/armlm import --file /run/secrets/armclang_ubl_file\'',
                                         [],
-                                        ["${MBEDTLS_ARMCLANG_UBL_FILE}:${MBEDTLS_ARMCLANG_UBL_FILE}:ro"]
+                                        ['${MBEDTLS_ARMCLANG_UBL_FILE}:/run/secrets/armclang_ubl_file:ro']
                                     )
                                 }
                             }
