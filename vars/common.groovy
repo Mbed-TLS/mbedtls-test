@@ -284,6 +284,9 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
                             deleteDir()
                             checkout_repo.checkout_repo(info)
 
+                            // If a TLS branch doesn't have scripts/abi_check.py, something has gone wrong.
+                            info.has_branch_info = repo == 'tls' || fileExists('scripts/abi_check.py')
+
                             info.has_min_requirements = fileExists('scripts/min_requirements.py')
 
                             if (info.has_min_requirements) {

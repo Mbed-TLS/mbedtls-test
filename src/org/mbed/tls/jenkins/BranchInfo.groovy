@@ -32,6 +32,11 @@ class BranchInfo {
      *  if no platform has been chosen yet. */
     public Map<String, String> all_sh_components
 
+    /** Whether scripts/abi_check.py is available.
+     *  Should only be necessary temporary, while we add ABI check support to
+     *  TF PSA Crypto */
+    public boolean has_branch_info
+
     /** Whether scripts/min_requirements.py is available. Older branches don't
      *  have it, so they only get what's hard-coded in the docker files on Linux,
      *  and bare python on other platforms. */
@@ -72,6 +77,7 @@ class BranchInfo {
         this.stash = ''
         this.framework_override = ''
         this.all_sh_components = [:]
+        this.has_branch_info = false
         this.has_min_requirements = false
         this.python_requirements_override_content = ''
         this.python_requirements_override_file = ''
