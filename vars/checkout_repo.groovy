@@ -194,9 +194,6 @@ void checkout_repo(BranchInfo info) {
 git submodule init
 git submodule foreach 'git submodule init'
 
-# Only split unquoted expansions on newlines
-IFS='
-'
 # Get list of missing submodules (lines starting with '-')
 missing_submodules=$(git submodule status --recursive | awk '/^-/{print $2}')
 for module in $missing_submodules; do
