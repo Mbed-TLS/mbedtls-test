@@ -25,6 +25,7 @@ import jenkins.model.CauseOfInterruption
 import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
 import org.mbed.tls.jenkins.BranchInfo
+import org.mbed.tls.jenkins.Repo
 
 void run_tls_tests(Collection<BranchInfo> infos) {
     try {
@@ -33,7 +34,7 @@ void run_tls_tests(Collection<BranchInfo> infos) {
         infos.each { info ->
             jobs << gen_jobs.gen_release_jobs(info, false)
 
-            if (env.RUN_ABI_CHECK == 'true' && info.repo == env.TARGET_REPO) {
+            if (env.RUN_ABI_CHECK == 'true' && info.repo == env.TARGET_REPO as Repo) {
                 jobs << gen_jobs.gen_abi_api_checking_job(info, 'ubuntu-18.04-amd64')
             }
         }
@@ -54,13 +55,13 @@ void run_tls_tests(Collection<BranchInfo> infos) {
 }
 
 /* main job */
-void run_pr_job(String target_repo, boolean is_production, String tls_branches, String tf_psa_crypto_branches) {
+void run_pr_job(Repo target_repo, boolean is_production, String tls_branches, String tf_psa_crypto_branches) {
     def (tls_split,    tf_psa_crypto_split) =
         [tls_branches, tf_psa_crypto_branches].collect({branches -> branches.split(',').findAll()})
     run_pr_job(target_repo, is_production, tls_split, tf_psa_crypto_split)
 }
 
-void run_pr_job(String target_repo, boolean is_production, Collection<String> tls_branches, Collection<String> tf_psa_crypto_branches) {
+void run_pr_job(Repo target_repo, boolean is_production, Collection<String> tls_branches, Collection<String> tf_psa_crypto_branches) {
     analysis.main_record_timestamps('run_pr_job') {
         if (is_production) {
             // Cancel in-flight jobs for the same PR when a new job is launched
@@ -153,25 +154,25 @@ void run_pr_job(String target_repo, boolean is_production, Collection<String> tl
 /* main job */
 void run_job() {
     // CHANGE_BRANCH is not set in "branch" jobs, eg. in the merge queue
-    run_pr_job('tls', true, env.CHANGE_BRANCH ?: env.BRANCH_NAME, '')
+    run_pr_job(Repo.tls, true, env.CHANGE_BRANCH ?: env.BRANCH_NAME, '')
 }
 
 void run_framework_pr_job() {
     environ.parse_scm_repo()
     run_pr_job(
-        'framework', true,
+        Repo.framework, true,
         env.IS_RESTRICTED ? ['development-restricted', 'mbedtls-3.6-restricted'] : ['development', 'mbedtls-3.6'],
         env.IS_RESTRICTED ? ['development-restricted']                           : ['development']
     )
 }
 
-void run_release_job(String target_repo, String tls_branches, String tf_psa_crypto_branches) {
+void run_release_job(Repo target_repo, String tls_branches, String tf_psa_crypto_branches) {
     def (tls_split,    tf_psa_crypto_split) =
         [tls_branches, tf_psa_crypto_branches].collect({branches -> branches.split(',').findAll()})
     run_release_job(target_repo, tls_split, tf_psa_crypto_split)
 }
 
-void run_release_job(String target_repo, Collection<String> tls_branches, Collection<String> tf_psa_crypto_branches) {
+void run_release_job(Repo target_repo, Collection<String> tls_branches, Collection<String> tf_psa_crypto_branches) {
     analysis.main_record_timestamps('run_release_job') {
         List<BranchInfo> infos = []
         try {

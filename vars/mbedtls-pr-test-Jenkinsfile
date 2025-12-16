@@ -48,5 +48,7 @@
  */
 
 /* main job */
-library identifier: 'mbedtls-test@master', retriever: legacySCM(scm)
-mbedtls.run_pr_job(env.TARGET_REPO ?: 'tls', false, env.MBED_TLS_BRANCH, env.TARGET_REPO == 'crypto' ? env.TF_PSA_CRYPTO_BRANCH : '')
+def src = library identifier: 'mbedtls-test@master', retriever: legacySCM(scm)
+def repo = src.org.mbed.tls.jenkins.Repo
+def target_repo = env.TARGET_REPO ? repo.valueOf(env.TARGET_REPO) : repo.tls
+mbedtls.run_pr_job(target_repo, false, env.MBED_TLS_BRANCH, target_repo != repo.tls ? env.TF_PSA_CRYPTO_BRANCH : '')

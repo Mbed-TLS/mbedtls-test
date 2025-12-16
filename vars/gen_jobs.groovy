@@ -686,7 +686,7 @@ def gen_release_jobs(BranchInfo info, boolean run_examples=true) {
         })
     }
 
-    if (info.repo == 'tls') {
+    if (info.repo == Repo.tls) {
         if (env.RUN_BASIC_BUILD_TEST == "true") {
             jobs << gen_code_coverage_job(info, 'ubuntu-16.04-amd64');
         }

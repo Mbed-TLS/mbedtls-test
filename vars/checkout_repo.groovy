@@ -87,7 +87,7 @@ String get_submodule_commit(String working_dir = '.', String submodule) {
 }
 
 private void checkout_framework_repo(BranchInfo info) {
-    if (env.TARGET_REPO == 'framework' && env.CHECKOUT_METHOD == 'scm') {
+    if (env.TARGET_REPO as Repo == Repo.framework && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
     } else {
         def branch = env.FRAMEWORK_BRANCH ?: info.framework_override
@@ -105,7 +105,7 @@ private void checkout_framework_repo(BranchInfo info) {
 }
 
 private void checkout_tf_psa_crypto_repo(BranchInfo info) {
-    if (env.TARGET_REPO == 'crypto' && env.CHECKOUT_METHOD == 'scm') {
+    if (env.TARGET_REPO as Repo == Repo.crypto && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
         if (!info.framework_override) {
             if (!isUnix()) {
@@ -116,13 +116,13 @@ private void checkout_tf_psa_crypto_repo(BranchInfo info) {
         }
     } else {
         String branch
-        if (info.repo == 'crypto') {
+        if (info.repo == Repo.crypto) {
             branch = info.branch
         } else {
             branch = env.TF_PSA_CRYPTO_BRANCH
         }
         if (env.TF_PSA_CRYPTO_REPO && branch) {
-            if (info.repo != 'crypto') {
+            if (info.repo != Repo.crypto) {
                 echo "Applying tf-psa-crypto override ($branch)"
             }
             try_checkout_from_repos([env.TF_PSA_CRYPTO_REPO, env.TF_PSA_CRYPTO_FALLBACK_REPO], branch)
@@ -141,12 +141,12 @@ private void checkout_tf_psa_crypto_repo(BranchInfo info) {
 }
 
 private Map<String, String> checkout_tls_repo(BranchInfo info) {
-    if (info.repo != 'tls') {
+    if (info.repo != Repo.tls) {
         throw new IllegalArgumentException("checkout_tls_repo() called with BranchInfo for repo '$info.repo'")
     }
 
     def scm_config
-    if (env.TARGET_REPO == 'tls' && env.CHECKOUT_METHOD == 'scm') {
+    if (env.TARGET_REPO as Repo == Repo.tls && env.CHECKOUT_METHOD == 'scm') {
         scm_config = scm
     } else {
         scm_config = parametrized_repo(env.MBED_TLS_REPO, info.branch)
@@ -178,10 +178,10 @@ void checkout_repo(BranchInfo info) {
             lock(resource: "stash-lock/${env.BUILD_TAG}-${stashName}") {
                 if (!info.stash) {
                     switch (info.repo) {
-                        case 'tls':
+                        case Repo.tls:
                             checkout_tls_repo(info)
                             break
-                        case 'crypto':
+                        case Repo.crypto:
                             checkout_tf_psa_crypto_repo(info)
                             break
                         default:

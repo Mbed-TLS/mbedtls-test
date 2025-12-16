@@ -38,6 +38,7 @@ import org.jenkinsci.plugins.github_branch_source.Connector
 import org.kohsuke.github.GHPermissionType
 
 import org.mbed.tls.jenkins.BranchInfo
+import org.mbed.tls.jenkins.Repo
 
 /* Indicates if CI is running on Open CI (hosted on https://mbedtls.trustedfirmware.org/) */
 @Field final boolean is_legacy_open_ci_env = env.JENKINS_URL ==~ /\S+(mbedtls\.trustedfirmware\.org)\S+/
@@ -256,11 +257,11 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
     List<BranchInfo> infos = []
     Map<String, Object> list_components_jobs = [:]
 
-    Map<String, Collection<String>> repos = ['tls': tls_branches, 'crypto': tf_psa_crypto_branches]
+    Map<Repo, Collection<String>> repos = [Repo.tls: tls_branches, Repo.crypto: tf_psa_crypto_branches]
     // Filter out repos with no branches
     repos = repos.findAll({repo, branches -> branches})
 
-    repos.each { String repo, Collection<String> branches ->
+    repos.each { Repo repo, Collection<String> branches ->
         branches.each { String branch ->
             BranchInfo info = new BranchInfo()
             info.repo = repo

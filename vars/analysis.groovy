@@ -268,7 +268,7 @@ fi
             }
         }
 
-        String script_in_docker = info.repo == 'tls' ? "tests/scripts/analyze_outcomes.py '$outcomes_csv'" : ''
+        String script_in_docker = info.repo == Repo.tls ? "tests/scripts/analyze_outcomes.py '$outcomes_csv'" : ''
 
         Closure post_execution = {
             sh "[ -f '$outcomes_csv' ] && xz -0 -T0 '$outcomes_csv'"

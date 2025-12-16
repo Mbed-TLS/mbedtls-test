@@ -21,6 +21,8 @@ import hudson.plugins.git.GitSCM
 import hudson.scm.NullSCM
 import org.jenkinsci.plugins.workflow.multibranch.SCMVar
 
+import org.mbed.tls.jenkins.Repo
+
 def set_common_environment() {
     /* Do moderately parallel builds. This overrides the default in all.sh
      * which is to do maximally parallel builds (-j). Massively parallel builds
@@ -31,7 +33,7 @@ def set_common_environment() {
     env.VERBOSE_LOGS=1
 }
 
-void set_pr_environment(String target_repo, boolean is_production) {
+void set_pr_environment(Repo target_repo, boolean is_production) {
     set_common_environment()
     env.JOB_TYPE = 'PR'
     env.TARGET_REPO = target_repo
@@ -92,7 +94,7 @@ def set_common_pr_production_environment() {
     parse_scm_repo()
 }
 
-def set_tls_release_environment(String target_repo) {
+def set_tls_release_environment(Repo target_repo) {
     set_common_environment()
     env.JOB_TYPE = 'release'
     env.TARGET_REPO = target_repo
