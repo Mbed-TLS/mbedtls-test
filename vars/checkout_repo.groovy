@@ -105,7 +105,7 @@ private void checkout_framework_repo(BranchInfo info) {
 }
 
 private void checkout_tf_psa_crypto_repo(BranchInfo info) {
-    if (env.TARGET_REPO == 'tf-psa-crypto' && env.CHECKOUT_METHOD == 'scm') {
+    if (env.TARGET_REPO == 'crypto' && env.CHECKOUT_METHOD == 'scm') {
         checkout_report_errors(scm)
         if (!info.framework_override) {
             if (!isUnix()) {
@@ -116,13 +116,13 @@ private void checkout_tf_psa_crypto_repo(BranchInfo info) {
         }
     } else {
         String branch
-        if (info.repo == 'tf-psa-crypto') {
+        if (info.repo == 'crypto') {
             branch = info.branch
         } else {
             branch = env.TF_PSA_CRYPTO_BRANCH
         }
         if (env.TF_PSA_CRYPTO_REPO && branch) {
-            if (info.repo != 'tf-psa-crypto') {
+            if (info.repo != 'crypto') {
                 echo "Applying tf-psa-crypto override ($branch)"
             }
             try_checkout_from_repos([env.TF_PSA_CRYPTO_REPO, env.TF_PSA_CRYPTO_FALLBACK_REPO], branch)
@@ -181,7 +181,7 @@ void checkout_repo(BranchInfo info) {
                         case 'tls':
                             checkout_tls_repo(info)
                             break
-                        case 'tf-psa-crypto':
+                        case 'crypto':
                             checkout_tf_psa_crypto_repo(info)
                             break
                         default:
