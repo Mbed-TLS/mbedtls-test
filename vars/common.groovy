@@ -304,26 +304,16 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
 
                         String platform = linux_platforms[0]
                         get_docker_image(platform)
-                        def all_sh_help = sh(
+                        def all = sh(
                             script: docker_script(
-                                platform, "./tests/scripts/all.sh", "--help"
+                                platform, "./tests/scripts/all.sh",
+                                "--list-all-components"
                             ),
                             returnStdout: true
-                        )
-                        if (all_sh_help.contains('list-components')) {
-                            def all = sh(
-                                script: docker_script(
-                                    platform, "./tests/scripts/all.sh",
-                                    "--list-all-components"
-                                ),
-                                returnStdout: true
-                            ).trim().split('\n')
-                            echo "all.sh components: ${all.join(" ")}"
-                            return all.collectEntries { element ->
-                                return [(element): null]
-                            }
-                        } else {
-                            error('Pre Test Checks failed: Base branch out of date. Please rebase')
+                        ).trim().split('\n')
+                        echo "All all.sh components in ${repo}/${branch}: ${all.join(" ")}"
+                        return all.collectEntries { element ->
+                            return [(element): null]
                         }
                     } finally {
                         deleteDir()
@@ -340,25 +330,15 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
                                 checkout_repo.checkout_repo(info)
                             }
                             get_docker_image(platform)
-                            def all_sh_help = sh(
+                            def available = sh(
                                 script: docker_script(
-                                    platform, "./tests/scripts/all.sh", "--help"
+                                    platform, "./tests/scripts/all.sh", "--list-components"
                                 ),
                                 returnStdout: true
-                            )
-                            if (all_sh_help.contains('list-components')) {
-                                def available = sh(
-                                    script: docker_script(
-                                        platform, "./tests/scripts/all.sh", "--list-components"
-                                    ),
-                                    returnStdout: true
-                                ).trim().split('\n')
-                                echo "Available all.sh components on ${platform}: ${available.join(" ")}"
-                                return available.collectEntries { element ->
-                                    return [(element): platform]
-                                }
-                            } else {
-                                error('Pre Test Checks failed: Base branch out of date. Please rebase')
+                            ).trim().split('\n')
+                            echo "Available all.sh components in ${repo}/${branch} on ${platform}: ${available.join(" ")}"
+                            return available.collectEntries { element ->
+                                return [(element): platform]
                             }
                         } finally {
                             deleteDir()
@@ -448,6 +428,21 @@ void maybe_notify_github(String state, String description, String context=null) 
 -                * Needed for testing Github merge queues */
                  account: env.GITHUB_ORG,
                  repo: env.GITHUB_REPO
+}
+
+def archive_release_artifacts(BranchInfo info) {
+    /* Look for files with an extension in a directory called
+     * `release-artifacts`, which is where `prepare_release.py` drops
+     * its artifacts. Skip dot files and don't look in subdirectories.
+     * Look not just immediately under the root but also look in
+     * e.g. `tf-psa-crypto/release-artifacts`.
+     */
+    archiveArtifacts(
+        artifacts: '**/release-artifacts/*.*',
+        excludes: '**/.*',
+        fingerprint: true,
+        allowEmptyArchive: true
+    )
 }
 
 def archive_zipped_log_files(job_name) {

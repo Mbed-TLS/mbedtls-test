@@ -63,6 +63,8 @@ RUN apt-get update -q && apt-get install -yq \
         curl \
         # to build Mbed TLS's documentation
         doxygen \
+        # for test_driver.py (since TF-PSA-Crypto 1.1)
+        exuberant-ctags \
         # to run tests in specific time.
         faketime \
         # to cross-build Mbed TLS
@@ -105,6 +107,8 @@ RUN apt-get update -q && apt-get install -yq \
         m4 \
         # to build Mbed TLS and others
         make \
+        # to build Mbed TLS (alternative CMake backend)
+        ninja-build \
         # to build GnuTLS with locally-compiled nettle
         pkg-config \
         # to install the preferred version of pylint
@@ -146,6 +150,11 @@ RUN apt-get update -q && apt-get install -yq \
     ln -s /usr/bin/gcc-4.7 /usr/local/bin/gcc-earliest && \
     ln -s /usr/bin/clang-3.5 /usr/local/bin/clang-earliest 
 
+# Make sure we have a UTF-8 locale
+RUN locale && \
+    locale-gen "en_US.UTF-8" && \
+    dpkg-reconfigure locales
+
 # Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
 # gcc-multilib conflicts with cross-compiler packages that we'll install later,
 # so don't keep it around. Just let it install its dependencies
@@ -182,6 +191,52 @@ RUN apt-get update -q && apt-get install -yq \
             gcc-aarch64-linux-gnu \
         ; \
     fi && rm -rf /var/lib/apt/lists/
+
+# Install the minimum versions of CMake that we advertize:
+# * CMake 3.10.2 in Mbed TLS 3.6 LTS (only available for x86_64, not for aarch64)
+# * CMake 3.20.2 in TF-PSA-Crypto 1.0. and Mbed TLS 4.0.0
+RUN cd /opt && \
+    if [ "$(uname -m)" = x86_64 ]; then \
+        wget -q https://github.com/Kitware/CMake/releases/download/v3.10.2/cmake-3.10.2-linux-$(uname -m).tar.gz && \
+        tar -xzf cmake-3.10.2-linux-$(uname -m).tar.gz && \
+        rm cmake-3.10.2-linux-$(uname -m).tar.gz; \
+    fi && \
+    wget -q https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2-linux-$(uname -m).tar.gz && \
+    tar -xzf cmake-3.20.2-linux-$(uname -m).tar.gz && \
+    rm cmake-3.20.2-linux-$(uname -m).tar.gz && \
+    for x in cmake-*-$(uname -m)/bin/*; do \
+        v="${x#*-}"; v="${v%%-*}"; \
+        ln -s "$PWD/$x" "/usr/local/bin/${x##*/}-${v}"; \
+    done
+
+# Install Python 3.6 and make it the default `python3` in $PATH.
+# This was the minimum Python version that we declared as required for
+# Mbed TLS 2.28 LTS, and is still the version with which we run pylint and
+# mypy as of November 2025.
+# Install Python 3.8.
+# This is the minimum Python version that we declare as required for
+# Mbed TLS 3.6 LTS.
+RUN wget -q https://github.com/pyenv/pyenv/archive/refs/tags/v2.4.0.tar.gz && \
+    tar -xzf v2.4.0.tar.gz && \
+    rm v2.4.0.tar.gz && \
+    cd pyenv-*/ && \
+    bin/pyenv install 3.6 && \
+    bin/pyenv install 3.8 && \
+    ln -s ~/.pyenv/versions/3.*/bin/*3.* /usr/local/bin/ && \
+    ln -s python3.6 /usr/local/bin/python3 && \
+    ln -s pip3.6 /usr/local/bin/pip3 && \
+    ln -s "$PWD/src/pyenv" /usr/local/bin/
+
+RUN python3 -m pip config set global.progress_bar off && \
+    # Python 3.6 from pyenv comes with pip 18.1.
+    # We want the ability to specify both a versioned requirement and an
+    # unversioned requirement for the same package (e.g.
+    # `pip install foo bar foo==42`), and this is only possible since
+    # pip 20.3. So upgrade pip, to the last version that still supports
+    # Python 3.6.
+    python3 -m pip install 'pip<22' --upgrade && \
+    python3 -m pip install setuptools --upgrade && \
+    true
 
 # Install exact upstream versions of OpenSSL and GnuTLS
 #
@@ -309,46 +364,24 @@ RUN wget -q https://github.com/lvc/abi-compliance-checker/archive/2.3.tar.gz && 
 RUN git clone --branch 1.1 https://github.com/lvc/abi-dumper.git && \
     cd abi-dumper && make install prefix=/usr && cd .. && rm -rf abi-dumper
 
-# Install Python 3.6 and make it the default `python3` in $PATH.
-# This is the minimum Python version that we declare as required for
-# Mbed TLS 2.28 LTS.
-RUN wget -q https://github.com/pyenv/pyenv/archive/refs/tags/v2.4.0.tar.gz && \
-    tar -xzf v2.4.0.tar.gz && \
-    rm v2.4.0.tar.gz && \
-    cd pyenv-*/ && \
-    bin/pyenv install 3.6 && \
-    ln -s ~/.pyenv/versions/3.6.*/bin/*3.6 /usr/local/bin/ && \
-    ln -s python3.6 /usr/local/bin/python3 && \
-    ln -s pip3.6 /usr/local/bin/pip3 && \
-    ln -s "$PWD/src/pyenv" /usr/local/bin/
-
-RUN python3 -m pip config set global.progress_bar off && \
-    # Python 3.6 from pyenv comes with pip 18.1.
-    # We want the ability to specify both a versioned requirement and an
-    # unversioned requirement for the same package (e.g.
-    # `pip install foo bar foo==42`), and this is only possible since
-    # pip 20.3. So upgrade pip, to the last version that still supports
-    # Python 3.6.
-    python3 -m pip install 'pip<22' --upgrade && \
-    python3 -m pip install setuptools --upgrade && \
-    true
-
-# Make sure we have a UTF-8 locale
-RUN locale && \
-    locale-gen "en_US.UTF-8" && \
-    dpkg-reconfigure locales
-
 # Add user
 RUN useradd -m user
 
 # Create workspace
 # FIXME: This should be /var/lib/build to use the host src directory as HOME
 ARG AGENT_WORKDIR=/var/lib/builds
-RUN mkdir -p ${AGENT_WORKDIR} && chown user:user ${AGENT_WORKDIR}
-USER user
 ENV AGENT_WORKDIR=${AGENT_WORKDIR}
+RUN mkdir -p ${AGENT_WORKDIR} && chown -R user:user ${AGENT_WORKDIR}
 
+# From now on, run as the unprivileged user.
+USER user
 WORKDIR ${AGENT_WORKDIR}
+
+RUN \
+    # Make it possible to do git commits, e.g. to test prepare_release.py.
+    git config --global user.name 'Contained User' && \
+    git config --global user.email 'contained.user@unknown.invalid' && \
+    :
 
 ENTRYPOINT ["bash"]
 

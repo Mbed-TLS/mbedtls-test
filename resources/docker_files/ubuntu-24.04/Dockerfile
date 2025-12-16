@@ -95,6 +95,8 @@ RUN apt-get update -q && apt-get install -yq \
         m4 \
         # to build Mbed TLS and others
         make \
+        # to build Mbed TLS (alternative CMake backend)
+        ninja-build \
         # to build GnuTLS with locally-compiled nettle
         pkg-config \
         # to install several Python packages (done by individual jobs)
@@ -105,6 +107,8 @@ RUN apt-get update -q && apt-get install -yq \
         python3-venv \
         # provides some useful scripts for adding and removing repositories
         software-properties-common \
+        # for test_driver.py (since TF-PSA-Crypto 1.1)
+        universal-ctags \
         # for Mbed TLS tests
         valgrind \
         # to download things installed from other places
@@ -134,6 +138,11 @@ RUN apt-get update -q && apt-get install -yq \
             ;; \
     esac && \
     rm -rf /var/lib/apt/lists/ 
+
+# Make sure we have a UTF-8 locale
+RUN locale && \
+    locale-gen "en_US.UTF-8" && \
+    dpkg-reconfigure locales
 
 # For installing clang-latest, we add the LLVM package source
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 15CF4D18AF4F7421 && \
@@ -198,6 +207,23 @@ RUN wget -q https://mirror.koddos.net/gcc/releases/gcc-15.1.0/gcc-15.1.0.tar.xz 
     make install && \
     cd .. && \
     rm -rf gcc-15.1.0
+
+# Install the minimum versions of CMake that we advertize:
+# * CMake 3.10.2 in Mbed TLS 3.6 LTS (only available for x86_64, not for aarch64)
+# * CMake 3.20.2 in TF-PSA-Crypto 1.0. and Mbed TLS 4.0.0
+RUN cd /opt && \
+    if [ "$(uname -m)" = x86_64 ]; then \
+        wget -q https://github.com/Kitware/CMake/releases/download/v3.10.2/cmake-3.10.2-linux-$(uname -m).tar.gz && \
+        tar -xzf cmake-3.10.2-linux-$(uname -m).tar.gz && \
+        rm cmake-3.10.2-linux-$(uname -m).tar.gz; \
+    fi && \
+    wget -q https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2-linux-$(uname -m).tar.gz && \
+    tar -xzf cmake-3.20.2-linux-$(uname -m).tar.gz && \
+    rm cmake-3.20.2-linux-$(uname -m).tar.gz && \
+    for x in cmake-*-$(uname -m)/bin/*; do \
+        v="${x#*-}"; v="${v%%-*}"; \
+        ln -s "$PWD/$x" "/usr/local/bin/${x##*/}-${v}"; \
+    done
 
 # Install exact upstream versions of OpenSSL and GnuTLS
 #
@@ -325,22 +351,24 @@ RUN python3 -m pip config set global.progress_bar off && \
     # (either "user" or the developer who runs "docker -u ...").
     python3 -m pip config set global.break-system-packages true
 
-# Make sure we have a UTF-8 locale
-RUN locale && \
-    locale-gen "en_US.UTF-8" && \
-    dpkg-reconfigure locales
-
 # Add user
 RUN useradd -m user
 
 # Create workspace
 # FIXME: This should be /var/lib/build to use the host src directory as HOME
 ARG AGENT_WORKDIR=/var/lib/builds
-RUN mkdir -p ${AGENT_WORKDIR} && chown user:user ${AGENT_WORKDIR}
-USER user
 ENV AGENT_WORKDIR=${AGENT_WORKDIR}
+RUN mkdir -p ${AGENT_WORKDIR} && chown -R user:user ${AGENT_WORKDIR}
 
+# From now on, run as the unprivileged user.
+USER user
 WORKDIR ${AGENT_WORKDIR}
+
+RUN \
+    # Make it possible to do git commits, e.g. to test prepare_release.py.
+    git config --global user.name 'Contained User' && \
+    git config --global user.email 'contained.user@unknown.invalid' && \
+    :
 
 ENTRYPOINT ["bash"]
 

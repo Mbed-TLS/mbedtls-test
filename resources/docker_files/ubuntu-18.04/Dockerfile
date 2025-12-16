@@ -57,6 +57,8 @@ RUN apt-get update -q && apt-get install -yq \
         cmake \
         # to build Mbed TLS's documentation
         doxygen \
+        # for test_driver.py (since TF-PSA-Crypto 1.1)
+        exuberant-ctags \
         # to run tests in specific time.
         faketime \
         # to cross-build Mbed TLS
@@ -81,12 +83,16 @@ RUN apt-get update -q && apt-get install -yq \
         m4 \
         # to build Mbed TLS and others
         make \
+        # to build Mbed TLS (alternative CMake backend)
+        ninja-build \
         # to build GnuTLS with locally-compiled nettle
         pkg-config \
         # to install several Python packages (done by individual jobs)
         python3-pip \
         # to install several Python packages (done by individual jobs)
         python3-venv \
+        # minimum version of Python officially required for Mbed TLS 3.6 LTS
+        python3.8-venv \
         # for Mbed TLS tests
         valgrind \
         # to download things installed from other places
@@ -116,6 +122,11 @@ RUN apt-get update -q && apt-get install -yq \
             ;; \
     esac && \
     rm -rf /var/lib/apt/lists/
+
+# Make sure we have a UTF-8 locale
+RUN locale && \
+    locale-gen "en_US.UTF-8" && \
+    dpkg-reconfigure locales
 
 # Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
 # gcc-multilib conflicts with cross-compiler packages that we'll install later,
@@ -153,6 +164,23 @@ RUN apt-get update -q && apt-get install -yq \
             gcc-aarch64-linux-gnu \
         ; \
     fi && rm -rf /var/lib/apt/lists/
+
+# Install the minimum versions of CMake that we advertize:
+# * CMake 3.10.2 in Mbed TLS 3.6 LTS (only available for x86_64, not for aarch64)
+# * CMake 3.20.2 in TF-PSA-Crypto 1.0. and Mbed TLS 4.0.0
+RUN cd /opt && \
+    if [ "$(uname -m)" = x86_64 ]; then \
+        wget -q https://github.com/Kitware/CMake/releases/download/v3.10.2/cmake-3.10.2-linux-$(uname -m).tar.gz && \
+        tar -xzf cmake-3.10.2-linux-$(uname -m).tar.gz && \
+        rm cmake-3.10.2-linux-$(uname -m).tar.gz; \
+    fi && \
+    wget -q https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2-linux-$(uname -m).tar.gz && \
+    tar -xzf cmake-3.20.2-linux-$(uname -m).tar.gz && \
+    rm cmake-3.20.2-linux-$(uname -m).tar.gz && \
+    for x in cmake-*-$(uname -m)/bin/*; do \
+        v="${x#*-}"; v="${v%%-*}"; \
+        ln -s "$PWD/$x" "/usr/local/bin/${x##*/}-${v}"; \
+    done
 
 # Install abi-compliance-checker
 # The version in Ubuntu 18.04 is too old, we want at least the version below
@@ -301,21 +329,23 @@ RUN python3 -m pip install 'pip<22' --upgrade | cat && \
     python3 -m pip install setuptools --upgrade && \
     true
 
-# Make sure we have a UTF-8 locale
-RUN locale && \
-    locale-gen "en_US.UTF-8" && \
-    dpkg-reconfigure locales
-
 # Add user
 RUN useradd -m user
 
 # Create workspace
 ARG AGENT_WORKDIR=/var/lib/builds
-RUN mkdir -p ${AGENT_WORKDIR} && chown user:user ${AGENT_WORKDIR}
-USER user
 ENV AGENT_WORKDIR=${AGENT_WORKDIR}
+RUN mkdir -p ${AGENT_WORKDIR} && chown -R user:user ${AGENT_WORKDIR}
 
+# From now on, run as the unprivileged user.
+USER user
 WORKDIR ${AGENT_WORKDIR}
+
+RUN \
+    # Make it possible to do git commits, e.g. to test prepare_release.py.
+    git config --global user.name 'Contained User' && \
+    git config --global user.email 'contained.user@unknown.invalid' && \
+    :
 
 ENTRYPOINT ["bash"]
 
