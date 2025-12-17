@@ -274,7 +274,7 @@ Map<String, Object> parametrized_repo(String repo, String branch) {
             refspec: "+$source_ref:refs/remotes/origin/$remote_tracking_branch",
             credentialsId: env.GIT_CREDENTIALS_ID
         ]],
-        branches: [[name: branch]],
+        branches: [[name: localBranch]],
         extensions: [
             [$class: 'CloneOption', timeout: 60, honorRefspec: true, shallow: true],
             [$class: 'SubmoduleOption', disableSubmodules: true],
