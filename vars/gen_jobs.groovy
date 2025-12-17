@@ -488,7 +488,7 @@ git submodule foreach --recursive '
     }
 
     String script_in_docker = """
-tests/scripts/list-identifiers.sh --internal
+tests/scripts/list_internal_identifiers.py
 # Workaround for abi_check.py failing to properly escape slashes in ref names
 scripts/abi_check.py -o \$(git rev-parse 'origin/${env.CHANGE_TARGET}^{commit}') -n HEAD -s identifiers --brief
 """
