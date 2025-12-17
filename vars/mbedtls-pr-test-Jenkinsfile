@@ -24,7 +24,17 @@
  *
  * Repos and branches
  *  - TARGET_REPO
+ *      Tells the parametrized job to behave like a PR targeting the specified repo.
+ *      At the moment, it affects two things in PR jobs:
+ *        - TF-PSA-Crypto all.sh components are skipped if set to 'mbedtls'
+ *        - API-ABI-Check selects which repo to use based on the TARGET_REPO setting.
+ *          (selecting 'mbedtls-framework' disables the test)
+ *      Possible values:
+ *        - mbedtls
+ *        - TF-PSA-Crypto
+ *        - mbedtls-framework
  *  - CHANGE_TARGET
+ *      a commit-ish (commit/branch/tag/etc.) in TARGET_REPO that API-ABI-Check compares against
  *  - MBED_TLS_REPO
  *  - MBED_TLS_BRANCH
  *  - FRAMEWORK_REPO
