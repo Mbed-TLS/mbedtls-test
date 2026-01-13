@@ -98,6 +98,8 @@ RUN apt-get update -q && apt-get install -yq \
         python3-pip \
         # to install several Python packages (done by individual jobs)
         python3-venv \
+        # make `python` invoke `python3`
+        python-is-python3 \
         # to download things installed from other places
         wget \
     && rm -rf /var/lib/apt/lists/
