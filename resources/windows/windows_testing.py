@@ -78,7 +78,8 @@ class MbedWindowsTesting(object):
                 "MBEDTLS_THREADING_PTHREAD",
                 "MBEDTLS_THREADING_ALT",
                 "MBEDTLS_THREADING_C",
-                "MBEDTLS_DEPRECATED_WARNING"
+                "MBEDTLS_DEPRECATED_WARNING",
+                "TF_PSA_CRYPTO_PQCP_MLDSA_ENABLED",
             ]
         if "visual_studio_configurations" in testing_config.keys():
             self.visual_studio_configurations = testing_config[
