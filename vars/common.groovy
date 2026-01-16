@@ -256,7 +256,7 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
     List<BranchInfo> infos = []
     Map<String, Object> list_components_jobs = [:]
 
-    Map<String, Collection<String>> repos = ['tls': tls_branches, 'tf-psa-crypto': tf_psa_crypto_branches]
+    Map<String, Collection<String>> repos = ['mbedtls': tls_branches, 'TF-PSA-Crypto': tf_psa_crypto_branches]
     // Filter out repos with no branches
     repos = repos.findAll({repo, branches -> branches})
 

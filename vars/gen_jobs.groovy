@@ -489,7 +489,7 @@ git submodule foreach --recursive '
     }
 
     String script_in_docker = """
-tests/scripts/list-identifiers.sh --internal
+tests/scripts/list_internal_identifiers.py
 # Workaround for abi_check.py failing to properly escape slashes in ref names
 scripts/abi_check.py -o \$(git rev-parse 'origin/${env.CHANGE_TARGET}^{commit}') -n HEAD -s identifiers --brief
 """
@@ -689,7 +689,7 @@ def gen_release_jobs(BranchInfo info, boolean run_examples=true) {
         echo "Skipping all.sh testing because RUN_ALL_SH is not true"
     }
 
-    if (info.repo == 'tls') {
+    if (info.repo == 'mbedtls') {
         if (env.RUN_BASIC_BUILD_TEST == "true") {
             jobs << gen_code_coverage_job(info, 'ubuntu-16.04-amd64');
         } else {

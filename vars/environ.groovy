@@ -92,10 +92,10 @@ def set_common_pr_production_environment() {
     parse_scm_repo()
 }
 
-def set_tls_release_environment() {
+def set_tls_release_environment(String target_repo) {
     set_common_environment()
     env.JOB_TYPE = 'release'
-    env.TARGET_REPO = 'tls'
+    env.TARGET_REPO = target_repo
     env.CHECKOUT_METHOD = 'parametrized'
 }
 

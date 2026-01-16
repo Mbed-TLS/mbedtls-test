@@ -23,6 +23,14 @@
  * This script takes the following parameters:
  *
  * Repos and branches
+ *  - TARGET_REPO
+ *      Tells the parametrized job to behave like a PR targeting the specified repo.
+ *      At the moment, it affects one thing in release jobs:
+ *        - TF-PSA-Crypto all.sh components are skipped if set to 'mbedtls'
+ *      Possible values:
+ *        - mbedtls
+ *        - TF-PSA-Crypto
+ *        - mbedtls-framework
  *  - MBED_TLS_REPO
  *  - MBED_TLS_BRANCH
  *  - FRAMEWORK_REPO
@@ -35,7 +43,6 @@
  *  - RUN_BASIC_BUILD_TEST
  *  - RUN_FREEBSD
  *  - RUN_WINDOWS_TEST
- *  - RUN_TF_PSA_CRYPTO_ALL_SH
  *
  * Other parameters
  *  - PUSH_COVERITY
@@ -49,4 +56,5 @@
 
 /* main job */
 library identifier: 'mbedtls-test@master', retriever: legacySCM(scm)
-mbedtls.run_release_job(env.MBED_TLS_BRANCH, env.RUN_TF_PSA_CRYPTO_ALL_SH == 'true' ? env.TF_PSA_CRYPTO_BRANCH : '')
+String target_repo = env.TARGET_REPO ?: 'mbedtls'
+mbedtls.run_release_job(target_repo, env.MBED_TLS_BRANCH, target_repo == 'mbedtls' ? '' : env.TF_PSA_CRYPTO_BRANCH)
