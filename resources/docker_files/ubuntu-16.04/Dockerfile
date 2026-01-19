@@ -364,6 +364,9 @@ RUN wget -q https://github.com/lvc/abi-compliance-checker/archive/2.3.tar.gz && 
 RUN git clone --branch 1.1 https://github.com/lvc/abi-dumper.git && \
     cd abi-dumper && make install prefix=/usr && cd .. && rm -rf abi-dumper
 
+# Make python point to python3
+RUN ln -sf /usr/local/bin/python3 /usr/local/bin/python
+
 # Add user
 RUN useradd -m user
 
