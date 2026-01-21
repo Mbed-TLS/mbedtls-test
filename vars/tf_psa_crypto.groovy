@@ -1,4 +1,4 @@
 void run_pr_job() {
     environ.parse_scm_repo()
-    mbedtls.run_pr_job('TF-PSA-Crypto', true, env.IS_RESTRICTED ? 'development-restricted' : 'development', env.CHANGE_BRANCH ?: env.BRANCH_NAME)
+    mbedtls.run_pr_job('TF-PSA-Crypto', true, [env.IS_RESTRICTED ? 'development-restricted' : 'development'], [env.BRANCH_NAME])
 }

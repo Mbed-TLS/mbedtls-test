@@ -152,8 +152,7 @@ void run_pr_job(String target_repo, boolean is_production, Collection<String> tl
 
 /* main job */
 void run_job() {
-    // CHANGE_BRANCH is not set in "branch" jobs, eg. in the merge queue
-    run_pr_job('mbedtls', true, env.CHANGE_BRANCH ?: env.BRANCH_NAME, '')
+    run_pr_job('mbedtls', true, [env.BRANCH_NAME], [])
 }
 
 void run_framework_pr_job() {
