@@ -175,7 +175,7 @@ void run_release_job(String target_repo, Collection<String> tls_branches, Collec
     analysis.main_record_timestamps('run_release_job') {
         List<BranchInfo> infos = []
         try {
-            environ.set_tls_release_environment(target_repo)
+            environ.set_release_environment(target_repo)
             common.init_docker_images()
 
             stage('branch-info') {
