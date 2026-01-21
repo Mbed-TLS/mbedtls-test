@@ -32,6 +32,13 @@ def set_common_environment() {
 }
 
 void set_pr_environment(String target_repo, boolean is_production) {
+    if (env.JOB_TYPE) {
+        // The environment is being re-initialized. Assert that we got the same arguments as the previous call.
+        assert env.JOB_TYPE        == 'PR' &&
+               env.TARGET_REPO     == target_repo &&
+               env.CHECKOUT_METHOD == (is_production ? 'scm' : 'parametrized')
+        return
+    }
     set_common_environment()
     env.JOB_TYPE = 'PR'
     env.TARGET_REPO = target_repo
@@ -93,6 +100,12 @@ def set_common_pr_production_environment() {
 }
 
 def set_tls_release_environment(String target_repo) {
+    if (env.JOB_TYPE) {
+        // The environment is being re-initialized. Assert that we got the same arguments as the previous call.
+        assert env.JOB_TYPE    == 'release' &&
+               env.TARGET_REPO == target_repo
+        return
+    }
     set_common_environment()
     env.JOB_TYPE = 'release'
     env.TARGET_REPO = target_repo
