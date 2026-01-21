@@ -17,6 +17,8 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+import java.util.regex.Matcher
+
 import hudson.plugins.git.GitSCM
 import hudson.scm.NullSCM
 import org.jenkinsci.plugins.workflow.multibranch.SCMVar
@@ -92,6 +94,11 @@ def set_common_pr_production_environment() {
     if (env.BRANCH_NAME ==~ /PR-\d+-merge/) {
         env.RUN_ABI_CHECK = 'true'
     } else {
+        // Extract target branch name in merge-queue jobs
+        Matcher matcher = env.BRANCH_NAME =~ '^gh-readonly-queue/([^/]*)/'
+        if (matcher) {
+            env.CHANGE_TARGET = matcher.group(1)
+        }
         env.RUN_FREEBSD = 'true'
         env.RUN_WINDOWS_TEST = 'true'
         env.RUN_ALL_SH = 'true'
