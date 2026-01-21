@@ -99,7 +99,7 @@ def set_common_pr_production_environment() {
     parse_scm_repo()
 }
 
-def set_tls_release_environment(String target_repo) {
+void set_release_environment(String target_repo) {
     if (env.JOB_TYPE) {
         // The environment is being re-initialized. Assert that we got the same arguments as the previous call.
         assert env.JOB_TYPE    == 'release' &&
