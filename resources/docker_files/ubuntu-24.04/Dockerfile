@@ -351,8 +351,9 @@ RUN python3 -m pip config set global.progress_bar off && \
     # (either "user" or the developer who runs "docker -u ...").
     python3 -m pip config set global.break-system-packages true
 
-# Add user
-RUN useradd -m user
+# Remove the ubuntu(uid:1000) user and add our own - this matches the behaviour of older
+# Ubuntu base images and is required for User-based licenses to work.
+RUN userdel -r ubuntu && useradd -m user
 
 # Create workspace
 # FIXME: This should be /var/lib/build to use the host src directory as HOME
