@@ -173,6 +173,10 @@ void run_release_job(String target_repo, String tls_branches, String tf_psa_cryp
 
 void run_release_job(String target_repo, Collection<String> tls_branches, Collection<String> tf_psa_crypto_branches) {
     analysis.main_record_timestamps('run_release_job') {
+        common.mbedtls_node('windows') {
+            bat(script: 'ver & chcp & tree C:\\', encoding: 'cp437')
+        }
+        return
         List<BranchInfo> infos = []
         try {
             environ.set_tls_release_environment(target_repo)
