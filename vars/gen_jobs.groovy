@@ -470,7 +470,8 @@ if [ "$CHECKOUT_METHOD" = "parametrized" ]; then
     git fetch --depth 1 origin "+$CHANGE_TARGET:refs/remotes/origin/$CHANGE_TARGET"
 else
     # Coerce FETCH_HEAD to refs/remotes/origin/$CHANGE_TARGET to match the fetch above
-    git update-ref FETCH_HEAD "refs/remotes/origin/$CHANGE_TARGET"
+    # Avoid using git update-ref, as it doesn't work with FETCH_HEAD in git 2.46+
+    git fetch . "refs/remotes/origin/$CHANGE_TARGET"
 fi
 echo "commit: $(git rev-parse FETCH_HEAD)"
 
