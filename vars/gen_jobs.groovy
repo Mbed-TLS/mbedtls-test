@@ -820,11 +820,14 @@ DOCKER_BUILDKIT=1 docker build \
     --cache-from $common.docker_repo:$image-cache \
     -t $common.docker_repo:$tag \
     -t $common.docker_repo:$cache \
+    -t $common.docker_repo_name:$tag \
     - <Dockerfile
 
 # Push the image with its unique tag, as well as the build cache tag
 docker push $common.docker_repo:$tag
 docker push $common.docker_repo:$cache
+# Push the image to the public Dockerhub repo
+docker push $common.docker_repo_name:$tag
 """
                             }
                         } finally {
