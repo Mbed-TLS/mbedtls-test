@@ -54,13 +54,13 @@ void run_tls_tests(Collection<BranchInfo> infos) {
 }
 
 /* main job */
-void run_pr_job(String target_repo, boolean is_production, String tls_branches, String tf_psa_crypto_branches) {
+void run_pr_job(boolean is_production, String tls_branches, String tf_psa_crypto_branches) {
     def (tls_split,    tf_psa_crypto_split) =
         [tls_branches, tf_psa_crypto_branches].collect({branches -> branches.split(',').findAll()})
-    run_pr_job(target_repo, is_production, tls_split, tf_psa_crypto_split)
+    run_pr_job(is_production, tls_split, tf_psa_crypto_split)
 }
 
-void run_pr_job(String target_repo, boolean is_production, Collection<String> tls_branches, Collection<String> tf_psa_crypto_branches) {
+void run_pr_job(boolean is_production, Collection<String> tls_branches, Collection<String> tf_psa_crypto_branches) {
     analysis.main_record_timestamps('run_pr_job') {
         if (is_production) {
             // Cancel in-flight jobs for the same PR when a new job is launched
@@ -91,7 +91,6 @@ void run_pr_job(String target_repo, boolean is_production, Collection<String> tl
             ])
         }
 
-        environ.set_pr_environment(target_repo, is_production)
         boolean is_merge_queue = env.BRANCH_NAME ==~ /gh-readonly-queue\/.*/
 
         if (!is_merge_queue && currentBuild.rawBuild.getCause(Cause.UserIdCause) == null) {
@@ -152,30 +151,29 @@ void run_pr_job(String target_repo, boolean is_production, Collection<String> tl
 
 /* main job */
 void run_job() {
-    // CHANGE_BRANCH is not set in "branch" jobs, eg. in the merge queue
-    run_pr_job('mbedtls', true, env.CHANGE_BRANCH ?: env.BRANCH_NAME, '')
+    environ.set_pr_environment('mbedtls', true)
+    run_pr_job(true, [env.BRANCH_NAME], [])
 }
 
 void run_framework_pr_job() {
-    environ.parse_scm_repo()
+    environ.set_pr_environment('mbedtls-framework', true)
     run_pr_job(
-        'mbedtls-framework', true,
+        true,
         env.IS_RESTRICTED ? ['development-restricted', 'mbedtls-3.6-restricted'] : ['development', 'mbedtls-3.6'],
         env.IS_RESTRICTED ? ['development-restricted']                           : ['development']
     )
 }
 
-void run_release_job(String target_repo, String tls_branches, String tf_psa_crypto_branches) {
+void run_release_job(String tls_branches, String tf_psa_crypto_branches) {
     def (tls_split,    tf_psa_crypto_split) =
         [tls_branches, tf_psa_crypto_branches].collect({branches -> branches.split(',').findAll()})
-    run_release_job(target_repo, tls_split, tf_psa_crypto_split)
+    run_release_job(tls_split, tf_psa_crypto_split)
 }
 
-void run_release_job(String target_repo, Collection<String> tls_branches, Collection<String> tf_psa_crypto_branches) {
+void run_release_job(Collection<String> tls_branches, Collection<String> tf_psa_crypto_branches) {
     analysis.main_record_timestamps('run_release_job') {
         List<BranchInfo> infos = []
         try {
-            environ.set_tls_release_environment(target_repo)
             common.init_docker_images()
 
             stage('branch-info') {
