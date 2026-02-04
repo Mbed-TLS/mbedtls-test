@@ -12,5 +12,5 @@ void run_pr_job() {
         mbedtls_branch += '-restricted'
     }
 
-    mbedtls.run_pr_job('TF-PSA-Crypto', true, [mbedtls_branch], [env.BRANCH_NAME])
+    mbedtls.run_pr_job(true, [mbedtls_branch], [env.BRANCH_NAME])
 }

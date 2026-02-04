@@ -57,4 +57,5 @@
 /* main job */
 library identifier: 'mbedtls-test@master', retriever: legacySCM(scm)
 String target_repo = env.TARGET_REPO ?: 'mbedtls'
-mbedtls.run_release_job(target_repo, env.MBED_TLS_BRANCH, target_repo == 'mbedtls' ? '' : env.TF_PSA_CRYPTO_BRANCH)
+environ.set_release_environment(target_repo)
+mbedtls.run_release_job(env.MBED_TLS_BRANCH, target_repo == 'mbedtls' ? '' : env.TF_PSA_CRYPTO_BRANCH)
