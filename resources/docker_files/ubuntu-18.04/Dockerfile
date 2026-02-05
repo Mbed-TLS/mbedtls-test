@@ -71,6 +71,8 @@ RUN apt-get update -q && apt-get install -yq \
         lcov \
         # to build GnuTLS (nettle with public key support aka hogweed)
         libgmp-dev \
+        # For psa_sim_generate.pl
+        libjson-perl \
         # to build GnuTLS >= 3.6 (could also use --with-included-unistring)
         libunistring-dev \
         # to build GnuTLS

@@ -81,6 +81,8 @@ RUN apt-get update -q && apt-get install -yq \
         libffi-dev \
         # to build GnuTLS (nettle with public key support aka hogweed)
         libgmp-dev \
+        # For psa_sim_generate.pl
+        libjson-perl \
         # to build Python
         liblzma-dev \
         # to build Python
