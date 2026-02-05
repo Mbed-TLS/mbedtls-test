@@ -81,6 +81,8 @@ RUN apt-get update -q && apt-get install -yq \
         libgmp-dev \
         # build dependency of GCC
         libisl-dev libmpfr-dev libmpc-dev \
+        # For psa_sim_generate.pl
+        libjson-perl \
         # to build GnuTLS >= 3.6 (could also use --with-included-unistring)
         libunistring-dev \
         # to build GnuTLS
