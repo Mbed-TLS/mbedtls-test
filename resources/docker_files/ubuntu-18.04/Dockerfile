@@ -331,6 +331,9 @@ RUN python3 -m pip install 'pip<22' --upgrade | cat && \
     python3 -m pip install setuptools --upgrade && \
     true
 
+# Make python point to python3
+RUN ln -sf /usr/bin/python3 /usr/local/bin/python
+
 # Add user
 RUN useradd -m user
 

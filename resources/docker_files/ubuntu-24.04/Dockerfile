@@ -107,6 +107,8 @@ RUN apt-get update -q && apt-get install -yq \
         python3-setuptools \
         # to install several Python packages (done by individual jobs)
         python3-venv \
+        # make `python` invoke `python3`
+        python-is-python3 \
         # provides some useful scripts for adding and removing repositories
         software-properties-common \
         # for test_driver.py (since TF-PSA-Crypto 1.1)
