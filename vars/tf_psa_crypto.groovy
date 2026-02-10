@@ -4,7 +4,7 @@ void run_pr_job() {
 
     String mbedtls_branch = 'development'
     // Test PRs targeting an LTS branch with the compatible Mbed-TLS LTS branch
-    if (env.CHANGE_TARGET ==~ /tf-psa-crypto-1.1(-restricted)?/) {
+    if (env.CHANGE_TARGET ==~ /tf-psa-crypto-1\.1(-restricted)?/) {
         mbedtls_branch = 'mbedtls-4.1'
     }
 
