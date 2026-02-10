@@ -61,4 +61,5 @@
 library identifier: 'mbedtls-test@master', retriever: legacySCM(scm)
 String target_repo = env.TARGET_REPO ?: 'mbedtls'
 environ.set_pr_environment(target_repo, false)
+environ.set_pr_environment('foo', false)
 mbedtls.run_pr_job(false, env.MBED_TLS_BRANCH, target_repo == 'mbedtls' ? '' : env.TF_PSA_CRYPTO_BRANCH)
