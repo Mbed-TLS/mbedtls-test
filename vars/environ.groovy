@@ -36,9 +36,16 @@ def set_common_environment() {
 void set_pr_environment(String target_repo, boolean is_production) {
     if (env.JOB_TYPE) {
         // The environment is being re-initialized. Assert that we got the same arguments as the previous call.
-        assert env.JOB_TYPE        == 'PR' &&
-               env.TARGET_REPO     == target_repo &&
-               env.CHECKOUT_METHOD == (is_production ? 'scm' : 'parametrized')
+        if (env.JOB_TYPE != 'PR') {
+            throw new Exception('set_pr_environment() called after set_release_environment()')
+        }
+        boolean env_is_production = env.CHECKOUT_METHOD == 'scm'
+        if (env.TARGET_REPO != target_repo || env_is_production != is_production) {
+            throw new Exception(
+                'set_pr_environment(target_repo, is_production) called multiple times with different arguments:\n' +
+                "($env.TARGET_REPO, $env_is_production) != ($target_repo, $is_production)"
+            )
+        }
         return
     }
     set_common_environment()
@@ -109,8 +116,15 @@ def set_common_pr_production_environment() {
 void set_release_environment(String target_repo) {
     if (env.JOB_TYPE) {
         // The environment is being re-initialized. Assert that we got the same arguments as the previous call.
-        assert env.JOB_TYPE    == 'release' &&
-               env.TARGET_REPO == target_repo
+        if (env.JOB_TYPE != 'release') {
+            throw new Exception('set_release_environment() called after set_pr_environment()')
+        }
+        if (env.TARGET_REPO != target_repo) {
+            throw new Exception(
+                'set_release_environment(target_repo) called multiple times with different arguments:\n' +
+                "($env.TARGET_REPO) != ($target_repo)"
+            )
+        }
         return
     }
     set_common_environment()
