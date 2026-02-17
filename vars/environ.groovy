@@ -17,6 +17,8 @@
  *  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
  */
 
+import java.util.regex.Matcher
+
 import hudson.plugins.git.GitSCM
 import hudson.scm.NullSCM
 import org.jenkinsci.plugins.workflow.multibranch.SCMVar
@@ -32,6 +34,20 @@ def set_common_environment() {
 }
 
 void set_pr_environment(String target_repo, boolean is_production) {
+    if (env.JOB_TYPE) {
+        // The environment is being re-initialized. Assert that we got the same arguments as the previous call.
+        if (env.JOB_TYPE != 'PR') {
+            throw new Exception('set_pr_environment() called after set_release_environment()')
+        }
+        boolean env_is_production = env.CHECKOUT_METHOD == 'scm'
+        if (env.TARGET_REPO != target_repo || env_is_production != is_production) {
+            throw new Exception(
+                'set_pr_environment(target_repo, is_production) called multiple times with different arguments:\n' +
+                "($env.TARGET_REPO, $env_is_production) != ($target_repo, $is_production)"
+            )
+        }
+        return
+    }
     set_common_environment()
     env.JOB_TYPE = 'PR'
     env.TARGET_REPO = target_repo
@@ -85,6 +101,11 @@ def set_common_pr_production_environment() {
     if (env.BRANCH_NAME ==~ /PR-\d+-merge/) {
         env.RUN_ABI_CHECK = 'true'
     } else {
+        // Extract target branch name in merge-queue jobs
+        Matcher matcher = env.BRANCH_NAME =~ '^gh-readonly-queue/([^/]*)/'
+        if (matcher) {
+            env.CHANGE_TARGET = matcher.group(1)
+        }
         env.RUN_FREEBSD = 'true'
         env.RUN_WINDOWS_TEST = 'true'
         env.RUN_ALL_SH = 'true'
@@ -92,7 +113,20 @@ def set_common_pr_production_environment() {
     parse_scm_repo()
 }
 
-def set_tls_release_environment(String target_repo) {
+void set_release_environment(String target_repo) {
+    if (env.JOB_TYPE) {
+        // The environment is being re-initialized. Assert that we got the same arguments as the previous call.
+        if (env.JOB_TYPE != 'release') {
+            throw new Exception('set_release_environment() called after set_pr_environment()')
+        }
+        if (env.TARGET_REPO != target_repo) {
+            throw new Exception(
+                'set_release_environment(target_repo) called multiple times with different arguments:\n' +
+                "($env.TARGET_REPO) != ($target_repo)"
+            )
+        }
+        return
+    }
     set_common_environment()
     env.JOB_TYPE = 'release'
     env.TARGET_REPO = target_repo
