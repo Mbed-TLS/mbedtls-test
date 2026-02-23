@@ -158,8 +158,8 @@ void run_job() {
 void run_framework_pr_job() {
     environ.set_pr_environment('mbedtls-framework', true)
     Map<String, List<String>> repos = [
-        (env.MBED_TLS_REPO):      ['development', 'mbedtls-3.6'],
-        (env.TF_PSA_CRYPTO_REPO): ['development']
+        (env.MBED_TLS_REPO):      ['development', 'mbedtls-3.6', '?mbedtls-4.1'],
+        (env.TF_PSA_CRYPTO_REPO): ['development', '?tf-psa-crypto-1.1']
     ]
 
     repos = (Map<String, List<String>>) repos.collectEntries { url, branches ->
@@ -168,6 +168,25 @@ void run_framework_pr_job() {
                 // Test with *-restricted branches instead
                 branch += '-restricted'
             }
+
+            // Only test branches marked with '?' if they are found in the repo
+            if (branch.startsWith('?')) {
+                // Remove leading '?'
+                branch = branch[1..-1]
+                if (resolveScm(
+                    source: [
+                        $class: 'GitSCMSource',
+                        remote: url,
+                        credentialsId: env.GIT_CREDENTIALS_ID,
+                        traits: [gitBranchDiscovery()]
+                    ],
+                    targets: [branch],
+                    ignoreErrors: true
+                ) == null) {
+                    return null
+                }
+            }
+
             return branch
         })]
     }
