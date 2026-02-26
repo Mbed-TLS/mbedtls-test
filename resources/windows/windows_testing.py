@@ -97,7 +97,7 @@ class MbedWindowsTesting(object):
             self.visual_studio_vcvars_path = testing_config[
                 "visual_studio_versions"]
         else:
-            self.visual_studio_versions = ["2010", "2013", "2015", "2017"]
+            self.visual_studio_versions = ["2010", "2013", "2015", "2017", "2019"]
             self.visual_studio_vcvars_path = {
                 "2010": os.path.join(
                     "C:", os.sep, "Program Files (x86)",
@@ -114,6 +114,11 @@ class MbedWindowsTesting(object):
                 "2017": os.path.join(
                     "C:", os.sep, "Program Files (x86)",
                     "Microsoft Visual Studio", "2017", "Community", "VC",
+                    "Auxiliary", "Build", "vcvarsall.bat"
+                ),
+                "2019": os.path.join(
+                    "C:", os.sep, "Program Files (x86)",
+                    "Microsoft Visual Studio", "2019", "Community", "VC",
                     "Auxiliary", "Build", "vcvarsall.bat"
                 )
             }
@@ -136,7 +141,8 @@ class MbedWindowsTesting(object):
             "2010": "100",
             "2013": "120",
             "2015": "140",
-            "2017": "141"
+            "2017": "141",
+            "2019": "142"
         }
         self.visual_studio_architecture_flags = {"Win32": "x86", "x64": "x64"}
         self.cmake_architecture_flags = {"Win32": "", "x64": " Win64"}
@@ -144,7 +150,8 @@ class MbedWindowsTesting(object):
             "2010": "Visual Studio 10 2010",
             "2013": "Visual Studio 12 2013",
             "2015": "Visual Studio 14 2015",
-            "2017": "Visual Studio 15 2017"
+            "2017": "Visual Studio 15 2017",
+            "2019": "Visual Studio 16 2019"
         }
         self.vs_test_runs = []
         self.build_mingw = "mingw" in build_method
@@ -471,7 +478,7 @@ class MbedWindowsTesting(object):
         elif c89:
             retarget = "Windows7.1SDK"  # Workaround for missing 2010 x64 tools
         else:
-            retarget = "v141" # Visual Studio 2017
+            retarget = "v142" # Visual Studio 2019
         logger.info("retarget={}".format(retarget))
         for solution_file in os.listdir(solution_dir):
             if re.match(self.solution_file_pattern, solution_file):
@@ -550,7 +557,7 @@ class MbedWindowsTesting(object):
         if not os.path.exists(os.path.join(git_worktree_path, batch_script)):
             return
         try:
-            vcvars_bat = self.visual_studio_vcvars_path['2017']
+            vcvars_bat = self.visual_studio_vcvars_path['2019']
             cmd = 'call "{}" x64 && cd /D "%VSCMD_START_DIR%" && "{}"'.format(
                 vcvars_bat, batch_script
             )
@@ -744,8 +751,8 @@ def run_main():
     )
     parser.add_argument(
         "-b", "--build-method", type=str, nargs="+",
-        choices=["mingw", "2010", "2013", "2015", "2017"],
-        default=["mingw", "2010", "2013", "2015", "2017"],
+        choices=["mingw", "2010", "2013", "2015", "2017", "2019"],
+        default=["mingw", "2010", "2013", "2015", "2017", "2019"],
         help="which build methods to test"
     )
     parser.add_argument(

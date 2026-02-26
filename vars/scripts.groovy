@@ -70,3 +70,29 @@ cmake . -G "Visual Studio 15 2017" -A x64 || exit
 MSBuild ALL_BUILD.vcxproj || exit
 programs\\test\\Debug\\selftest.exe || exit
 '''
+
+@Field static final String win32_msvc16_32_test_bat = '''\
+perl --version
+python --version
+cmake --version
+set VSCMD_START_DIR=%cd%
+call "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat" x86 || exit
+set CC=cl
+if exist scripts\\make_generated_files.bat call scripts\\make_generated_files.bat || exit
+cmake . -G "Visual Studio 16 2019" -A Win32 || exit
+MSBuild ALL_BUILD.vcxproj || exit
+programs\\test\\Debug\\selftest.exe || exit
+'''
+
+@Field static final String win32_msvc16_64_test_bat = '''\
+perl --version
+python --version
+cmake --version
+set VSCMD_START_DIR=%cd%
+call "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat" x64 || exit
+set CC=cl
+if exist scripts\\make_generated_files.bat call scripts\\make_generated_files.bat || exit
+cmake . -G "Visual Studio 16 2019" -A x64 || exit
+MSBuild ALL_BUILD.vcxproj || exit
+programs\\test\\Debug\\selftest.exe || exit
+'''
