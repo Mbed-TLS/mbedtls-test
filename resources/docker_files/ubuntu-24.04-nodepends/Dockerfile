@@ -42,13 +42,19 @@ RUN case "$(uname -m)" in \
 RUN apt-get update -q && apt-get install -yq \
         # to build Mbed TLS: gcc, binutils, make, etc.
         build-essential \
+        # to have a UTF-8 locale (see locale-gen below)
+        locales \
         # to build Mbed TLS
         clang \
         # to build Mbed TLS
         cmake \
         make \
+        # to cross-build Mbed TLS
+        gcc-mingw-w64-i686 \
         # to build Mbed TLS using latest gcc version available from Ubuntu
         gcc-14 \
+        # build dependency of GCC
+        libisl-dev libmpfr-dev libmpc-dev \
         # to check out Mbed TLS and others
         git \
         # to download things installed from other places
@@ -62,6 +68,10 @@ RUN apt-get update -q && apt-get install -yq \
         xz-utils \
         && rm -rf /var/lib/apt/lists/
 
+# Make sure we have a UTF-8 locale
+RUN locale && \
+    locale-gen "en_US.UTF-8" && \
+    dpkg-reconfigure locales
 
 # Add user
 RUN useradd -m user
