@@ -135,6 +135,15 @@ RUN if command -v python3 >/dev/null 2>&1; then \
       done; \
     fi
 
+# If python is installed by some dependency, restrict it
+RUN if command -v python3 >/dev/null 2>&1; then \
+      chmod 700 "$(command -v python3)"; \
+      # also restrict common companions if present
+      for f in /usr/bin/python3.* /usr/bin/pydoc3* /usr/bin/idle3*; do \
+        [ -e "$f" ] && chmod 700 "$f" || true; \
+      done; \
+    fi
+
 # Add user
 RUN useradd -m user
 
