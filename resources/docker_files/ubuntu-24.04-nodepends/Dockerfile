@@ -135,11 +135,11 @@ RUN if command -v python3 >/dev/null 2>&1; then \
       done; \
     fi
 
-# If python is installed by some dependency, restrict it
-RUN if command -v python3 >/dev/null 2>&1; then \
-      chmod 700 "$(command -v python3)"; \
+# If perl is installed by some dependency, restrict it
+RUN if command -v perl >/dev/null 2>&1; then \
+      chmod 700 "$(command -v perl)"; \
       # also restrict common companions if present
-      for f in /usr/bin/python3.* /usr/bin/pydoc3* /usr/bin/idle3*; do \
+      for f in /usr/bin/perl* /usr/bin/cpan* /usr/bin/enc2xs /usr/bin/h2ph /usr/bin/h2xs /usr/bin/perlbug /usr/bin/perldoc /usr/bin/perlivp /usr/bin/perlthanks /usr/bin/pl2pm /usr/bin/pod2* /usr/bin/pstruct /usr/bin/ptar* /usr/bin/ptx; do \
         [ -e "$f" ] && chmod 700 "$f" || true; \
       done; \
     fi
