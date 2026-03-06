@@ -73,6 +73,42 @@ RUN locale && \
     locale-gen "en_US.UTF-8" && \
     dpkg-reconfigure locales
 
+# Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
+# gcc-multilib conflicts with cross-compiler packages that we'll install later,
+# so don't keep it around. Just let it install its dependencies
+# (gcc-<VERSION>-multilib and libc support), then remove it. Manually create
+# one crucial symlink that's otherwise provided by the gcc-multilib package
+# (without that symlink, 32-bit builds won't find system headers). Note that
+# just installing the dependencies of gcc-multilib also brings in gcc-multilib
+# as a Recommends dependency.
+RUN if [ "$(uname -m)" = x86_64 ]; then \
+        apt-get update -q && apt-get install -yq \
+            gcc-multilib \
+        && rm -rf /var/lib/apt/lists/ && \
+        dpkg -r gcc-multilib && \
+        ln -s x86_64-linux-gnu/asm /usr/include/asm; \
+    fi
+
+# Install the Arm gcc-cross toolchains
+RUN if [ "$(uname -m)" = aarch64 ]; then \
+        # HACK: Ubuntu doesn't provide an armel port for Thumb-1 testing, so link
+        #       the cross-compiler's libraries into the standard multiarch location.
+        #       We need to create and link this directory first due to the /usr merge
+        #       from Ubuntu 19.04 onward.
+        mkdir -p /usr/arm-linux-gnueabi/lib && \
+        ln -s /usr/arm-linux-gnueabi/lib /lib/arm-linux-gnueabi && \
+        ln -s arm-linux-gnueabi/ld-linux.so.3 /lib/ld-linux.so.3; \
+    fi && \
+    apt-get update -q && apt-get install -yq \
+        gcc-aarch64-linux-gnu \
+        gcc-arm-linux-gnueabi \
+        gcc-arm-linux-gnueabihf \
+        gcc-arm-none-eabi \
+        libc6-dev-arm64-cross \
+        libc6-dev-armel-cross \
+        libc6-dev-armhf-cross \
+    && rm -rf /var/lib/apt/lists/
+
 # Install a snapshot of GCC that we want to test with.
 # GCC 15 will break our code: https://github.com/Mbed-TLS/mbedtls/issues/9814
 # During a transition period, we will use a snapshot of GCC 15 to test the
