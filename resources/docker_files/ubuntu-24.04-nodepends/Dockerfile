@@ -73,6 +73,32 @@ RUN locale && \
     locale-gen "en_US.UTF-8" && \
     dpkg-reconfigure locales
 
+# Install a snapshot of GCC that we want to test with.
+# GCC 15 will break our code: https://github.com/Mbed-TLS/mbedtls/issues/9814
+# During a transition period, we will use a snapshot of GCC 15 to test the
+# fix for that issue.
+# Eventually, gcc-latest should become GCC 15. This will cause test failures
+# on branches that don't have the fix yet, which is why we don't make
+# GCC 15 be gcc-latest immediately.
+RUN wget -q https://mirror.koddos.net/gcc/releases/gcc-15.1.0/gcc-15.1.0.tar.xz && \
+    tar -xf gcc-15.1.0.tar.xz && \
+    rm gcc-15.1.0.tar.xz && \
+    cd gcc-15.1.0 && \
+    ./configure --prefix=/usr/local/gcc-15 --program-suffix=-15 --disable-bootstrap --enable-languages=c,c++,lto && \
+    make && \
+    make install && \
+    cd .. && \
+    rm -rf gcc-15.1.0
+
+# If python is installed by some dependency, restrict it
+RUN if command -v python3 >/dev/null 2>&1; then \
+      chmod 700 "$(command -v python3)"; \
+      # also restrict common companions if present
+      for f in /usr/bin/python3.* /usr/bin/pydoc3* /usr/bin/idle3*; do \
+        [ -e "$f" ] && chmod 700 "$f" || true; \
+      done; \
+    fi
+
 # Add user
 RUN useradd -m user
 
