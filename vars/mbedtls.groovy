@@ -157,11 +157,41 @@ void run_job() {
 
 void run_framework_pr_job() {
     environ.set_pr_environment('mbedtls-framework', true)
-    run_pr_job(
-        true,
-        env.IS_RESTRICTED ? ['development-restricted', 'mbedtls-3.6-restricted'] : ['development', 'mbedtls-3.6'],
-        env.IS_RESTRICTED ? ['development-restricted']                           : ['development']
-    )
+    Map<String, List<String>> repos = [
+        (env.MBED_TLS_REPO):      ['development', 'mbedtls-3.6', '?mbedtls-4.1'],
+        (env.TF_PSA_CRYPTO_REPO): ['development', '?tf-psa-crypto-1.1']
+    ]
+
+    repos = (Map<String, List<String>>) repos.collectEntries { url, branches ->
+        return [(url): branches.findResults({branch ->
+            if (env.IS_RESTRICTED) {
+                // Test with *-restricted branches instead
+                branch += '-restricted'
+            }
+
+            // Only test branches marked with '?' if they are found in the repo
+            if (branch.startsWith('?')) {
+                // Remove leading '?'
+                branch = branch[1..-1]
+                if (resolveScm(
+                    source: [
+                        $class: 'GitSCMSource',
+                        remote: url,
+                        credentialsId: env.GIT_CREDENTIALS_ID,
+                        traits: [gitBranchDiscovery()]
+                    ],
+                    targets: [branch],
+                    ignoreErrors: true
+                ) == null) {
+                    return null
+                }
+            }
+
+            return branch
+        })]
+    }
+
+    run_pr_job(true, repos[env.MBED_TLS_REPO], repos[env.TF_PSA_CRYPTO_REPO])
 }
 
 void run_release_job(String tls_branches, String tf_psa_crypto_branches) {
