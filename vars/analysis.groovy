@@ -268,7 +268,20 @@ fi
             }
         }
 
-        String script_in_docker = info.repo == 'mbedtls' ? "tests/scripts/analyze_outcomes.py '$outcomes_csv'" : ''
+        String script_in_docker = "tests/scripts/analyze_outcomes.py '$outcomes_csv'"
+        /* TF-PSA-Crypto started out without outcome analysis. Until it's
+         * present on all the branches, allow it to be missing and just skip
+         * outcome analysis.
+         */
+        if (info.repo != 'mbedtls') {
+            script_in_docker = """\
+if [ -e tests/scripts/analyze_outcomes.py ]; then
+  tests/scripts/analyze_outcomes.py '$outcomes_csv'
+else
+  echo "Skipping outcome analysis because this branch lacks tests/scripts/analyze_outcomes.py"
+fi
+"""
+        }
 
         Closure post_execution = {
             sh "[ -f '$outcomes_csv' ] && xz -0 -T0 '$outcomes_csv'"
