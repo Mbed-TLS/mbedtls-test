@@ -363,6 +363,16 @@ List<BranchInfo> get_branch_information(Collection<String> tls_branches, Collect
             info.all_sh_components = info.all_sh_components.findAll {
                 component, platform -> !component.startsWith('release')
             }
+
+            if (env.TARGET_REPO == 'mbedtls-framework') {
+                // Check if any components are prefixed with 'framework', and if so only run those.
+                def framework_components = info.all_sh_components.findAll {
+                    component, platform -> component.startsWith('framework')
+                }
+                if (framework_components) {
+                    info.all_sh_components = framework_components
+                }
+            }
         }
 
     }
