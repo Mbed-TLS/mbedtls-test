@@ -39,11 +39,6 @@ import org.kohsuke.github.GHPermissionType
 
 import org.mbed.tls.jenkins.BranchInfo
 
-/* Obsolete variables to distinguish between CI instances.
- * Only the non-legacy openci instance exists now. */
-@Field final boolean is_legacy_open_ci_env = false
-@Field final boolean is_openci_env = true
-
 @Field final String ci_name = 'TF OpenCI'
 
 /*
