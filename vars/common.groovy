@@ -39,11 +39,10 @@ import org.kohsuke.github.GHPermissionType
 
 import org.mbed.tls.jenkins.BranchInfo
 
-/* Indicates if CI is running on Open CI (hosted on https://mbedtls.trustedfirmware.org/) */
-@Field final boolean is_legacy_open_ci_env = env.JENKINS_URL ==~ /\S+(mbedtls\.trustedfirmware\.org)\S+/
-
-/* Indicates if CI is running on the new CI (hosted on https://ci.trustedfirmware.org/) */
-@Field final boolean is_openci_env = !is_legacy_open_ci_env && (env.JENKINS_URL ==~ /\S+(trustedfirmware)\S+/)
+/* Obsolete variables to distinguish between CI instances.
+ * Only the non-legacy openci instance exists now. */
+@Field final boolean is_legacy_open_ci_env = false
+@Field final boolean is_openci_env = true
 
 @Field final String ci_name = is_legacy_open_ci_env ? 'TF OpenCI (legacy)' : is_openci_env ? 'TF OpenCI' : 'Internal CI'
 
