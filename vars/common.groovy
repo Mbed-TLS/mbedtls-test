@@ -222,7 +222,13 @@ String docker_script(
 ) {
     def docker_image = get_docker_tag(platform)
     def env_args = env_vars.collect({ e -> "-e $e" }).join(' ')
-    def volume_args = volumes.collect({ v -> "-v $v" }).join(' ')
+
+    def volume_list = volumes.toList()
+    if (!volume_list.any({ v -> v == '/opt/host' || v.endsWith(':/opt/host') })) {
+        volume_list.add('/opt/host')
+    }
+    def volume_args = volume_list.collect({ v -> "-v $v" }).join(' ')
+
     /* Docker disables IPv6 networking by default, but some combination of docker daemon and linux kernel versions
      * causes GnuTLS to attempt using an IPv6 address anyways, so we manually disable all IPv6 inside the container.
      * We also ignore the fact that the IPv6 tests are not executed in analyze_outcomes.py.
