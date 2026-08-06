@@ -13,15 +13,17 @@ The [`mbedtls-test` repository](https://github.com/Mbed-TLS/mbedtls-test) contai
 * Docker files used for testing on Linux under [`resources/docker_files`](resources/docker_files/).
 * A script used for testing on Windows: [`resources/windows/windows_testing.py`](resources/windows/windows_testing.py).
 
-### Jenkins instances
+### Jenkins instance
 
-At the time of writing, there are three instances of Jenkins:
+The Jenkins instance is a service which is known as [OpenCI](https://ci.trustedfirmware.org/view/Mbed-TLS/).
 
-* [OpenCI](https://ci.trustedfirmware.org/view/Mbed-TLS/), maintained by arm ([private issue board: OSSDEVOPS](https://jira.arm.com/projects/OSSDEVOPS)) on behalf of TrustedFirmware. The OpenCI instance is public. Only Mbed TLS team members (including non-Arm employees) can have accounts (access is via [the `trusted-firmware-mbed-tls-openci-users` team in `trusted-firmware-ci` on GitHub](https://github.com/orgs/trusted-firmware-ci/teams/trusted-firmware-mbed-tls-openci-users/members)), but everyone can see test results.
-* [OpenCI (legacy)](https://mbedtls.trustedfirmware.org/), maintained by Linaro ([issue board: TFC](https://linaro.atlassian.net/browse/TFC-526)) on behalf of TrustedFirmware. The OpenCI instance is public. Only Mbed TLS team members (including non-Arm employees) can have accounts (access is via [the `trusted-firmware-mbed-tls-openci-users` team in `trusted-firmware-ci` on GitHub](https://github.com/orgs/trusted-firmware-ci/teams/trusted-firmware-mbed-tls-openci-users/members)), but everyone can see test results.
-* [Arm Internal CI](https://jenkins-mbedtls.oss.arm.com/), maintained by Arm ([issue board: OSSDEVOPS project](https://jira.arm.com/projects/OSSDEVOPS)). This instance is only accessible to Arm employees from within the Arm network.
+It is maintained by Arm ([private issue board: OSSDEVOPS](https://jira.arm.com/projects/OSSDEVOPS)) on behalf of TrustedFirmware. The OpenCI instance is public. Only Mbed TLS team members (including non-Arm employees) can have accounts (access is via [the `trusted-firmware-mbed-tls-openci-users` team in `trusted-firmware-ci` on GitHub](https://github.com/orgs/trusted-firmware-ci/teams/trusted-firmware-mbed-tls-openci-users/members)), but everyone can see test results.
 
-The three instances mostly have the same capabilities, but they can differ in terms of Jenkins versions, available plugins, OS versions, etc.
+Jobs whose name contains `restricted` are not visible publicly. They are moslty used to test security fixes that are not yet public.
+
+There is a companion [staging](https://ci.staging.trustedfirmware.org/) instance which is sometimes used to test proposed code or configuration changes.
+
+Some old documents and logs reference other Jenkins instances: a Linaro-maintained instance of OpenCI, and an Arm internal CI. Those no longer exist since January 2026.
 
 #### Jenkins jobs
 
@@ -61,7 +63,7 @@ If you want to change the interface between `mbedtls` and `mbedtls-test`, you ne
 
 If you add tests in `mbedtls` that require a new tool on the CI:
 
-1. Make the new tool available. If the tool runs on Linux, add it to the Docker image(s) via a pull request on `mbedtls-test`. If the tool doesn't run on Linux, this will require a request to the devops teams that manage the two [Jenkins instances](#jenkins-instances).
+1. Make the new tool available. If the tool runs on Linux, add it to the Docker image(s) via a pull request on `mbedtls-test`. If the tool doesn't run on Linux, this will require a request to the Arm devops team that manages the [Jenkins instance](#jenkins-instance).
 2. Make a pull request in `mbedtls` that starts using the new tool.
 
 If you add a new entry point in `mbedtls` that CI code should invoke:
@@ -118,7 +120,7 @@ The Groovy language gives access to the Java standard library. However, on Jenki
 
 Jenkins (with the plugins we have installed) makes some extra functions available, in particular [pipeline steps](https://www.jenkins.io/doc/pipeline/steps/workflow-basic-steps/).
 
-The two CI instances may have different sets of plugins. You can see the plugin list on [OpenCI](https://review.trustedfirmware.org/plugins/gitiles/ci/dockerfiles/+/refs/heads/master/jessie-amd64-jenkins-master/plugins.txt) and on the [internal CI](https://jenkins-mbedtls.oss.arm.com/manage/pluginManager/installed).
+The set of Jenkins plugins is managed by the Arm devops team. The list of plugins is public in [`plugins.yaml`](https://gitlab.geo.arm.com/software/eng-infra/oss/tf-openci/cloudbees-bundles/-/blob/main/openci-production-prod/plugins.yaml) and the pinned versions are in [`plugins-catalog.yaml`](https://gitlab.geo.arm.com/software/eng-infra/oss/tf-openci/cloudbees-bundles/-/blob/main/openci-production-prod/plugins-catalog.yaml).
 
 #### Global variables
 
@@ -136,14 +138,7 @@ common.mbedtls_node (label) {
 }
 ```
 
-The label identifies what features the executor needs to have. In particular, this encodes the operating system. We use four labels:
-
-* `container-host` (currently synonymous with `container-host-amd64`), which runs Linux on x86_64 and has Docker. Most of our Linux code runs in Docker containers.
-* `container-host-arm64`, similar to `container-host` but running on arm64.
-* `freebsd`
-* `windows`
-
-The full list of available labels can be found in TODO for OpenCI and the [labels dashboard](https://jenkins-mbedtls.oss.arm.com/labelsdashboard/) (configured at [admin page](https://jenkins-mbedtls.oss.arm.com/manage/configureClouds/)) on the internal CI.
+The node label identifies a [Jenkins executor](#jenkins-executors).
 
 ## Docker images
 
@@ -156,6 +151,20 @@ See [`resources/docker_files/README.md`](resources/docker_files/README.md).
 ### Docker container selection
 
 For each `all.sh` component, the Groovy code selects one of the Docker containers that supports that component, based on running `all.sh --list-components` inside that Docker image.
+
+## Jenkins executors
+
+The label identifies what features the executor needs to have. In particular, this encodes the operating system. We use four labels:
+
+* `mbedtls-container-host`, which runs Linux on x86_64 and has Docker. Most of our Linux code runs in Docker containers.
+* `mbedtls-container-host-arm64`, similar to `mbedtls-container-host` but running on arm64.
+* `mbedtls-freebsd`
+* `mbedtls-windows`
+
+The executors are managed by the Arm devops team. The list of labels is configured in [`jenkins-clouds.yaml`](https://gitlab.geo.arm.com/software/eng-infra/oss/tf-openci/cloudbees-bundles/-/blob/main/openci-production-prod/jenkins-clouds.yaml).
+The software running on these executors is configured through descriptions stored in the [aws-amis](https://review.trustedfirmware.org/plugins/gitiles/ci/aws-amis/+/refs/heads/master) repository.
+
+Arm team members can get shell access to an executor instance through the [EC2 troubleshooting job](https://confluence.arm.com/spaces/CESW/pages/2883785947/User+facing+EC2+Troubleshooting+Job) (Arm internal link).
 
 ## Validating changes
 
