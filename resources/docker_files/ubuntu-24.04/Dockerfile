@@ -139,7 +139,7 @@ RUN apt-get update -q && apt-get install -yq \
             libstdc++6:armhf \
             ;; \
     esac && \
-    rm -rf /var/lib/apt/lists/ 
+    rm -rf /var/lib/apt/lists/
 
 # Make sure we have a UTF-8 locale
 RUN locale && \
@@ -148,11 +148,12 @@ RUN locale && \
 
 # For installing clang-latest, we add the LLVM package source
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 15CF4D18AF4F7421 && \
-    # add an apt package source from https://apt.llvm.org/ 
+    # add an apt package source from https://apt.llvm.org/
     add-apt-repository 'deb http://apt.llvm.org/noble/ llvm-toolchain-noble-18 main' -y && \
     apt-get install -yq \
         # to build Mbed TLS using latest stable clang version at the time of writing
         clang-20 && \
+    rm -rf /var/lib/apt/lists/ && \
     # create symbolic links for latest gcc and clang versions
     ln -s /usr/bin/clang-20 /usr/local/bin/clang-latest && \
     ln -s /usr/bin/gcc-14 /usr/local/bin/gcc-latest
