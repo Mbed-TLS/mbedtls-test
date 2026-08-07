@@ -61,13 +61,15 @@ RUN apt-get update -q && apt-get install -yq \
         clang \
         # to build Mbed TLS
         cmake \
+        # to compile and test with dietlibc (lightweight libc) \
+        dietlibc-dev \
         # to build Mbed TLS's documentation
         doxygen \
         # to run tests in specific time.
         faketime \
         # build dependency of GCC
         flex \
-        # to cross-build Mbed TLS
+        # to cross-compile for Windows
         gcc-mingw-w64-i686 \
         # to build Mbed TLS using latest gcc version available from Ubuntu
         gcc-14 \
@@ -97,6 +99,8 @@ RUN apt-get update -q && apt-get install -yq \
         m4 \
         # to build Mbed TLS and others
         make \
+        # to compile and test with musl (lightweight libc) \
+        musl-tools \
         # to build Mbed TLS (alternative CMake backend)
         ninja-build \
         # to build GnuTLS with locally-compiled nettle
