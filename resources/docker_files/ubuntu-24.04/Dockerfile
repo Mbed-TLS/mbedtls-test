@@ -174,7 +174,7 @@ RUN if [ "$(uname -m)" = x86_64 ]; then \
         ln -s x86_64-linux-gnu/asm /usr/include/asm; \
     fi
 
-# Install the Arm gcc-cross toolchains
+# Install the gcc-cross toolchains for various platforms (only on x86_64)
 RUN if [ "$(uname -m)" = aarch64 ]; then \
         # HACK: Ubuntu doesn't provide an armel port for Thumb-1 testing, so link
         #       the cross-compiler's libraries into the standard multiarch location.
@@ -184,7 +184,8 @@ RUN if [ "$(uname -m)" = aarch64 ]; then \
         ln -s /usr/arm-linux-gnueabi/lib /lib/arm-linux-gnueabi && \
         ln -s arm-linux-gnueabi/ld-linux.so.3 /lib/ld-linux.so.3; \
     fi && \
-    apt-get update -q && apt-get install -yq \
+    apt-get update -q && \
+    apt-get install -yq \
         gcc-aarch64-linux-gnu \
         gcc-arm-linux-gnueabi \
         gcc-arm-linux-gnueabihf \
@@ -192,7 +193,20 @@ RUN if [ "$(uname -m)" = aarch64 ]; then \
         libc6-dev-arm64-cross \
         libc6-dev-armel-cross \
         libc6-dev-armhf-cross \
-    && rm -rf /var/lib/apt/lists/
+    && \
+    if [ "$(uname -m)" = x86_64 ]; then \
+        apt-get install -yq \
+            gcc-alpha-linux-gnu \
+            gcc-multilib-mips-linux-gnu \
+            gcc-multilib-mipsel-linux-gnu \
+            gcc-multilib-powerpc64-linux-gnu \
+            gcc-powerpc-linux-gnu \
+            gcc-powerpc64le-linux-gnu \
+            gcc-riscv64-linux-gnu \
+            gcc-s390x-linux-gnu \
+        ; \
+    fi && \
+    rm -rf /var/lib/apt/lists/
 
 # Install a snapshot of GCC that we want to test with.
 # GCC 15 will break our code: https://github.com/Mbed-TLS/mbedtls/issues/9814
