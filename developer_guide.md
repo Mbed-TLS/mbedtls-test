@@ -161,8 +161,10 @@ The label identifies what features the executor needs to have. In particular, th
 * `mbedtls-freebsd`
 * `mbedtls-windows`
 
-The executors are managed by the Arm devops team. The list of labels is configured in [`jenkins-clouds.yaml`](https://gitlab.geo.arm.com/software/eng-infra/oss/tf-openci/cloudbees-bundles/-/blob/main/openci-production-prod/jenkins-clouds.yaml).
+The executors (“AMIs”) are managed by the Arm devops team. The list of labels is configured in [`jenkins-clouds.yaml`](https://gitlab.geo.arm.com/software/eng-infra/oss/tf-openci/cloudbees-bundles/-/blob/main/openci-production-prod/jenkins-clouds.yaml).
 The software running on these executors is configured through descriptions stored in the [aws-amis](https://review.trustedfirmware.org/plugins/gitiles/ci/aws-amis/+/refs/heads/master) repository.
+
+### Jenkins executor troubleshooting job
 
 Arm team members can get shell access to an executor instance through the [EC2 troubleshooting job](https://confluence.arm.com/spaces/CESW/pages/2883785947/User+facing+EC2+Troubleshooting+Job) (Arm internal link).
 
@@ -183,6 +185,14 @@ There are similar jobs on the internal CI.
 
 To validate changes to code that's specific to pull requests, such as GitHub reporting, see [the primary PR CI testing PR](https://github.com/Mbed-TLS/mbedtls-restricted/pull/906) (private link).
 
+### Testing new Jenkins executor images
+
+To validate a new Jenkins executor image:
+
+1. Make a merge request for the new AMI on https://review.trustedfirmware.org/c/ci/aws-amis .
+2. Ask in Arm Slack `#help-oss-devops` for someone from Devops to run the CI. (That's the AMI CI, not to be confused with the Mbed TLS CI.)
+3. The new image will be available as “candidate” on the [Jenkins executor troubleshooting job](#jenkins-executor-troubleshooting-job).
+
 ### Validation tips
 
 #### Validating Dockerfile changes
@@ -190,6 +200,18 @@ To validate changes to code that's specific to pull requests, such as GitHub rep
 After changing Dockerfiles, make sure to run at least one test job on each Jenkins instance (OpenCI and Arm internal). Each does its own build of the Docker images, so sometimes things can go wrong only on one side (e.g. due to network accessibility or to the host kernel version).
 
 If you remove anything, make sure to test with LTS branches. Usually we don't reduce test requirements between major releases, so if test tools are good enough for `development`, they're also good enough for older branches targeting `development` or previous minor releases. But a tool might be used e.g. for 2.28 even if it's unused after 3.0.
+
+If you want to validate a Docker image on the official Docker host (rarely needed):
+
+1. Start a [Jenkins executor troubleshooting job](#jenkins-executor-troubleshooting-job) on `mbedtls-container-host`. Use the `latest` image for what is currently in production, or `candidate` for the last executor CI run (see “[Testing new Jenkins executor images](#testing-new-jenkins-executor-images)”).
+2. Get shell access to the troubleshooting job as described in “[Jenkins executor troubleshooting job](#jenkins-executor-troubleshooting-job)”.
+3. Run the following commands, replacing `$image` with the image you actually want (e.g. `ubuntu-24.04-fd5b3a5ddc0674c0630639190fb62cfe5c6c5317-amd64`):
+
+    ```
+    aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 211125306678.dkr.ecr.eu-west-1.amazonaws.com
+    sudo HOME=$HOME docker pull 211125306678.dkr.ecr.eu-west-1.amazonaws.com/docker.io/trustedfirmware/ci-amd64-mbed-tls-ubuntu:$image
+    sudo docker run -u 1000:1000 -e MAKEFLAGS -e VERBOSE_LOGS --rm -i -t -w /var/lib/build -v /home/admin/workspace/mbedtls-restricted-release-ci-testing/src:/var/lib/build -v /opt/host --sysctl net.ipv6.conf.all.disable_ipv6=1 --cap-add SYS_PTRACE 211125306678.dkr.ecr.eu-west-1.amazonaws.com/docker.io/trustedfirmware/ci-amd64-mbed-tls-ubuntu:$image
+    ```
 
 #### Validating Groovy changes
 
