@@ -225,7 +225,7 @@ String docker_script(
 
     def volume_list = volumes.toList()
     if (!volume_list.any({ v -> v == '/opt/host' || v.endsWith(':/opt/host') })) {
-        volume_list.add('/opt/host')
+        volume_list.add('/opt/host:/opt/host')
     }
     def volume_args = volume_list.collect({ v -> "-v $v" }).join(' ')
 
