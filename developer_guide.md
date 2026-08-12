@@ -17,7 +17,7 @@ The [`mbedtls-test` repository](https://github.com/Mbed-TLS/mbedtls-test) contai
 
 The Jenkins instance is a service which is known as [OpenCI](https://ci.trustedfirmware.org/view/Mbed-TLS/).
 
-It is maintained by Arm ([private issue board: OSSDEVOPS](https://jira.arm.com/projects/OSSDEVOPS)) on behalf of TrustedFirmware. The OpenCI instance is public. Only Mbed TLS team members (including non-Arm employees) can have accounts (access is via [the `trusted-firmware-mbed-tls-openci-users` team in `trusted-firmware-ci` on GitHub](https://github.com/orgs/trusted-firmware-ci/teams/trusted-firmware-mbed-tls-openci-users/members)), but everyone can see test results.
+It is maintained by Arm ([private issue board: OSSDEVOPS](https://jira.arm.com/projects/OSSDEVOPS)) on behalf of TrustedFirmware. The OpenCI instance is public. Only TrustedFirmware members and partners can have accounts (access is via [the `trusted-firmware-mbed-tls-openci-users` team in `trusted-firmware-ci` on GitHub](https://github.com/orgs/trusted-firmware-ci/teams/trusted-firmware-mbed-tls-openci-users/members)), but everyone can see test results.
 
 Jobs whose name contains `restricted` are not visible publicly. They are moslty used to test security fixes that are not yet public.
 
@@ -39,6 +39,14 @@ The main jobs on OpenCI are:
 * `ci-testing` jobs are meant for testing changes to the CI scripts. See [“Validation tools”](#validation-tools) below.
 
 The internal CI has a similar set of jobs.
+
+#### Triggering jobs on Jenkins
+
+For security reasons, the CI does not run on pull requests from untrusted users.
+
+At the time of writing, only users with write permissions on the repository are trusted to have the CI run automatically on their pull requests. The restriction is implemented in `pr_author_has_write_access()` in `vars/common.groovy`.
+
+There is a separate access control list for triggering CI jobs manually: this is allowed for users in the [`mbed-tls-users` team](https://github.com/orgs/trusted-firmware-ci/teams/mbed-tls-users) in the the `trusted-firmware-ci` GitHub organization, if they have an account on Jenkins that's tied to their GitHub account.
 
 ## General programming advice
 
