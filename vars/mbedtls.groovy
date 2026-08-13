@@ -18,7 +18,6 @@
  */
 
 
-import hudson.model.Cause
 import hudson.model.Result
 import hudson.triggers.TimerTrigger
 import jenkins.model.CauseOfInterruption
@@ -93,11 +92,9 @@ void run_pr_job(boolean is_production, Collection<String> tls_branches, Collecti
 
         boolean is_merge_queue = env.BRANCH_NAME ==~ /gh-readonly-queue\/.*/
 
-        if (!is_merge_queue && currentBuild.rawBuild.getCause(Cause.UserIdCause) == null) {
-            if (!common.pr_author_has_write_access("$env.GITHUB_ORG/$env.GITHUB_REPO", env.CHANGE_ID as int)) {
-                echo 'PR author not found on allowlist - not building'
-                throw new FlowInterruptedException(Result.NOT_BUILT, new CauseOfInterruption[0])
-            }
+        if (!is_merge_queue && !common.pr_run_allowed("$env.GITHUB_ORG/$env.GITHUB_REPO", env.CHANGE_ID as int)) {
+            echo 'PR author not found on allowlist - not building'
+            throw new FlowInterruptedException(Result.NOT_BUILT, new CauseOfInterruption[0])
         }
 
         List<BranchInfo> infos
