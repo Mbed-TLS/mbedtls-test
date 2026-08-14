@@ -35,13 +35,12 @@ import groovy.transform.Field
 import com.cloudbees.groovy.cps.NonCPS
 import hudson.AbortException
 import hudson.model.Cause
-import hudson.model.Item
 import hudson.model.Job
 import hudson.model.Run
-import hudson.model.User
 import org.jenkinsci.plugins.github_branch_source.Connector
 import org.kohsuke.github.GHPermissionType
 import org.kohsuke.github.GHRepository
+import org.kohsuke.github.GHTeam
 import org.kohsuke.github.GHUser
 import org.kohsuke.github.GitHub
 
@@ -526,5 +525,7 @@ boolean pr_run_allowed(String repo_name, int pr) {
     }
 
     // Check if the PR's author has the permission to launch this job manually
-    return job.ACL.hasPermission2(User.getById(user.login, true).impersonate2(), Item.BUILD)
+    // hasMember() doesn't consider child teams, so use listMembers() instead
+    GHTeam team = github.getOrganization('trusted-firmware-ci').getTeamBySlug('mbed-tls-users')
+    return team.listMembers().contains(user)
 }
