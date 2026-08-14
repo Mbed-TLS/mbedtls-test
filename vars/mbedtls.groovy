@@ -96,6 +96,7 @@ void run_pr_job(boolean is_production, Collection<String> tls_branches, Collecti
             echo 'PR author not found on allowlist - not building'
             throw new FlowInterruptedException(Result.NOT_BUILT, new CauseOfInterruption[0])
         }
+        return
 
         List<BranchInfo> infos
 

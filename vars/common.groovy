@@ -39,11 +39,15 @@ import hudson.model.Item
 import hudson.model.Job
 import hudson.model.Run
 import hudson.model.User
+import hudson.security.ACL
+import hudson.security.Permission
 import org.jenkinsci.plugins.github_branch_source.Connector
+import org.jenkinsci.plugins.scriptsecurity.sandbox.RejectedAccessException
 import org.kohsuke.github.GHPermissionType
 import org.kohsuke.github.GHRepository
 import org.kohsuke.github.GHUser
 import org.kohsuke.github.GitHub
+import org.springframework.security.core.Authentication
 
 import org.mbed.tls.jenkins.BranchInfo
 
@@ -513,7 +517,7 @@ boolean pr_run_allowed(String repo_name, int pr) {
     // Check if the job was started manually
     Run run = currentBuild.rawBuild
     if (run.getCause(Cause.UserIdCause) != null) {
-        return true
+        //return true
     }
 
     // Check if the PR's author has write access to the repository
@@ -521,10 +525,28 @@ boolean pr_run_allowed(String repo_name, int pr) {
     GitHub github = Connector.connect(null, Connector.lookupScanCredentials(job, null, 'mbedtls-github-token'))
     GHRepository repo = github.getRepository(repo_name)
     GHUser user = repo.getPullRequest(pr).user
-    if (repo.hasPermission(user, GHPermissionType.WRITE)) {
-        return true
-    }
+    try {
+        if (repo.hasPermission(user, GHPermissionType.WRITE)) {
+            //return true
+        }
+    } catch (RejectedAccessException ignored) {}
 
     // Check if the PR's author has the permission to launch this job manually
-    return job.ACL.hasPermission2(User.getById(user.login, true).impersonate2(), Item.BUILD)
+    ACL acl; String login; User user2; Authentication auth; Permission permission;
+    try {
+        acl = job.ACL
+    } catch (RejectedAccessException ignored) {}
+    try {
+        login = user.login
+    } catch (RejectedAccessException ignored) {}
+    try {
+        user2 = User.getById(login, true)
+    } catch (RejectedAccessException ignored) {}
+    try {
+        auth = user2.impersonate2()
+    } catch (RejectedAccessException | NullPointerException ignored) {}
+    try {
+        permission = Item.BUILD
+    } catch (RejectedAccessException ignored) {}
+    return acl.hasPermission2(auth, permission)
 }
