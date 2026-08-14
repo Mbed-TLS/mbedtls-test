@@ -34,8 +34,15 @@ import groovy.transform.Field
 
 import com.cloudbees.groovy.cps.NonCPS
 import hudson.AbortException
+import hudson.model.Cause
+import hudson.model.Job
+import hudson.model.Run
 import org.jenkinsci.plugins.github_branch_source.Connector
 import org.kohsuke.github.GHPermissionType
+import org.kohsuke.github.GHRepository
+import org.kohsuke.github.GHTeam
+import org.kohsuke.github.GHUser
+import org.kohsuke.github.GitHub
 
 import org.mbed.tls.jenkins.BranchInfo
 
@@ -501,9 +508,24 @@ $emailbody
 }
 
 @NonCPS
-boolean pr_author_has_write_access(String repo_name, int pr) {
-    String credentials = (is_legacy_open_ci_env || is_openci_env) ? 'mbedtls-github-token' : 'd015f9b1-4800-4a81-86b3-9dbadc18ee00'
-    def github = Connector.connect(null, Connector.lookupScanCredentials(currentBuild.rawBuild.parent, null, credentials))
-    def repo = github.getRepository(repo_name)
-    return repo.getPermission(repo.getPullRequest(pr).user) in [GHPermissionType.ADMIN, GHPermissionType.WRITE]
+boolean pr_run_allowed(String repo_name, int pr) {
+    // Check if the job was started manually
+    Run run = currentBuild.rawBuild
+    if (run.getCause(Cause.UserIdCause) != null) {
+        return true
+    }
+
+    // Check if the PR's author has write access to the repository
+    Job job = run.parent
+    GitHub github = Connector.connect(null, Connector.lookupScanCredentials(job, null, 'mbedtls-github-token'))
+    GHRepository repo = github.getRepository(repo_name)
+    GHUser user = repo.getPullRequest(pr).user
+    if (repo.hasPermission(user, GHPermissionType.WRITE)) {
+        return true
+    }
+
+    // Check if the PR's author has the permission to launch this job manually
+    // hasMember() doesn't consider child teams, so use listMembers() instead
+    GHTeam team = github.getOrganization('trusted-firmware-ci').getTeamBySlug('mbed-tls-users')
+    return team.listMembers().contains(user)
 }
