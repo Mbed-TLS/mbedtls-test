@@ -37,6 +37,8 @@ Example:
 
 MOUNT_DIR           Directory to mount on the image as the working dir.
 DOCKER_IMAGE_TAG    Docker image to run.
+
+  -o DIR        Directory to mount at /opt/host (default: /opt/host)
 EOF
 }
 
@@ -44,6 +46,17 @@ if [ "$1" = "--help" ]; then
     usage
     exit
 fi
+
+OPT_HOST=/opt/host
+
+while getopts o: OPTLET; do
+    case $OPTLET in
+        o) OPT_HOST=$OPTARG;;
+        \?) usage >&2; exit 1;;
+    esac
+done
+shift $((OPTIND - 1))
+
 if [ $# -le 1 ]; then
     echo "$0: Not enough arguments (need MOUNT_DIR DOCKER_IMAGE_TAG)"
     usage >&2
@@ -68,5 +81,5 @@ echo "  User ID:Group ID --> $USR_ID:$USR_GRP"
 echo "  Mounting $MOUNT_DIR --> /var/lib/ws"
 echo "****************************************************"
 
-sudo docker run --network=host --rm -i -t -u $USR_ID:$USR_GRP -w /var/lib/ws -e HOME=/var/lib/ws -v $MOUNT_DIR:/var/lib/ws -v /opt/host --cap-add SYS_PTRACE ${IMAGE}
+sudo docker run --network=host --rm -i -t -u $USR_ID:$USR_GRP -w /var/lib/ws -e HOME=/var/lib/ws -v $MOUNT_DIR:/var/lib/ws -v "$OPT_HOST":/opt/host --cap-add SYS_PTRACE ${IMAGE}
 
