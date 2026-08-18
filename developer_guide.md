@@ -19,7 +19,7 @@ The Jenkins instance is a service which is known as [OpenCI](https://ci.trustedf
 
 It is maintained by Arm ([private issue board: OSSDEVOPS](https://jira.arm.com/projects/OSSDEVOPS)) on behalf of TrustedFirmware. The OpenCI instance is public. Only TrustedFirmware members and partners can have accounts (access is via [the `trusted-firmware-mbed-tls-openci-users` team in `trusted-firmware-ci` on GitHub](https://github.com/orgs/trusted-firmware-ci/teams/trusted-firmware-mbed-tls-openci-users/members)), but everyone can see test results.
 
-Jobs whose name contains `restricted` are not visible publicly. They are moslty used to test security fixes that are not yet public.
+Jobs whose name contains `restricted` are not visible publicly. They are mostly used to test security fixes that are not yet public.
 
 There is a companion [staging](https://ci.staging.trustedfirmware.org/) instance which is sometimes used to test proposed code or configuration changes.
 
@@ -44,7 +44,7 @@ For security reasons, the CI does not run on pull requests from untrusted users.
 
 At the time of writing, only users with write permissions on the repository are trusted to have the CI run automatically on their pull requests. The restriction is implemented in `pr_author_has_write_access()` in `vars/common.groovy`.
 
-There is a separate access control list for triggering CI jobs manually: this is allowed for users in the [`mbed-tls-users` team](https://github.com/orgs/trusted-firmware-ci/teams/mbed-tls-users) in the the `trusted-firmware-ci` GitHub organization, if they have an account on Jenkins that's tied to their GitHub account.
+There is a separate access control list for triggering CI jobs manually: this is allowed for users in the [`mbed-tls-users` team](https://github.com/orgs/trusted-firmware-ci/teams/mbed-tls-users) in the `trusted-firmware-ci` GitHub organization, if they have an account on Jenkins that's tied to their GitHub account.
 
 ## General programming advice
 
