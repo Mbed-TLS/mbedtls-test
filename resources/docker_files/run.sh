@@ -75,11 +75,21 @@ USR_NAME=`id -un`
 USR_ID=`id -u`
 USR_GRP=`id -g`
 
+set --
+if [ -d "$OPT_HOST" ]; then
+    set -- -v "$OPT_HOST":/opt/host:ro
+else
+    OPT_HOST=
+fi
+
 echo "****************************************************"
 echo "  Running docker image - $IMAGE"
 echo "  User ID:Group ID --> $USR_ID:$USR_GRP"
 echo "  Mounting $MOUNT_DIR --> /var/lib/ws"
+if [ -n "$OPT_HOST" ]; then
+    echo "  Mounting $OPT_HOST --> /opt/host"
+fi
 echo "****************************************************"
 
-sudo docker run --network=host --rm -i -t -u $USR_ID:$USR_GRP -w /var/lib/ws -e HOME=/var/lib/ws -v $MOUNT_DIR:/var/lib/ws -v "$OPT_HOST":/opt/host:ro --cap-add SYS_PTRACE ${IMAGE}
+sudo docker run --network=host --rm -i -t -u $USR_ID:$USR_GRP -w /var/lib/ws -e HOME=/var/lib/ws -v $MOUNT_DIR:/var/lib/ws "$@" --cap-add SYS_PTRACE ${IMAGE}
 
