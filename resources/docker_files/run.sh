@@ -26,22 +26,38 @@
 #               created/updated by docker image can be accessible after
 #               exiting the image.
 #   Mount dir   Mounts a user specified dir to the working dir in the image.
-#
-# Usage: ./run.sh mount_dir docker_image_tag
-#
-#   mount_dir           Directory to mount on the image as the working dir.
-#   docker_image_tag    Docker image to run.
-#
 
-if [ $# -ne 2 ]
-then
-    echo "$0: Not all arguments supplied!"
-    echo ""
-    echo "$0: usage: $0 mount_dir docker_image_tag"
+usage () {
+    cat <<EOF
+Usage: $0 [OPTION]... MOUNT_DIR DOCKER_IMAGE_TAG
+Run an Mbed TLS CI Docker image.
+
+Example:
+    $0 . \$(${0%/*}/list-docker-image-tags.sh ${0%/*}/ubuntu-16.04)
+
+MOUNT_DIR           Directory to mount on the image as the working dir.
+DOCKER_IMAGE_TAG    Docker image to run.
+EOF
+}
+
+if [ "$1" = "--help" ]; then
+    usage
+    exit
+fi
+if [ $# -le 1 ]; then
+    echo "$0: Not enough arguments (need MOUNT_DIR DOCKER_IMAGE_TAG)"
+    usage >&2
     exit 1
 fi
+
+if [ $# -gt 2 ]; then
+    echo >&2 "$0: Too many arguments"
+    exit 1
+fi
+
 MOUNT_DIR=$1
 IMAGE=$2
+
 USR_NAME=`id -un`
 USR_ID=`id -u`
 USR_GRP=`id -g`
