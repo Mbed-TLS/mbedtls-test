@@ -81,5 +81,5 @@ echo "  User ID:Group ID --> $USR_ID:$USR_GRP"
 echo "  Mounting $MOUNT_DIR --> /var/lib/ws"
 echo "****************************************************"
 
-sudo docker run --network=host --rm -i -t -u $USR_ID:$USR_GRP -w /var/lib/ws -e HOME=/var/lib/ws -v $MOUNT_DIR:/var/lib/ws -v "$OPT_HOST":/opt/host --cap-add SYS_PTRACE ${IMAGE}
+sudo docker run --network=host --rm -i -t -u $USR_ID:$USR_GRP -w /var/lib/ws -e HOME=/var/lib/ws -v $MOUNT_DIR:/var/lib/ws -v "$OPT_HOST":/opt/host:ro --cap-add SYS_PTRACE ${IMAGE}
 

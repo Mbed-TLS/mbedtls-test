@@ -224,8 +224,10 @@ String docker_script(
     def env_args = env_vars.collect({ e -> "-e $e" }).join(' ')
 
     def volume_list = volumes.toList()
-    if (!volume_list.any({ v -> v == '/opt/host' || v.endsWith(':/opt/host') })) {
-        volume_list.add('/opt/host:/opt/host')
+    if (!volume_list.any({ v -> v == '/opt/host' ||
+                                v.endsWith(':/opt/host') ||
+                                v.contains(':/opt/host:') })) {
+        volume_list.add('/opt/host:/opt/host:ro')
     }
     def volume_args = volume_list.collect({ v -> "-v $v" }).join(' ')
 
