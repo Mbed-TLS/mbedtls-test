@@ -27,7 +27,7 @@ Some old documents and logs reference other Jenkins instances: a Linaro-maintain
 
 #### Jenkins jobs
 
-On OpenCI, the jobs are defined by YAML configuration files managed in a Gerrit instance: [browse code](https://review.trustedfirmware.org/plugins/gitiles/ci/mbedtls/mbed-tls-job-configs), [contributor setup](https://review.trustedfirmware.org/Documentation/user-upload.html), [reviews](https://review.trustedfirmware.org/q/project:ci/mbedtls/mbed-tls-job-configs+status:open). On the internal CI, the jobs and job configurations can be edited directly through the web interface.
+On OpenCI, the jobs are defined by YAML configuration files managed in a Gerrit instance: [browse code](https://review.trustedfirmware.org/plugins/gitiles/ci/mbedtls/mbed-tls-job-configs), [contributor setup](https://review.trustedfirmware.org/Documentation/user-upload.html), [reviews](https://review.trustedfirmware.org/q/project:ci/mbedtls/mbed-tls-job-configs+status:open).
 
 The main jobs on OpenCI are:
 
@@ -37,8 +37,6 @@ The main jobs on OpenCI are:
 * [`mbedtls-restricted-release-new`](https://ci.trustedfirmware.org/view/Mbed-TLS/job/mbedtls-restricted-release-new/): run the full release job on a given branch.
 * [`mbed-tls-tf-psa-crypto-multibranch`](https://ci.trustedfirmware.org/view/Mbed-TLS/job/mbed-tls-tf-psa-crypto-multibranch/): invoked automatically on pull requests in the [`TF-PSA-Crypto` repository](https://github.com/Mbed-TLS/TF-PSA-Crypto).
 * `ci-testing` jobs are meant for testing changes to the CI scripts. See [“Validation tools”](#validation-tools) below.
-
-The internal CI has a similar set of jobs.
 
 #### Triggering jobs on Jenkins
 
@@ -104,7 +102,7 @@ Jenkins runs a [pipeline](https://www.jenkins.io/doc/book/pipeline/), which is e
 
 At runtime, the general structure of the pipeline for a release or PR job is:
 
-1. Set up the Docker images. The images are normally cached in a Docker registry ([`trustedfirmware`](https://hub.docker.com/u/trustedfirmware) on OpenCI, a private registry on the internal CI), but they will be (re)built automatically if needed.
+1. Set up the Docker images. The images are normally cached in a Docker registry ([`trustedfirmware`](https://hub.docker.com/u/trustedfirmware) on DockerHub, plus an internal cache), but they will be (re)built automatically if needed.
 2. Obtain some information about the branch to test. In particular, run `tests/scripts/all.sh --list-all-components` from the tested branch, as well as `tests/scripts/all.sh --list-components` in each Docker container to determine which one to use in the next step.
 3. Run all the components to test in parallel. The components consist of:
     * A full run of `all.sh` (spread over multiple Linux versions), invoked by `gen_jobs.gen_all_sh_jobs`.
@@ -189,8 +187,6 @@ To validate changes, first upload your changes to a branch in the `mbedtls-test`
 * [`mbedtls-release-ci-testing`](https://ci.trustedfirmware.org/view/Mbed-TLS/job/mbedtls-release-ci-testing/): runs a full CI with a chosen branch of `mbedtls-test` on a chosen commit from any repository. Note that in addition to selecting your `mbedtls-test` branch in the dropdown, you need to check one or more of the boxes selecting what will run (`RUN_xxx` variables), otherwise not much will happen.
 * [`mbed-tls-restricted-pr-test-parametrized`](https://ci.trustedfirmware.org/view/Mbed-TLS/job/mbed-tls-restricted-pr-test-parametrized/): runs the PR tests. Useful for what the release job doesn't cover — mainly “Interface stability tests” (formerly known as “ABI-API-check”).
 
-There are similar jobs on the internal CI.
-
 To validate changes to code that's specific to pull requests, such as GitHub reporting, see [the primary PR CI testing PR](https://github.com/Mbed-TLS/mbedtls-restricted/pull/906) (private link).
 
 ### Testing new Jenkins executor images
@@ -200,12 +196,11 @@ To validate a new Jenkins executor image:
 1. Make a merge request for the new AMI on https://review.trustedfirmware.org/c/ci/aws-amis .
 2. Ask in Arm Slack `#help-oss-devops` for someone from Devops to run the CI. (That's the AMI CI, not to be confused with the Mbed TLS CI.)
 3. The new image will be available as “candidate” on the [Jenkins executor troubleshooting job](#jenkins-executor-troubleshooting-job).
+4. Once you're happy with the new image, ask Devops to merge the merge request, then to [promote it to production](https://confluence.arm.com/spaces/CESW/pages/2844183494/OpenCI+AMI+Build+and+Promotion+Flow).
 
 ### Validation tips
 
 #### Validating Dockerfile changes
-
-After changing Dockerfiles, make sure to run at least one test job on each Jenkins instance (OpenCI and Arm internal). Each does its own build of the Docker images, so sometimes things can go wrong only on one side (e.g. due to network accessibility or to the host kernel version).
 
 If you remove anything, make sure to test with LTS branches. Usually we don't reduce test requirements between major releases, so if test tools are good enough for `development`, they're also good enough for older branches targeting `development` or previous minor releases. But a tool might be used e.g. for 2.28 even if it's unused after 3.0.
 
