@@ -61,13 +61,15 @@ RUN apt-get update -q && apt-get install -yq \
         clang \
         # to build Mbed TLS
         cmake \
+        # to compile and test with dietlibc (lightweight libc) \
+        dietlibc-dev \
         # to build Mbed TLS's documentation
         doxygen \
         # to run tests in specific time.
         faketime \
         # build dependency of GCC
         flex \
-        # to cross-build Mbed TLS
+        # to cross-compile for Windows
         gcc-mingw-w64-i686 \
         # to build Mbed TLS using latest gcc version available from Ubuntu
         gcc-14 \
@@ -97,6 +99,8 @@ RUN apt-get update -q && apt-get install -yq \
         m4 \
         # to build Mbed TLS and others
         make \
+        # to compile and test with musl (lightweight libc) \
+        musl-tools \
         # to build Mbed TLS (alternative CMake backend)
         ninja-build \
         # to build GnuTLS with locally-compiled nettle
@@ -139,7 +143,7 @@ RUN apt-get update -q && apt-get install -yq \
             libstdc++6:armhf \
             ;; \
     esac && \
-    rm -rf /var/lib/apt/lists/ 
+    rm -rf /var/lib/apt/lists/
 
 # Make sure we have a UTF-8 locale
 RUN locale && \
@@ -148,11 +152,12 @@ RUN locale && \
 
 # For installing clang-latest, we add the LLVM package source
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 15CF4D18AF4F7421 && \
-    # add an apt package source from https://apt.llvm.org/ 
+    # add an apt package source from https://apt.llvm.org/
     add-apt-repository 'deb http://apt.llvm.org/noble/ llvm-toolchain-noble-18 main' -y && \
     apt-get install -yq \
         # to build Mbed TLS using latest stable clang version at the time of writing
         clang-20 && \
+    rm -rf /var/lib/apt/lists/ && \
     # create symbolic links for latest gcc and clang versions
     ln -s /usr/bin/clang-20 /usr/local/bin/clang-latest && \
     ln -s /usr/bin/gcc-14 /usr/local/bin/gcc-latest
@@ -173,7 +178,7 @@ RUN if [ "$(uname -m)" = x86_64 ]; then \
         ln -s x86_64-linux-gnu/asm /usr/include/asm; \
     fi
 
-# Install the Arm gcc-cross toolchains
+# Install the gcc-cross toolchains for various platforms (only on x86_64)
 RUN if [ "$(uname -m)" = aarch64 ]; then \
         # HACK: Ubuntu doesn't provide an armel port for Thumb-1 testing, so link
         #       the cross-compiler's libraries into the standard multiarch location.
@@ -183,7 +188,8 @@ RUN if [ "$(uname -m)" = aarch64 ]; then \
         ln -s /usr/arm-linux-gnueabi/lib /lib/arm-linux-gnueabi && \
         ln -s arm-linux-gnueabi/ld-linux.so.3 /lib/ld-linux.so.3; \
     fi && \
-    apt-get update -q && apt-get install -yq \
+    apt-get update -q && \
+    apt-get install -yq \
         gcc-aarch64-linux-gnu \
         gcc-arm-linux-gnueabi \
         gcc-arm-linux-gnueabihf \
@@ -191,7 +197,20 @@ RUN if [ "$(uname -m)" = aarch64 ]; then \
         libc6-dev-arm64-cross \
         libc6-dev-armel-cross \
         libc6-dev-armhf-cross \
-    && rm -rf /var/lib/apt/lists/
+    && \
+    if [ "$(uname -m)" = x86_64 ]; then \
+        apt-get install -yq \
+            gcc-alpha-linux-gnu \
+            gcc-multilib-mips-linux-gnu \
+            gcc-multilib-mipsel-linux-gnu \
+            gcc-multilib-powerpc64-linux-gnu \
+            gcc-powerpc-linux-gnu \
+            gcc-powerpc64le-linux-gnu \
+            gcc-riscv64-linux-gnu \
+            gcc-s390x-linux-gnu \
+        ; \
+    fi && \
+    rm -rf /var/lib/apt/lists/
 
 # Install a snapshot of GCC that we want to test with.
 # GCC 15 will break our code: https://github.com/Mbed-TLS/mbedtls/issues/9814
@@ -352,6 +371,16 @@ RUN python3 -m pip config set global.progress_bar off && \
     # Instruct pip that it's ok to install packages as a user
     # (either "user" or the developer who runs "docker -u ...").
     python3 -m pip config set global.break-system-packages true
+
+# Make additional tooling available from the host.
+# This is intended for tools that can't be put in the Docker image, for
+# example because they can't be redistributed.
+# The tools need to work inside the Docker environment, so they should be
+# scripts or Linux executables, ideally statically linked or at least linked
+# only against Glibc and companion libraries that have a stable ABI.
+# The intended usage is for /opt/host to be a mounted volume in "docker run".
+# Mounting the volume is optional.
+ENV PATH=${PATH}:/opt/host/bin
 
 # Add user
 RUN useradd -m user

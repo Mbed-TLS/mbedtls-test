@@ -158,6 +158,16 @@ RUN mkdir $ARMC5_BIN_DIR && \
 ARG ARMLMD_LICENSE_FILE=17010@aws-armlmd.license.aws.arm.com
 ENV ARMLMD_LICENSE_FILE=${ARMLMD_LICENSE_FILE}
 
+# Make additional tooling available from the host.
+# This is intended for tools that can't be put in the Docker image, for
+# example because they can't be redistributed.
+# The tools need to work inside the Docker environment, so they should be
+# scripts or Linux executables, ideally statically linked or at least linked
+# only against Glibc and companion libraries that have a stable ABI.
+# The intended usage is for /opt/host to be a mounted volume in "docker run".
+# Mounting the volume is optional.
+ENV PATH=${PATH}:/opt/host/bin
+
 # Add user
 RUN useradd -m user
 
