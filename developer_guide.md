@@ -213,7 +213,7 @@ If you want to validate a Docker image on the official Docker host (rarely neede
     ```
     aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 211125306678.dkr.ecr.eu-west-1.amazonaws.com
     sudo HOME=$HOME docker pull 211125306678.dkr.ecr.eu-west-1.amazonaws.com/docker.io/trustedfirmware/ci-amd64-mbed-tls-ubuntu:$image
-    sudo docker run -u 1000:1000 -e MAKEFLAGS -e VERBOSE_LOGS --rm -i -t -w /var/lib/build -v /home/admin/workspace/mbedtls-restricted-release-ci-testing/src:/var/lib/build -v /opt/host --sysctl net.ipv6.conf.all.disable_ipv6=1 --cap-add SYS_PTRACE 211125306678.dkr.ecr.eu-west-1.amazonaws.com/docker.io/trustedfirmware/ci-amd64-mbed-tls-ubuntu:$image
+    sudo docker run -u 1000:1000 -e MAKEFLAGS -e VERBOSE_LOGS --rm -i -t -w /var/lib/build -v /home/admin/workspace/mbedtls-restricted-release-ci-testing/src:/var/lib/build -v /opt/host:/opt/host:ro --sysctl net.ipv6.conf.all.disable_ipv6=1 --cap-add SYS_PTRACE 211125306678.dkr.ecr.eu-west-1.amazonaws.com/docker.io/trustedfirmware/ci-amd64-mbed-tls-ubuntu:$image
     ```
 
 #### Validating Groovy changes
