@@ -13,19 +13,21 @@ The [`mbedtls-test` repository](https://github.com/Mbed-TLS/mbedtls-test) contai
 * Docker files used for testing on Linux under [`resources/docker_files`](resources/docker_files/).
 * A script used for testing on Windows: [`resources/windows/windows_testing.py`](resources/windows/windows_testing.py).
 
-### Jenkins instances
+### Jenkins instance
 
-At the time of writing, there are three instances of Jenkins:
+The Jenkins instance is a service which is known as [OpenCI](https://ci.trustedfirmware.org/view/Mbed-TLS/).
 
-* [OpenCI](https://ci.trustedfirmware.org/view/Mbed-TLS/), maintained by arm ([private issue board: OSSDEVOPS](https://jira.arm.com/projects/OSSDEVOPS)) on behalf of TrustedFirmware. The OpenCI instance is public. Only Mbed TLS team members (including non-Arm employees) can have accounts (access is via [the `trusted-firmware-mbed-tls-openci-users` team in `trusted-firmware-ci` on GitHub](https://github.com/orgs/trusted-firmware-ci/teams/trusted-firmware-mbed-tls-openci-users/members)), but everyone can see test results.
-* [OpenCI (legacy)](https://mbedtls.trustedfirmware.org/), maintained by Linaro ([issue board: TFC](https://linaro.atlassian.net/browse/TFC-526)) on behalf of TrustedFirmware. The OpenCI instance is public. Only Mbed TLS team members (including non-Arm employees) can have accounts (access is via [the `trusted-firmware-mbed-tls-openci-users` team in `trusted-firmware-ci` on GitHub](https://github.com/orgs/trusted-firmware-ci/teams/trusted-firmware-mbed-tls-openci-users/members)), but everyone can see test results.
-* [Arm Internal CI](https://jenkins-mbedtls.oss.arm.com/), maintained by Arm ([issue board: OSSDEVOPS project](https://jira.arm.com/projects/OSSDEVOPS)). This instance is only accessible to Arm employees from within the Arm network.
+It is maintained by Arm ([private issue board: OSSDEVOPS](https://jira.arm.com/projects/OSSDEVOPS)) on behalf of TrustedFirmware. The OpenCI instance is public. Only TrustedFirmware members and partners can have accounts (access is via [the `trusted-firmware-mbed-tls-openci-users` team in `trusted-firmware-ci` on GitHub](https://github.com/orgs/trusted-firmware-ci/teams/trusted-firmware-mbed-tls-openci-users/members)), but everyone can see test results.
 
-The three instances mostly have the same capabilities, but they can differ in terms of Jenkins versions, available plugins, OS versions, etc.
+Jobs whose name contains `restricted` are not visible publicly. They are mostly used to test security fixes that are not yet public.
+
+There is a companion [staging](https://ci.staging.trustedfirmware.org/) instance which is sometimes used to test proposed code or configuration changes.
+
+Some old documents and logs reference other Jenkins instances: a Linaro-maintained instance of OpenCI, and an Arm internal CI. Those no longer exist since January 2026.
 
 #### Jenkins jobs
 
-On OpenCI, the jobs are defined by YAML configuration files managed in a Gerrit instance: [browse code](https://review.trustedfirmware.org/plugins/gitiles/ci/mbedtls/mbed-tls-job-configs), [contributor setup](https://review.trustedfirmware.org/Documentation/user-upload.html), [reviews](https://review.trustedfirmware.org/q/project:ci/mbedtls/mbed-tls-job-configs+status:open). On the internal CI, the jobs and job configurations can be edited directly through the web interface.
+On OpenCI, the jobs are defined by YAML configuration files managed in a Gerrit instance: [browse code](https://review.trustedfirmware.org/plugins/gitiles/ci/mbedtls/mbed-tls-job-configs), [contributor setup](https://review.trustedfirmware.org/Documentation/user-upload.html), [reviews](https://review.trustedfirmware.org/q/project:ci/mbedtls/mbed-tls-job-configs+status:open).
 
 The main jobs on OpenCI are:
 
@@ -36,7 +38,13 @@ The main jobs on OpenCI are:
 * [`mbed-tls-tf-psa-crypto-multibranch`](https://ci.trustedfirmware.org/view/Mbed-TLS/job/mbed-tls-tf-psa-crypto-multibranch/): invoked automatically on pull requests in the [`TF-PSA-Crypto` repository](https://github.com/Mbed-TLS/TF-PSA-Crypto).
 * `ci-testing` jobs are meant for testing changes to the CI scripts. See [“Validation tools”](#validation-tools) below.
 
-The internal CI has a similar set of jobs.
+#### Triggering jobs on Jenkins
+
+For security reasons, the CI does not run on pull requests from untrusted users.
+
+At the time of writing, only users with write permissions on the repository are trusted to have the CI run automatically on their pull requests. The restriction is implemented in `pr_author_has_write_access()` in `vars/common.groovy`.
+
+There is a separate access control list for triggering CI jobs manually: this is allowed for users in the [`mbed-tls-users` team](https://github.com/orgs/trusted-firmware-ci/teams/mbed-tls-users) in the `trusted-firmware-ci` GitHub organization, if they have an account on Jenkins that's tied to their GitHub account.
 
 ## General programming advice
 
@@ -61,7 +69,7 @@ If you want to change the interface between `mbedtls` and `mbedtls-test`, you ne
 
 If you add tests in `mbedtls` that require a new tool on the CI:
 
-1. Make the new tool available. If the tool runs on Linux, add it to the Docker image(s) via a pull request on `mbedtls-test`. If the tool doesn't run on Linux, this will require a request to the devops teams that manage the two [Jenkins instances](#jenkins-instances).
+1. Make the new tool available. If the tool runs on Linux, add it to the Docker image(s) via a pull request on `mbedtls-test`. If the tool doesn't run on Linux, this will require a request to the Arm devops team that manages the [Jenkins instance](#jenkins-instance).
 2. Make a pull request in `mbedtls` that starts using the new tool.
 
 If you add a new entry point in `mbedtls` that CI code should invoke:
@@ -94,7 +102,7 @@ Jenkins runs a [pipeline](https://www.jenkins.io/doc/book/pipeline/), which is e
 
 At runtime, the general structure of the pipeline for a release or PR job is:
 
-1. Set up the Docker images. The images are normally cached in a Docker registry ([`trustedfirmware`](https://hub.docker.com/u/trustedfirmware) on OpenCI, a private registry on the internal CI), but they will be (re)built automatically if needed.
+1. Set up the Docker images. The images are normally cached in a Docker registry ([`trustedfirmware`](https://hub.docker.com/u/trustedfirmware) on DockerHub, plus an internal cache), but they will be (re)built automatically if needed.
 2. Obtain some information about the branch to test. In particular, run `tests/scripts/all.sh --list-all-components` from the tested branch, as well as `tests/scripts/all.sh --list-components` in each Docker container to determine which one to use in the next step.
 3. Run all the components to test in parallel. The components consist of:
     * A full run of `all.sh` (spread over multiple Linux versions), invoked by `gen_jobs.gen_all_sh_jobs`.
@@ -118,7 +126,7 @@ The Groovy language gives access to the Java standard library. However, on Jenki
 
 Jenkins (with the plugins we have installed) makes some extra functions available, in particular [pipeline steps](https://www.jenkins.io/doc/pipeline/steps/workflow-basic-steps/).
 
-The two CI instances may have different sets of plugins. You can see the plugin list on [OpenCI](https://review.trustedfirmware.org/plugins/gitiles/ci/dockerfiles/+/refs/heads/master/jessie-amd64-jenkins-master/plugins.txt) and on the [internal CI](https://jenkins-mbedtls.oss.arm.com/manage/pluginManager/installed).
+The set of Jenkins plugins is managed by the Arm devops team. The list of plugins is public in [`plugins.yaml`](https://gitlab.geo.arm.com/software/eng-infra/oss/tf-openci/cloudbees-bundles/-/blob/main/openci-production-prod/plugins.yaml) and the pinned versions are in [`plugins-catalog.yaml`](https://gitlab.geo.arm.com/software/eng-infra/oss/tf-openci/cloudbees-bundles/-/blob/main/openci-production-prod/plugins-catalog.yaml).
 
 #### Global variables
 
@@ -136,14 +144,7 @@ common.mbedtls_node (label) {
 }
 ```
 
-The label identifies what features the executor needs to have. In particular, this encodes the operating system. We use four labels:
-
-* `container-host` (currently synonymous with `container-host-amd64`), which runs Linux on x86_64 and has Docker. Most of our Linux code runs in Docker containers.
-* `container-host-arm64`, similar to `container-host` but running on arm64.
-* `freebsd`
-* `windows`
-
-The full list of available labels can be found in TODO for OpenCI and the [labels dashboard](https://jenkins-mbedtls.oss.arm.com/labelsdashboard/) (configured at [admin page](https://jenkins-mbedtls.oss.arm.com/manage/configureClouds/)) on the internal CI.
+The node label identifies a [Jenkins executor](#jenkins-executors).
 
 ## Docker images
 
@@ -156,6 +157,22 @@ See [`resources/docker_files/README.md`](resources/docker_files/README.md).
 ### Docker container selection
 
 For each `all.sh` component, the Groovy code selects one of the Docker containers that supports that component, based on running `all.sh --list-components` inside that Docker image.
+
+## Jenkins executors
+
+The label identifies what features the executor needs to have. In particular, this encodes the operating system. We use four labels:
+
+* `mbedtls-container-host`, which runs Linux on x86_64 and has Docker. Most of our Linux code runs in Docker containers.
+* `mbedtls-container-host-arm64`, similar to `mbedtls-container-host` but running on arm64.
+* `mbedtls-freebsd`
+* `mbedtls-windows`
+
+The executors (“AMIs”) are managed by the Arm devops team. The list of labels is configured in [`jenkins-clouds.yaml`](https://gitlab.geo.arm.com/software/eng-infra/oss/tf-openci/cloudbees-bundles/-/blob/main/openci-production-prod/jenkins-clouds.yaml).
+The software running on these executors is configured through descriptions stored in the [aws-amis](https://review.trustedfirmware.org/plugins/gitiles/ci/aws-amis/+/refs/heads/master) repository.
+
+### Jenkins executor troubleshooting job
+
+Arm team members can get shell access to an executor instance through the [EC2 troubleshooting job](https://confluence.arm.com/spaces/CESW/pages/2883785947/User+facing+EC2+Troubleshooting+Job) (Arm internal link).
 
 ## Validating changes
 
@@ -170,17 +187,34 @@ To validate changes, first upload your changes to a branch in the `mbedtls-test`
 * [`mbedtls-release-ci-testing`](https://ci.trustedfirmware.org/view/Mbed-TLS/job/mbedtls-release-ci-testing/): runs a full CI with a chosen branch of `mbedtls-test` on a chosen commit from any repository. Note that in addition to selecting your `mbedtls-test` branch in the dropdown, you need to check one or more of the boxes selecting what will run (`RUN_xxx` variables), otherwise not much will happen.
 * [`mbed-tls-restricted-pr-test-parametrized`](https://ci.trustedfirmware.org/view/Mbed-TLS/job/mbed-tls-restricted-pr-test-parametrized/): runs the PR tests. Useful for what the release job doesn't cover — mainly “Interface stability tests” (formerly known as “ABI-API-check”).
 
-There are similar jobs on the internal CI.
-
 To validate changes to code that's specific to pull requests, such as GitHub reporting, see [the primary PR CI testing PR](https://github.com/Mbed-TLS/mbedtls-restricted/pull/906) (private link).
+
+### Testing new Jenkins executor images
+
+To validate a new Jenkins executor image:
+
+1. Make a merge request for the new AMI on https://review.trustedfirmware.org/c/ci/aws-amis .
+2. Ask in Arm Slack `#help-oss-devops` for someone from Devops to run the CI. (That's the AMI CI, not to be confused with the Mbed TLS CI.)
+3. The new image will be available as “candidate” on the [Jenkins executor troubleshooting job](#jenkins-executor-troubleshooting-job).
+4. Once you're happy with the new image, ask Devops to merge the merge request, then to [promote it to production](https://confluence.arm.com/spaces/CESW/pages/2844183494/OpenCI+AMI+Build+and+Promotion+Flow).
 
 ### Validation tips
 
 #### Validating Dockerfile changes
 
-After changing Dockerfiles, make sure to run at least one test job on each Jenkins instance (OpenCI and Arm internal). Each does its own build of the Docker images, so sometimes things can go wrong only on one side (e.g. due to network accessibility or to the host kernel version).
-
 If you remove anything, make sure to test with LTS branches. Usually we don't reduce test requirements between major releases, so if test tools are good enough for `development`, they're also good enough for older branches targeting `development` or previous minor releases. But a tool might be used e.g. for 2.28 even if it's unused after 3.0.
+
+If you want to validate a Docker image on the official Docker host (rarely needed):
+
+1. Start a [Jenkins executor troubleshooting job](#jenkins-executor-troubleshooting-job) on `mbedtls-container-host`. Use the `latest` image for what is currently in production, or `candidate` for the last executor CI run (see “[Testing new Jenkins executor images](#testing-new-jenkins-executor-images)”).
+2. Get shell access to the troubleshooting job as described in “[Jenkins executor troubleshooting job](#jenkins-executor-troubleshooting-job)”.
+3. Run the following commands, replacing `$image` with the image you actually want (e.g. `ubuntu-24.04-fd5b3a5ddc0674c0630639190fb62cfe5c6c5317-amd64`):
+
+    ```
+    aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 211125306678.dkr.ecr.eu-west-1.amazonaws.com
+    sudo HOME=$HOME docker pull 211125306678.dkr.ecr.eu-west-1.amazonaws.com/docker.io/trustedfirmware/ci-amd64-mbed-tls-ubuntu:$image
+    sudo docker run -u 1000:1000 -e MAKEFLAGS -e VERBOSE_LOGS --rm -i -t -w /var/lib/build -v /home/admin/workspace/mbedtls-restricted-release-ci-testing/src:/var/lib/build -v /opt/host:/opt/host:ro --sysctl net.ipv6.conf.all.disable_ipv6=1 --cap-add SYS_PTRACE 211125306678.dkr.ecr.eu-west-1.amazonaws.com/docker.io/trustedfirmware/ci-amd64-mbed-tls-ubuntu:$image
+    ```
 
 #### Validating Groovy changes
 
