@@ -42,7 +42,9 @@ void run_tls_tests(Collection<BranchInfo> infos) {
 
         jobs.failFast = false
         analysis.record_inner_timestamps('main', 'run_pr_job') {
-            parallel jobs
+            throttle(['mbedtls-parallel-executor-limit']) {
+                parallel jobs
+            }
         }
     } catch (err) {
         def failed_names = infos.collectMany({ info -> info.failed_builds}).sort().join(" ")
@@ -217,7 +219,9 @@ void run_release_job(Collection<String> tls_branches, Collection<String> tf_psa_
                     jobs = common.wrap_report_errors(jobs)
                     jobs.failFast = false
                     analysis.record_inner_timestamps('main', 'run_release_job') {
-                        parallel jobs
+                        throttle(['mbedtls-parallel-executor-limit']) {
+                            parallel jobs
+                        }
                     }
                 }
             }
