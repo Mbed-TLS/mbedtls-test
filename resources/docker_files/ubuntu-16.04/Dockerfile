@@ -218,9 +218,9 @@ RUN cd /opt && \
 # Install Python 3.8.
 # This is the minimum Python version that we declare as required for
 # Mbed TLS 3.6 LTS.
-RUN wget -q https://github.com/pyenv/pyenv/archive/refs/tags/v2.4.0.tar.gz && \
-    tar -xzf v2.4.0.tar.gz && \
-    rm v2.4.0.tar.gz && \
+RUN wget -q https://github.com/pyenv/pyenv/archive/refs/tags/v2.8.4.tar.gz && \
+    tar -xzf v2.8.4.tar.gz && \
+    rm v2.8.4.tar.gz && \
     cd pyenv-*/ && \
     bin/pyenv install 3.6 && \
     bin/pyenv install 3.8 && \
