@@ -71,7 +71,10 @@ RUN apt-get update -q && apt-get install -yq \
         flex \
         # to cross-compile for Windows
         gcc-mingw-w64-i686 \
-        # to build Mbed TLS using latest gcc version available from Ubuntu
+        # to build Mbed TLS using latest stable GCC version available from Ubuntu
+        gcc \
+        # to build Mbed TLS with GCC <<15 (version not affected by
+        # https://github.com/Mbed-TLS/mbedtls/issues/9814)
         gcc-14 \
         # to check out Mbed TLS and others
         git \
@@ -153,7 +156,7 @@ RUN locale && \
 # For installing clang-latest, we add the LLVM package source
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 15CF4D18AF4F7421 && \
     # add an apt package source from https://apt.llvm.org/
-    add-apt-repository 'deb http://apt.llvm.org/noble/ llvm-toolchain-noble-18 main' -y && \
+    add-apt-repository 'deb http://apt.llvm.org/resolute/ llvm-toolchain-resolute-20 main' -y && \
     apt-get install -yq \
         # to build Mbed TLS using latest stable clang version at the time of writing
         clang-20 && \
@@ -201,11 +204,8 @@ RUN if [ "$(uname -m)" = aarch64 ]; then \
     if [ "$(uname -m)" = x86_64 ]; then \
         apt-get install -yq \
             gcc-alpha-linux-gnu \
-            gcc-multilib-mips-linux-gnu \
-            gcc-multilib-mipsel-linux-gnu \
             gcc-multilib-powerpc64-linux-gnu \
-            gcc-powerpc-linux-gnu \
-            gcc-powerpc64le-linux-gnu \
+            gcc-multilib-powerpc-linux-gnu \
             gcc-riscv64-linux-gnu \
             gcc-s390x-linux-gnu \
         ; \
