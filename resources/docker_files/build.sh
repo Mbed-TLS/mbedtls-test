@@ -6,13 +6,29 @@
 
 set -e
 
-if [ $# -eq 0 ] || [ "$1" = "--help" ]; then
+usage () {
     cat <<EOF
-Usage: $0 DIR/Dockerfile[...]
+Usage: $0 [OPTION]... DIR[/Dockerfile]...
 Build the specified Docker images.
+
+  -s PREFIX     Prefix for the docker command (default: sudo)
 EOF
+}
+
+if [ "$1" = "--help" ]; then
+    usage
     exit
 fi
+
+SUDO=sudo
+
+while getopts s: OPTLET; do
+    case $OPTLET in
+        s) SUDO=$OPTARG;;
+        \?) usage >&2; exit 1;;
+    esac
+done
+shift $((OPTIND - 1))
 
 list_sh="$(dirname -- "$0")/list-docker-image-tags.sh"
 
@@ -21,7 +37,7 @@ build () {
         set -- "$1/Dockerfile"
     fi
     tag="$("$list_sh" "$1")"
-    sudo docker build --network=host -t "$tag" -f "$1" "${1%/*}"
+    $SUDO docker build --network=host -t "$tag" -f "$1" "${1%/*}"
     echo "Built $tag"
 }
 

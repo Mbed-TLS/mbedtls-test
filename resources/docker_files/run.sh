@@ -39,6 +39,7 @@ MOUNT_DIR           Directory to mount on the image as the working dir.
 DOCKER_IMAGE_TAG    Docker image to run.
 
   -o DIR        Directory to mount at /opt/host (default: /opt/host)
+  -s PREFIX     Prefix for the docker command (default: sudo)
 EOF
 }
 
@@ -48,10 +49,12 @@ if [ "$1" = "--help" ]; then
 fi
 
 OPT_HOST=/opt/host
+SUDO=sudo
 
-while getopts o: OPTLET; do
+while getopts o:s: OPTLET; do
     case $OPTLET in
         o) OPT_HOST=$OPTARG;;
+        s) SUDO=$OPTARG;;
         \?) usage >&2; exit 1;;
     esac
 done
@@ -91,5 +94,5 @@ if [ -n "$OPT_HOST" ]; then
 fi
 echo "****************************************************"
 
-sudo docker run --network=host --rm -i -t -u $USR_ID:$USR_GRP -w /var/lib/ws -e HOME=/var/lib/ws -v $MOUNT_DIR:/var/lib/ws "$@" --cap-add SYS_PTRACE ${IMAGE}
+$SUDO docker run --network=host --rm -i -t -u $USR_ID:$USR_GRP -w /var/lib/ws -e HOME=/var/lib/ws -v $MOUNT_DIR:/var/lib/ws "$@" --cap-add SYS_PTRACE ${IMAGE}
 
