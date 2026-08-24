@@ -156,14 +156,14 @@ RUN locale && \
 # For installing clang-latest, we add the LLVM package source
 RUN wget -q -O /etc/apt/keyrings/llvm-snapshot.gpg.asc https://apt.llvm.org/llvm-snapshot.gpg.key && \
     # add an apt package source from http://apt.llvm.org/
-    echo 'deb [arch=amd64,arm64 signed-by=/etc/apt/keyrings/llvm-snapshot.gpg.asc] http://apt.llvm.org/resolute/ llvm-toolchain-resolute-20 main' >/etc/apt/sources.list.d/llvm.list && \
+    echo 'deb [arch=amd64,arm64 signed-by=/etc/apt/keyrings/llvm-snapshot.gpg.asc] http://apt.llvm.org/resolute/ llvm-toolchain-resolute-23 main' >/etc/apt/sources.list.d/llvm.list && \
     apt-get update -q && \
     apt-get install -yq \
         # to build Mbed TLS using latest stable clang version at the time of writing
-        clang-20 && \
+        clang-23 && \
     rm -rf /var/lib/apt/lists/ && \
     # create symbolic links for latest gcc and clang versions
-    ln -s /usr/bin/clang-20 /usr/local/bin/clang-latest && \
+    ln -s /usr/bin/clang-23 /usr/local/bin/clang-latest && \
     ln -s /usr/bin/gcc-14 /usr/local/bin/gcc-latest
 
 # Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
