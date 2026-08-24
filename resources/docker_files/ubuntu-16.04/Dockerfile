@@ -197,6 +197,7 @@ RUN apt-get update -q && apt-get install -yq \
 # Install the minimum versions of CMake that we advertize:
 # * CMake 3.10.2 in Mbed TLS 3.6 LTS (only available for x86_64, not for aarch64)
 # * CMake 3.20.2 in TF-PSA-Crypto 1.0. and Mbed TLS 4.0.0
+# Make CMake 3.20.2 the default version.
 RUN cd /opt && \
     if [ "$(uname -m)" = x86_64 ]; then \
         wget -q https://github.com/Kitware/CMake/releases/download/v3.10.2/cmake-3.10.2-linux-$(uname -m).tar.gz && \
@@ -209,7 +210,8 @@ RUN cd /opt && \
     for x in cmake-*-$(uname -m)/bin/*; do \
         v="${x#*-}"; v="${v%%-*}"; \
         ln -s "$PWD/$x" "/usr/local/bin/${x##*/}-${v}"; \
-    done
+    done; \
+    ln -s cmake-3.20.2 /usr/local/bin/cmake
 
 # Install Python 3.6.
 # This was the minimum Python version that we declared as required for

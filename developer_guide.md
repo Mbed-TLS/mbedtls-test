@@ -53,13 +53,13 @@ The following table lists the platforms on which project tests can run, as well 
 | OS | Version | Arch | Git | Python | Perl | CMake | GNU Make | Native C compilers | Last checked | Notes |
 | -- | ------- | ---- | --- | ------ | ---- | ----- | -------- | ------------------ | ------------ | ----- |
 | FreeBSD | 14.3 | amd64 | 2.54.0 | `python3` 3.12; `python3.11` | 5.42.2 | 3.31.12 | `gmake` 4.4.1 | Clang 19 | 2026-08-24 | |
-| Ubuntu | 16.04 | amd64 | 2.7.4 | `python3` 3.8; `python3.5`, `python3.6` | 5.22.1 | 3.5.1 | 4.1 | `gcc` 5.4, `clang` 3.8, `gcc-4.7`, `clang` 3.8, `clang-3.5` | 2026-08-24 | |
-| Ubuntu | 16.04 | aarch64 | 2.7.4 | `python3` 3.8; `python3.5`, `python3.6` | 5.22.1 | 3.5.1 | 4.1 | `gcc` 5.4, `clang` 3.8, `gcc-4.7`, `clang` 3.8, `clang-3.5` | 2026-08-24 | |
-| Ubuntu | 18.04 | amd64 | 2.17.1 | `python3` 3.8; `python3.6` | 5.26.1 | 3.10.2 | 4.1 | `gcc` 7.5, `clang` 6 | 2026-08-24 | |
-| Ubuntu | 18.04 | aarch64 | 2.17.1 | `python3` 3.8; `python3.6` | 5.26.1 | 3.10.2 | 4.1 | `gcc` 7.5, `clang` 6 | 2026-08-24 | |
-| Ubuntu | 20.04 | amd64 | 2.25.1 | `python3` 3.8 | 5.30.0 | 3.16.3 | 4.2.1 | `gcc` 9.4 | 2026-08-24 | `arm-compilers` |
-| Ubuntu | 24.04 | amd64 | 2.43.0 | `python3` 3.12 | 5.38.2 | 3.28.3 | 4.3 | `gcc` 13.3.0, `gcc-15` (15.1), `clang` 18, `clang-20` | 2026-08-24 | |
-| Ubuntu | 24.04 | aarch64 | 2.43.0 | `python3` 3.12 | 5.38.2 | 3.28.3 | 4.3 | `gcc` 13.3.0, `gcc-15` (15.1), `clang` 18, `clang-20` | 2026-08-24 | |
+| Ubuntu | 16.04 | amd64 | 2.7.4 | `python3` 3.8; `python3.5`, `python3.6` | 5.22.1 | 3.20.2; `/usr/bin/cmake` 3.5.1; `cmake-3.10.2` | 4.1 | `gcc` 5.4, `clang` 3.8, `gcc-4.7`, `clang` 3.8, `clang-3.5` | 2026-08-24 | |
+| Ubuntu | 16.04 | aarch64 | 2.7.4 | `python3` 3.8; `python3.5`, `python3.6` | 5.22.1 | 3.20.2; `/usr/bin/cmake` 3.5.1; `cmake-3.10.2` | 4.1 | `gcc` 5.4, `clang` 3.8, `gcc-4.7`, `clang` 3.8, `clang-3.5` | 2026-08-24 | |
+| Ubuntu | 18.04 | amd64 | 2.17.1 | `python3` 3.8; `python3.6` | 5.26.1 | 3.20.2; `/usr/bin/cmake` 3.10.2; `cmake-3.10.2` | 4.1 | `gcc` 7.5, `clang` 6 | 2026-08-24 | |
+| Ubuntu | 18.04 | aarch64 | 2.17.1 | `python3` 3.8; `python3.6` | 5.26.1 | 3.20.2; `/usr/bin/cmake` 3.10.2; `cmake-3.10.2` | 4.1 | `gcc` 7.5, `clang` 6 | 2026-08-24 | |
+| Ubuntu | 20.04 | amd64 | 2.25.1 | `python3` 3.8 | 5.30.0 | 3.20.2; `/usr/bin/cmake` 3.16.3; `cmake-3.10.2` | 4.2.1 | `gcc` 9.4 | 2026-08-24 | `arm-compilers` |
+| Ubuntu | 24.04 | amd64 | 2.43.0 | `python3` 3.12 | 5.38.2 | 3.28.3; `cmake-3.10.2`; `cmake-3.20.2` | 4.3 | `gcc` 13.3.0, `gcc-15` (15.1), `clang` 18, `clang-20` | 2026-08-24 | |
+| Ubuntu | 24.04 | aarch64 | 2.43.0 | `python3` 3.12 | 5.38.2 | 3.28.3; `cmake-3.10.2`; `cmake-3.20.2` | 4.3 | `gcc` 13.3.0, `gcc-15` (15.1), `clang` 18, `clang-20` | 2026-08-24 | |
 | Windows | x64 | Server 2016 (10.0.14393) | 2.33.1 | `python` 3.10 | 5.32.1 | 3.21.3 | `gmake` 4.2.1 | MinGW64 `gcc` 6.3; Strawberry `gcc` 8.3; Visual Studio 2017 | 2026-08-24 | |
 
 Linux platforms run in Docker containers. The host is Debian 13 (trixie). The host is accessible to our Groovy code, but it doesn't run any project scripts on the Docker hosts.
