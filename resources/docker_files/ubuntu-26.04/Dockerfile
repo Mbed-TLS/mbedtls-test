@@ -154,9 +154,10 @@ RUN locale && \
     dpkg-reconfigure locales
 
 # For installing clang-latest, we add the LLVM package source
-RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 15CF4D18AF4F7421 && \
-    # add an apt package source from https://apt.llvm.org/
-    add-apt-repository 'deb http://apt.llvm.org/resolute/ llvm-toolchain-resolute-20 main' -y && \
+RUN wget -q -O /etc/apt/keyrings/llvm-snapshot.gpg.asc https://apt.llvm.org/llvm-snapshot.gpg.key && \
+    # add an apt package source from http://apt.llvm.org/
+    echo 'deb [arch=amd64,arm64 signed-by=/etc/apt/keyrings/llvm-snapshot.gpg.asc] http://apt.llvm.org/resolute/ llvm-toolchain-resolute-20 main' >/etc/apt/sources.list.d/llvm.list && \
+    apt-get update -q && \
     apt-get install -yq \
         # to build Mbed TLS using latest stable clang version at the time of writing
         clang-20 && \
