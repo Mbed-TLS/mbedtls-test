@@ -58,10 +58,10 @@ The following table lists the platforms on which project tests can run, as well 
 | Ubuntu | 18.04 | amd64 | 2.17.1 | `python3` 3.8; `python3.6` | 5.26.1 | 3.20.2; `/usr/bin/cmake` 3.10.2; `cmake-3.10.2` | 4.1 | `gcc` 7.5, `clang` 6 | 2026-08-24 | |
 | Ubuntu | 18.04 | aarch64 | 2.17.1 | `python3` 3.8; `python3.6` | 5.26.1 | 3.20.2; `/usr/bin/cmake` 3.10.2; `cmake-3.10.2` | 4.1 | `gcc` 7.5, `clang` 6 | 2026-08-24 | |
 | Ubuntu | 20.04 | amd64 | 2.25.1 | `python3` 3.8 | 5.30.0 | 3.20.2; `/usr/bin/cmake` 3.16.3; `cmake-3.10.2` | 4.2.1 | `gcc` 9.4 | 2026-08-24 | `arm-compilers` |
-| Ubuntu | 24.04 | amd64 | 2.43.0 | `python3` 3.12 | 5.38.2 | 3.28.3; `cmake-3.10.2`; `cmake-3.20.2` | 4.3 | `gcc` 13.3.0, `gcc-15` (15.1), `clang` 18 | 2026-08-24 | |
-| Ubuntu | 24.04 | aarch64 | 2.43.0 | `python3` 3.12 | 5.38.2 | 3.28.3; `cmake-3.10.2`; `cmake-3.20.2` | 4.3 | `gcc` 13.3.0, `gcc-15` (15.1), `clang` 18 | 2026-08-24 | |
-| Ubuntu | 26.04 | amd64 | 2.53.0 | `python3` 3.14 | 5.40.1 | 4.2.3; `cmake-3.10.2`; `cmake-3.20.2` | 4.4.1 | `gcc` 15.2.0, `clang` 21, `clang-23` | 2026-08-24 | |
-| Ubuntu | 26.04 | aarch64 | 2.53.0 | `python3` 3.14 | 5.40.1 | 4.2.3; `cmake-3.10.2`; `cmake-3.20.2` | 4.4.1 | `gcc` 15.2.0, `clang` 21, `clang-23` | 2026-08-24 | |
+| Ubuntu | 24.04 | amd64 | 2.43.0 | `python3` 3.12 | 5.38.2 | 3.28.3; `cmake-3.10.2`; `cmake-3.20.2` | 4.3 | `gcc` 13.3.0, `clang` 18 | 2026-08-24 | |
+| Ubuntu | 24.04 | aarch64 | 2.43.0 | `python3` 3.12 | 5.38.2 | 3.28.3; `cmake-3.10.2`; `cmake-3.20.2` | 4.3 | `gcc` 13.3.0, `clang` 18 | 2026-08-24 | |
+| Ubuntu | 26.04 | amd64 | 2.53.0 | `python3` 3.14 | 5.40.1 | 4.2.3; `cmake-3.10.2`; `cmake-3.20.2` | 4.4.1 | `gcc` 15.2.0, `gcc-16` (16.2), `clang` 21, `clang-23` | 2026-08-24 | |
+| Ubuntu | 26.04 | aarch64 | 2.53.0 | `python3` 3.14 | 5.40.1 | 4.2.3; `cmake-3.10.2`; `cmake-3.20.2` | 4.4.1 | `gcc` 15.2.0, `gcc-16` (16.2), `clang` 21, `clang-23` | 2026-08-24 | |
 | Windows | x64 | Server 2016 (10.0.14393) | 2.33.1 | `python` 3.10 | 5.32.1 | 3.21.3 | `gmake` 4.2.1 | MinGW64 `gcc` 6.3; Strawberry `gcc` 8.3; Visual Studio 2017 | 2026-08-24 | |
 
 Linux platforms run in Docker containers. The host is Debian 13 (trixie). The host is accessible to our Groovy code, but it doesn't run any project scripts on the Docker hosts.

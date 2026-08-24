@@ -163,8 +163,7 @@ RUN wget -q -O /etc/apt/keyrings/llvm-snapshot.gpg.asc https://apt.llvm.org/llvm
         clang-23 && \
     rm -rf /var/lib/apt/lists/ && \
     # create symbolic links for latest gcc and clang versions
-    ln -s /usr/bin/clang-23 /usr/local/bin/clang-latest && \
-    ln -s /usr/bin/gcc-14 /usr/local/bin/gcc-latest
+    ln -s /usr/bin/clang-23 /usr/local/bin/clang-latest
 
 # Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
 # gcc-multilib conflicts with cross-compiler packages that we'll install later,
@@ -213,22 +212,23 @@ RUN if [ "$(uname -m)" = aarch64 ]; then \
     fi && \
     rm -rf /var/lib/apt/lists/
 
-# Install a snapshot of GCC that we want to test with.
-# GCC 15 will break our code: https://github.com/Mbed-TLS/mbedtls/issues/9814
-# During a transition period, we will use a snapshot of GCC 15 to test the
-# fix for that issue.
-# Eventually, gcc-latest should become GCC 15. This will cause test failures
-# on branches that don't have the fix yet, which is why we don't make
-# GCC 15 be gcc-latest immediately.
-RUN wget -q https://mirror.koddos.net/gcc/releases/gcc-15.1.0/gcc-15.1.0.tar.xz && \
-    tar -xf gcc-15.1.0.tar.xz && \
-    rm gcc-15.1.0.tar.xz && \
-    cd gcc-15.1.0 && \
-    ./configure --prefix=/usr/local/gcc-15 --program-suffix=-15 --disable-bootstrap --enable-languages=c,c++,lto && \
+# Install the most recent GCC release at the time of writing.
+# Get it from source, because there's no Ubuntu package (Ubuntu 26.04
+# only has a beta version of GCC 16).
+RUN wget -q https://ftp.gwdg.de/pub/linux/sources.redhat.com/gcc/releases/gcc-16.2.0/gcc-16.2.0.tar.xz && \
+    tar -xf gcc-16.2.0.tar.xz && \
+    rm gcc-16.2.0.tar.xz && \
+    cd gcc-16.2.0 && \
+    mkdir build && \
+    cd build && \
+    ../configure --prefix=/usr/local/gcc-16 --program-suffix=-16 --disable-bootstrap --enable-languages=c,c++,lto && \
     make && \
     make install && \
-    cd .. && \
-    rm -rf gcc-15.1.0
+    cd ../.. && \
+    rm -rf gcc-16.2.0 && \
+    cd /usr/local/bin && \
+    ln -s ../gcc-16/bin/* . && \
+    ln -s gcc-16 /usr/local/bin/gcc-latest
 
 # Install the minimum versions of CMake that we advertize:
 # * CMake 3.10.2 in Mbed TLS 3.6 LTS (only available for x86_64, not for aarch64)

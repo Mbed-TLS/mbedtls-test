@@ -71,8 +71,8 @@ RUN apt-get update -q && apt-get install -yq \
         flex \
         # to cross-compile for Windows
         gcc-mingw-w64-i686 \
-        # to build Mbed TLS using latest gcc version available from Ubuntu
-        gcc-14 \
+        # to build Mbed TLS using GCC
+        gcc \
         # to check out Mbed TLS and others
         git \
         # to build Mbed TLS's documentation
@@ -150,8 +150,6 @@ RUN locale && \
     locale-gen "en_US.UTF-8" && \
     dpkg-reconfigure locales
 
-RUN ln -s /usr/bin/gcc-14 /usr/local/bin/gcc-latest
-
 # Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
 # gcc-multilib conflicts with cross-compiler packages that we'll install later,
 # so don't keep it around. Just let it install its dependencies
@@ -201,23 +199,6 @@ RUN if [ "$(uname -m)" = aarch64 ]; then \
         ; \
     fi && \
     rm -rf /var/lib/apt/lists/
-
-# Install a snapshot of GCC that we want to test with.
-# GCC 15 will break our code: https://github.com/Mbed-TLS/mbedtls/issues/9814
-# During a transition period, we will use a snapshot of GCC 15 to test the
-# fix for that issue.
-# Eventually, gcc-latest should become GCC 15. This will cause test failures
-# on branches that don't have the fix yet, which is why we don't make
-# GCC 15 be gcc-latest immediately.
-RUN wget -q https://mirror.koddos.net/gcc/releases/gcc-15.1.0/gcc-15.1.0.tar.xz && \
-    tar -xf gcc-15.1.0.tar.xz && \
-    rm gcc-15.1.0.tar.xz && \
-    cd gcc-15.1.0 && \
-    ./configure --prefix=/usr/local/gcc-15 --program-suffix=-15 --disable-bootstrap --enable-languages=c,c++,lto && \
-    make && \
-    make install && \
-    cd .. && \
-    rm -rf gcc-15.1.0
 
 # Install the minimum versions of CMake that we advertize:
 # * CMake 3.10.2 in Mbed TLS 3.6 LTS (only available for x86_64, not for aarch64)
