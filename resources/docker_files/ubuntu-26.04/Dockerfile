@@ -1,0 +1,405 @@
+# ubuntu-26.04/Dockerfile
+#
+#  Copyright (c) 2018-2023, ARM Limited, All Rights Reserved
+#  SPDX-License-Identifier: Apache-2.0
+#
+#  Licensed under the Apache License, Version 2.0 (the "License"); you may
+#  not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+#  This file is part of Mbed TLS (https://www.trustedfirmware.org/projects/mbed-tls/)
+
+# Purpose
+# -------
+#
+# This docker file is for creating the ubuntu-26.04 image that is used in the
+# CI. It can also be used for reproducing and testing CI failures.
+
+FROM ubuntu:26.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+WORKDIR /opt/src
+
+# Note: scripts/min_requirements.py need a writable
+# destination for installing python dependencies
+# FIXME: This should be /var/lib/build to use the host src directory as HOME
+ENV HOME=/var/lib/builds
+
+# Support for 32-bit builds+tests of Mbed TLS
+RUN case "$(uname -m)" in \
+        x86_64)  dpkg --add-architecture i386;; \
+        aarch64) dpkg --add-architecture armhf;; \
+    esac
+
+# Main apt-get call with all packages except those that have conflicts,
+# handled below. One big alphabetised list, in order to avoid duplicates, with
+# comments explaining why each package is needed.
+RUN apt-get update -q && apt-get install -yq \
+        # for Mbed TLS tests
+        abi-compliance-checker \
+        # Note that there is a known issue #5332 that stock abi tools
+        # in ubuntu26.04 do not fail as expected.
+        # https://github.com/ARMmbed/mbedtls/issues/5332
+        # Do not activae 26.04 until that is resolved
+        # to use with abi-compliance-tester
+        abi-dumper \
+        # to update the autoconf files in nettle 2.7 with support for aarch64
+        autotools-dev \
+        # to build Mbed TLS: gcc, binutils, make, etc.
+        build-essential \
+        # to generate malformed files
+        bsdextrautils \
+        # to build Mbed TLS
+        clang \
+        # to build Mbed TLS
+        cmake \
+        # to compile and test with dietlibc (lightweight libc) \
+        dietlibc-dev \
+        # to build Mbed TLS's documentation
+        doxygen \
+        # to run tests in specific time.
+        faketime \
+        # build dependency of GCC
+        flex \
+        # to cross-compile for Windows
+        gcc-mingw-w64-i686 \
+        # to build Mbed TLS using latest gcc version available from Ubuntu
+        gcc-14 \
+        # to check out Mbed TLS and others
+        git \
+        # to build Mbed TLS's documentation
+        graphviz \
+        # to measure code coverage of Mbed TLS
+        lcov \
+        # to build GnuTLS (nettle with public key support aka hogweed)
+        libgmp-dev \
+        # build dependency of GCC
+        libisl-dev libmpfr-dev libmpc-dev \
+        # For psa_sim_generate.pl
+        libjson-perl \
+        # to build GnuTLS >= 3.6 (could also use --with-included-unistring)
+        libunistring-dev \
+        # to build GnuTLS
+        libtasn1-6-dev \
+        # build dependency of GCC
+        libzstd-dev \
+        # to have a UTF-8 locale (see locale-gen below)
+        locales \
+        # used by compat.sh and ssl-opt.sh
+        lsof \
+        # to build GnuTLS (nettle)
+        m4 \
+        # to build Mbed TLS and others
+        make \
+        # to compile and test with musl (lightweight libc) \
+        musl-tools \
+        # to build Mbed TLS (alternative CMake backend)
+        ninja-build \
+        # to build GnuTLS with locally-compiled nettle
+        pkg-config \
+        # to install several Python packages (done by individual jobs)
+        python3-pip \
+        # to install several Python packages (done by individual jobs)
+        python3-setuptools \
+        # to install several Python packages (done by individual jobs)
+        python3-venv \
+        # provides some useful scripts for adding and removing repositories
+        software-properties-common \
+        # for test_driver.py (since TF-PSA-Crypto 1.1)
+        universal-ctags \
+        # for Mbed TLS tests
+        valgrind \
+        # to download things installed from other places
+        wget \
+        # for data file generating
+        xxd \
+        # to build Mbed TLS with MBEDTLS_ZILIB_SUPPORT (removed in 3.0)
+        zlib1g \
+        # to build Mbed TLS with MBEDTLS_ZILIB_SUPPORT (removed in 3.0)
+        zlib1g-dev \
+    && case "$(uname -m)" in \
+        # x86_64 only packages
+        x86_64) apt-get install -yq \
+            # for 32-bit Mbed TLS testing
+            libc6-i386 \
+            # for 32-bit Mbed TLS testing
+            libc6:i386 \
+            # to test 32-bit C++ linkage (not done at the time of writing)
+            libstdc++6:i386 \
+            ;; \
+        # aarch64 only packages
+        aarch64) apt-get install -yq \
+            # for 32-bit Mbed TLS testing
+            libc6:armhf \
+            # to test 32-bit C++ linkage (not done at the time of writing)
+            libstdc++6:armhf \
+            ;; \
+    esac && \
+    rm -rf /var/lib/apt/lists/
+
+# Make sure we have a UTF-8 locale
+RUN locale && \
+    locale-gen "en_US.UTF-8" && \
+    dpkg-reconfigure locales
+
+# For installing clang-latest, we add the LLVM package source
+RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 15CF4D18AF4F7421 && \
+    # add an apt package source from https://apt.llvm.org/
+    add-apt-repository 'deb http://apt.llvm.org/noble/ llvm-toolchain-noble-18 main' -y && \
+    apt-get install -yq \
+        # to build Mbed TLS using latest stable clang version at the time of writing
+        clang-20 && \
+    rm -rf /var/lib/apt/lists/ && \
+    # create symbolic links for latest gcc and clang versions
+    ln -s /usr/bin/clang-20 /usr/local/bin/clang-latest && \
+    ln -s /usr/bin/gcc-14 /usr/local/bin/gcc-latest
+
+# Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
+# gcc-multilib conflicts with cross-compiler packages that we'll install later,
+# so don't keep it around. Just let it install its dependencies
+# (gcc-<VERSION>-multilib and libc support), then remove it. Manually create
+# one crucial symlink that's otherwise provided by the gcc-multilib package
+# (without that symlink, 32-bit builds won't find system headers). Note that
+# just installing the dependencies of gcc-multilib also brings in gcc-multilib
+# as a Recommends dependency.
+RUN if [ "$(uname -m)" = x86_64 ]; then \
+        apt-get update -q && apt-get install -yq \
+            gcc-multilib \
+        && rm -rf /var/lib/apt/lists/ && \
+        dpkg -r gcc-multilib && \
+        ln -s x86_64-linux-gnu/asm /usr/include/asm; \
+    fi
+
+# Install the gcc-cross toolchains for various platforms (only on x86_64)
+RUN if [ "$(uname -m)" = aarch64 ]; then \
+        # HACK: Ubuntu doesn't provide an armel port for Thumb-1 testing, so link
+        #       the cross-compiler's libraries into the standard multiarch location.
+        #       We need to create and link this directory first due to the /usr merge
+        #       from Ubuntu 19.04 onward.
+        mkdir -p /usr/arm-linux-gnueabi/lib && \
+        ln -s /usr/arm-linux-gnueabi/lib /lib/arm-linux-gnueabi && \
+        ln -s arm-linux-gnueabi/ld-linux.so.3 /lib/ld-linux.so.3; \
+    fi && \
+    apt-get update -q && \
+    apt-get install -yq \
+        gcc-aarch64-linux-gnu \
+        gcc-arm-linux-gnueabi \
+        gcc-arm-linux-gnueabihf \
+        gcc-arm-none-eabi \
+        libc6-dev-arm64-cross \
+        libc6-dev-armel-cross \
+        libc6-dev-armhf-cross \
+    && \
+    if [ "$(uname -m)" = x86_64 ]; then \
+        apt-get install -yq \
+            gcc-alpha-linux-gnu \
+            gcc-multilib-mips-linux-gnu \
+            gcc-multilib-mipsel-linux-gnu \
+            gcc-multilib-powerpc64-linux-gnu \
+            gcc-powerpc-linux-gnu \
+            gcc-powerpc64le-linux-gnu \
+            gcc-riscv64-linux-gnu \
+            gcc-s390x-linux-gnu \
+        ; \
+    fi && \
+    rm -rf /var/lib/apt/lists/
+
+# Install a snapshot of GCC that we want to test with.
+# GCC 15 will break our code: https://github.com/Mbed-TLS/mbedtls/issues/9814
+# During a transition period, we will use a snapshot of GCC 15 to test the
+# fix for that issue.
+# Eventually, gcc-latest should become GCC 15. This will cause test failures
+# on branches that don't have the fix yet, which is why we don't make
+# GCC 15 be gcc-latest immediately.
+RUN wget -q https://mirror.koddos.net/gcc/releases/gcc-15.1.0/gcc-15.1.0.tar.xz && \
+    tar -xf gcc-15.1.0.tar.xz && \
+    rm gcc-15.1.0.tar.xz && \
+    cd gcc-15.1.0 && \
+    ./configure --prefix=/usr/local/gcc-15 --program-suffix=-15 --disable-bootstrap --enable-languages=c,c++,lto && \
+    make && \
+    make install && \
+    cd .. && \
+    rm -rf gcc-15.1.0
+
+# Install the minimum versions of CMake that we advertize:
+# * CMake 3.10.2 in Mbed TLS 3.6 LTS (only available for x86_64, not for aarch64)
+# * CMake 3.20.2 in TF-PSA-Crypto 1.0. and Mbed TLS 4.0.0
+RUN cd /opt && \
+    if [ "$(uname -m)" = x86_64 ]; then \
+        wget -q https://github.com/Kitware/CMake/releases/download/v3.10.2/cmake-3.10.2-linux-$(uname -m).tar.gz && \
+        tar -xzf cmake-3.10.2-linux-$(uname -m).tar.gz && \
+        rm cmake-3.10.2-linux-$(uname -m).tar.gz; \
+    fi && \
+    wget -q https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2-linux-$(uname -m).tar.gz && \
+    tar -xzf cmake-3.20.2-linux-$(uname -m).tar.gz && \
+    rm cmake-3.20.2-linux-$(uname -m).tar.gz && \
+    for x in cmake-*-$(uname -m)/bin/*; do \
+        v="${x#*-}"; v="${v%%-*}"; \
+        ln -s "$PWD/$x" "/usr/local/bin/${x##*/}-${v}"; \
+    done
+
+# Install exact upstream versions of OpenSSL and GnuTLS
+#
+# Distro packages tend to include patches that disrupt our testing scripts,
+# and such patches may be added at any time. Avoid surprises by using fixed
+# versions.
+
+RUN wget -q https://www.openssl.org/source/old/1.0.1/openssl-1.0.1j.tar.gz && \
+    tar -zxf openssl-1.0.1j.tar.gz && cd openssl-1.0.1j && \
+    ./config --openssldir=/usr/local/openssl-1.0.1j && \
+    make clean && make && make install && cd .. && \
+    rm -rf openssl-1.0.1j*
+ENV OPENSSL_1_0_1=/usr/local/openssl-1.0.1j/bin/openssl
+# Up to at least 2023, the test scripts expect that $OPENSSL_LEGACY is 1.0.1j.
+ENV OPENSSL_LEGACY=/usr/local/openssl-1.0.1j/bin/openssl
+
+RUN wget -q https://www.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz && \
+    tar -zxf openssl-1.0.2g.tar.gz && cd openssl-1.0.2g && \
+    ./config --openssldir=/usr/local/openssl-1.0.2g enable-ssl-trace && \
+    make clean && make && make install && cd .. && \
+    rm -rf openssl-1.0.2g*
+ENV OPENSSL_1_0_2=/usr/local/openssl-1.0.2g/bin/openssl
+# Up to at least 2023, the test scripts expect that $OPENSSL is 1.0.2g.
+ENV OPENSSL=/usr/local/openssl-1.0.2g/bin/openssl
+
+RUN wget -q https://www.openssl.org/source/openssl-1.1.1a.tar.gz && \
+    tar -zxf openssl-1.1.1a.tar.gz && cd openssl-1.1.1a && \
+    ./config --prefix=/usr/local/openssl-1.1.1a -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' enable-ssl-trace && \
+    make clean && make && make install && cd .. && \
+    rm -rf openssl-1.1.1a*
+ENV OPENSSL_1_1_1=/usr/local/openssl-1.1.1a/bin/openssl
+ENV OPENSSL_1_1=/usr/local/openssl-1.1.1a/bin/openssl
+ENV OPENSSL_1=/usr/local/openssl-1.1.1a/bin/openssl
+
+RUN wget -q https://www.openssl.org/source/openssl-3.0.10.tar.gz && \
+    tar -zxf openssl-3.0.10.tar.gz && cd openssl-3.0.10 && \
+    ./config --prefix=/usr/local/openssl-3.0.10 -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' enable-ssl-trace && \
+    make clean && make && make install && cd .. && \
+    rm -rf openssl-3.0.10*
+ENV OPENSSL_3_0_10=/usr/local/openssl-3.0.10/bin/openssl
+ENV OPENSSL_3_0=/usr/local/openssl-3.0.10/bin/openssl
+
+RUN wget -q https://www.openssl.org/source/openssl-3.1.2.tar.gz && \
+    tar -zxf openssl-3.1.2.tar.gz && cd openssl-3.1.2 && \
+    ./config --prefix=/usr/local/openssl-3.1.2 -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' enable-ssl-trace && \
+    make clean && make && make install && cd .. && \
+    rm -rf openssl-3.1.2*
+ENV OPENSSL_3_1_2=/usr/local/openssl-3.1.2/bin/openssl
+ENV OPENSSL_3_1=/usr/local/openssl-3.1.2/bin/openssl
+ENV OPENSSL_3=/usr/local/openssl-3.1.2/bin/openssl
+# As of early 2025 (just after 2.28 became EOL), 3.6 and development both:
+# - set OPENSSL_NEXT to OPENSSL_3 (if OPENSSL_3 is defined) in all-core.sh,
+#   effectively ignoring the value of OPENSSL_NEXT from the environment;
+# - but use OPENSSL_NEXT straight from the environment in basic-build-test.sh,
+#   (both directly, and indirectly when invoking ssl-opt.sh which uses it).
+# So, we still need to set OPENSSL_NEXT here. (The long-term plan is that
+# scripts should be updated to only use explicit versions like OPENSSL_3.)
+ENV OPENSSL_NEXT=/usr/local/openssl-3.1.2/bin/openssl
+
+# GnuTLS has a number of (optional) dependencies:
+# - nettle (crypto library): quite tighly coupled, so build one for each
+# version of GnuTLS that we want.
+# - libtasn1: the Ubuntu package works; if it didn't a config
+# option --with-included-libtasn1 is available.
+# - p11-kit: optional, for smart-card support - configure it out
+# - libunistring: since 3.6 - the Ubuntu package works; if it didn't a config
+# option --with-included-libunistring is available.
+
+# Install Gnu TLS 3.4.6 (nettle 3.1) - main version, in the PATH
+RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.1.tar.gz && \
+    tar -zxf nettle-3.1.tar.gz && cd nettle-3.1 && \
+    ./configure --prefix=/usr/local/libnettle-3.1 --exec_prefix=/usr/local/libnettle-3.1  --disable-shared --disable-openssl && \
+    make && make install && cd .. && rm -rf nettle-3.1* && \
+    export PKG_CONFIG_PATH=/usr/local/libnettle-3.1/lib/pkgconfig:/usr/local/libnettle-3.1/lib64/pkgconfig:/usr/local/lib/pkgconfig && \
+    wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.4/gnutls-3.4.6.tar.xz && \
+    tar -xJf gnutls-3.4.6.tar.xz && cd gnutls-3.4.6 && \
+    ./configure --prefix=/usr/local/gnutls-3.4.6 --exec_prefix=/usr/local/gnutls-3.4.6 --disable-shared --without-p11-kit && \
+    make && make install && cat config.log && cd .. && \
+    rm -rf gnutls-3.4.6*
+ENV GNUTLS_3_4_6_CLI=/usr/local/gnutls-3.4.6/bin/gnutls-cli
+ENV GNUTLS_3_4_6_SERV=/usr/local/gnutls-3.4.6/bin/gnutls-serv
+ENV GNUTLS_3_4_CLI=/usr/local/gnutls-3.4.6/bin/gnutls-cli
+ENV GNUTLS_3_4_SERV=/usr/local/gnutls-3.4.6/bin/gnutls-serv
+# Up to at least 2023, the test scripts expect that $GNUTLS_xxx is 3.4.6.
+ENV GNUTLS_CLI=/usr/local/gnutls-3.4.6/bin/gnutls-cli
+ENV GNUTLS_SERV=/usr/local/gnutls-3.4.6/bin/gnutls-serv
+
+# For backward compatibility with older all.sh. At the time of writing,
+# GnuTLS 3.4.6 works fine as the "legacy" version, and newer all.sh will
+# stop using a separate GNUTLS_LEGACY_xxx pair of programs.
+ENV GNUTLS_LEGACY_CLI=$GNUTLS_CLI
+ENV GNUTLS_LEGACY_SERV=$GNUTLS_SERV
+
+# Instal GNU TLS 3.7.2 (nettle 3.7) - "next" version
+RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.7.3.tar.gz && \
+    tar -zxf nettle-3.7.3.tar.gz && cd nettle-3.7.3 && \
+    ./configure --prefix=/usr/local/libnettle-3.7.3 --exec_prefix=/usr/local/libnettle-3.7.3  --disable-shared --disable-openssl && \
+    make && make install && cd .. && rm -rf nettle-3.7.3* && \
+    export PKG_CONFIG_PATH=/usr/local/libnettle-3.7.3/lib/pkgconfig:/usr/local/libnettle-3.7.3/lib64/pkgconfig:/usr/local/lib/pkgconfig && \
+    wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.7/gnutls-3.7.2.tar.xz && \
+    tar -xJf gnutls-3.7.2.tar.xz && cd gnutls-3.7.2 && \
+    ./configure --prefix=/usr/local/gnutls-3.7.2 --exec_prefix=/usr/local/gnutls-3.7.2 --disable-shared --without-p11-kit && \
+    make && make install && cat config.log && cd .. && \
+    rm -rf gnutls-3.7.2*
+ENV GNUTLS_3_7_2_CLI=/usr/local/gnutls-3.7.2/bin/gnutls-cli
+ENV GNUTLS_3_7_2_SERV=/usr/local/gnutls-3.7.2/bin/gnutls-serv
+ENV GNUTLS_3_7_CLI=/usr/local/gnutls-3.7.2/bin/gnutls-cli
+ENV GNUTLS_3_7_SERV=/usr/local/gnutls-3.7.2/bin/gnutls-serv
+ENV GNUTLS_3_CLI=/usr/local/gnutls-3.7.2/bin/gnutls-cli
+ENV GNUTLS_3_SERV=/usr/local/gnutls-3.7.2/bin/gnutls-serv
+# Up to at least 2023, the test scripts expect that $GNUTLS_NEXT_xxx is 3.7.2.
+ENV GNUTLS_NEXT_CLI=/usr/local/gnutls-3.7.2/bin/gnutls-cli
+ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.7.2/bin/gnutls-serv
+
+# Install uncrustify
+# We need version 0.75.1
+RUN git clone --branch uncrustify-0.75.1 https://github.com/uncrustify/uncrustify.git && \
+    cd uncrustify && mkdir build && cd build && cmake .. && make install && \
+    cd ../.. && rm -rf uncrustify
+
+# Prepare Python.
+# The tooling that comes with the operating system is good enough.
+RUN python3 -m pip config set global.progress_bar off && \
+    # Instruct pip that it's ok to install packages as a user
+    # (either "user" or the developer who runs "docker -u ...").
+    python3 -m pip config set global.break-system-packages true
+
+# Make additional tooling available from the host.
+# This is intended for tools that can't be put in the Docker image, for
+# example because they can't be redistributed.
+# The tools need to work inside the Docker environment, so they should be
+# scripts or Linux executables, ideally statically linked or at least linked
+# only against Glibc and companion libraries that have a stable ABI.
+# The intended usage is for /opt/host to be a mounted volume in "docker run".
+# Mounting the volume is optional.
+ENV PATH=${PATH}:/opt/host/bin
+
+# Add user
+RUN useradd -m user
+
+# Create workspace
+# FIXME: This should be /var/lib/build to use the host src directory as HOME
+ARG AGENT_WORKDIR=/var/lib/builds
+ENV AGENT_WORKDIR=${AGENT_WORKDIR}
+RUN mkdir -p ${AGENT_WORKDIR} && chown -R user:user ${AGENT_WORKDIR}
+
+# From now on, run as the unprivileged user.
+USER user
+WORKDIR ${AGENT_WORKDIR}
+
+RUN \
+    # Make it possible to do git commits, e.g. to test prepare_release.py.
+    git config --global user.name 'Contained User' && \
+    git config --global user.email 'contained.user@unknown.invalid' && \
+    :
+
+ENTRYPOINT ["bash"]
+

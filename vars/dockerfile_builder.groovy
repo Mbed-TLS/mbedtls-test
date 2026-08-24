@@ -17,6 +17,12 @@ def run_job() {
             if (params.BUILD_UBUNTU_24_04_ARM64_DOCKER_IMAGE) {
                 jobs += gen_jobs.gen_dockerfile_builder_job('ubuntu-24.04-arm64', true)
             }
+            if (params.BUILD_UBUNTU_26_04_AMD64_DOCKER_IMAGE) {
+                jobs += gen_jobs.gen_dockerfile_builder_job('ubuntu-26.04-amd64', true)
+            }
+            if (params.BUILD_UBUNTU_26_04_ARM64_DOCKER_IMAGE) {
+                jobs += gen_jobs.gen_dockerfile_builder_job('ubuntu-26.04-arm64', true)
+            }
             if (params.BUILD_ARM_COMPILERS_AMD64_DOCKER_IMAGE) {
                 jobs += gen_jobs.gen_dockerfile_builder_job('arm-compilers-amd64', true)
             }
