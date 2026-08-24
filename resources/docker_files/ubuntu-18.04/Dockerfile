@@ -310,6 +310,12 @@ RUN git clone --branch uncrustify-0.75.1 https://github.com/uncrustify/uncrustif
     cd uncrustify && mkdir build && cd build && cmake .. && make install && \
     cd ../.. && rm -rf uncrustify
 
+# Make Python 3.8 the default `python3` in $PATH.
+# This is the minimum Python version that we declare as required for
+# Mbed TLS 3.6 LTS, TF-PSA-Crypto 1.1 LTS and Mbed TLS 4.1 LTS.
+# It is the version with which we run pylint and mypy since September 2026.
+RUN ln -s ../../bin/python3.8 /usr/local/bin/python3
+
 # Install Python pip packages
 #
 # The pip wrapper scripts can get out of sync with pip due to upgrading it

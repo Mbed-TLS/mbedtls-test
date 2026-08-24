@@ -211,13 +211,14 @@ RUN cd /opt && \
         ln -s "$PWD/$x" "/usr/local/bin/${x##*/}-${v}"; \
     done
 
-# Install Python 3.6 and make it the default `python3` in $PATH.
+# Install Python 3.6.
 # This was the minimum Python version that we declared as required for
-# Mbed TLS 2.28 LTS, and is still the version with which we run pylint and
-# mypy as of November 2025.
-# Install Python 3.8.
+# Mbed TLS 2.28 LTS, and it was the version with which we ran pylint and
+# mypy until September 2026.
+# Install Python 3.8 and make it the default `python3` in $PATH.
 # This is the minimum Python version that we declare as required for
-# Mbed TLS 3.6 LTS.
+# Mbed TLS 3.6 LTS, TF-PSA-Crypto 1.1 LTS and Mbed TLS 4.1 LTS.
+# It is the version with which we run pylint and mypy since September 2026.
 RUN wget -q https://github.com/pyenv/pyenv/archive/refs/tags/v2.8.4.tar.gz && \
     tar -xzf v2.8.4.tar.gz && \
     rm v2.8.4.tar.gz && \
@@ -225,8 +226,8 @@ RUN wget -q https://github.com/pyenv/pyenv/archive/refs/tags/v2.8.4.tar.gz && \
     bin/pyenv install 3.6 && \
     bin/pyenv install 3.8 && \
     ln -s ~/.pyenv/versions/3.*/bin/*3.* /usr/local/bin/ && \
-    ln -s python3.6 /usr/local/bin/python3 && \
-    ln -s pip3.6 /usr/local/bin/pip3 && \
+    ln -s python3.8 /usr/local/bin/python3 && \
+    ln -s pip3.8 /usr/local/bin/pip3 && \
     ln -s "$PWD/src/pyenv" /usr/local/bin/
 
 RUN python3 -m pip config set global.progress_bar off && \

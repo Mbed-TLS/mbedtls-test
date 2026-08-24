@@ -53,10 +53,10 @@ The following table lists the platforms on which project tests can run, as well 
 | OS | Version | Arch | Git | Python | Perl | CMake | GNU Make | Native C compilers | Last checked | Notes |
 | -- | ------- | ---- | --- | ------ | ---- | ----- | -------- | ------------------ | ------------ | ----- |
 | FreeBSD | 14.3 | amd64 | 2.54.0 | `python3` 3.12; `python3.11` | 5.42.2 | 3.31.12 | `gmake` 4.4.1 | Clang 19 | 2026-08-24 | |
-| Ubuntu | 16.04 | amd64 | 2.7.4 | `python3` 3.6; `python3.5`, `python3.8` | 5.22.1 | 3.5.1 | 4.1 | `gcc` 5.4, `clang` 3.8, `gcc-4.7`, `clang` 3.8, `clang-3.5` | 2026-08-24 | |
-| Ubuntu | 16.04 | aarch64 | 2.7.4 | `python3` 3.6; `python3.5`, `python3.8` | 5.22.1 | 3.5.1 | 4.1 | `gcc` 5.4, `clang` 3.8, `gcc-4.7`, `clang` 3.8, `clang-3.5` | 2026-08-24 | |
-| Ubuntu | 18.04 | amd64 | 2.17.1 | `python3` 3.6; `python3.8` | 5.26.1 | 3.10.2 | 4.1 | `gcc` 7.5, `clang` 6 | 2026-08-24 | |
-| Ubuntu | 18.04 | aarch64 | 2.17.1 | `python3` 3.6; `python3.8` | 5.26.1 | 3.10.2 | 4.1 | `gcc` 7.5, `clang` 6 | 2026-08-24 | |
+| Ubuntu | 16.04 | amd64 | 2.7.4 | `python3` 3.8; `python3.5`, `python3.6` | 5.22.1 | 3.5.1 | 4.1 | `gcc` 5.4, `clang` 3.8, `gcc-4.7`, `clang` 3.8, `clang-3.5` | 2026-08-24 | |
+| Ubuntu | 16.04 | aarch64 | 2.7.4 | `python3` 3.8; `python3.5`, `python3.6` | 5.22.1 | 3.5.1 | 4.1 | `gcc` 5.4, `clang` 3.8, `gcc-4.7`, `clang` 3.8, `clang-3.5` | 2026-08-24 | |
+| Ubuntu | 18.04 | amd64 | 2.17.1 | `python3` 3.8; `python3.6` | 5.26.1 | 3.10.2 | 4.1 | `gcc` 7.5, `clang` 6 | 2026-08-24 | |
+| Ubuntu | 18.04 | aarch64 | 2.17.1 | `python3` 3.8; `python3.6` | 5.26.1 | 3.10.2 | 4.1 | `gcc` 7.5, `clang` 6 | 2026-08-24 | |
 | Ubuntu | 20.04 | amd64 | 2.25.1 | `python3` 3.8 | 5.30.0 | 3.16.3 | 4.2.1 | `gcc` 9.4 | 2026-08-24 | `arm-compilers` |
 | Ubuntu | 24.04 | amd64 | 2.43.0 | `python3` 3.12 | 5.38.2 | 3.28.3 | 4.3 | `gcc` 13.3.0, `gcc-15` (15.1), `clang` 18, `clang-20` | 2026-08-24 | |
 | Ubuntu | 24.04 | aarch64 | 2.43.0 | `python3` 3.12 | 5.38.2 | 3.28.3 | 4.3 | `gcc` 13.3.0, `gcc-15` (15.1), `clang` 18, `clang-20` | 2026-08-24 | |
