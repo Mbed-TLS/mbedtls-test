@@ -309,11 +309,10 @@ ENV OPENSSL_NEXT=/usr/local/openssl-3.1.2/bin/openssl
 RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.1.tar.gz && \
     tar -zxf nettle-3.1.tar.gz && cd nettle-3.1 && \
     ./configure --prefix=/usr/local/libnettle-3.1 --exec_prefix=/usr/local/libnettle-3.1  --disable-shared --disable-openssl && \
-    make && make install && cd .. && rm -rf nettle-3.1* && \
-    export PKG_CONFIG_PATH=/usr/local/libnettle-3.1/lib/pkgconfig:/usr/local/libnettle-3.1/lib64/pkgconfig:/usr/local/lib/pkgconfig && \
-    wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.4/gnutls-3.4.6.tar.xz && \
+    make && make install && cd .. && rm -rf nettle-3.1*
+RUN wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.4/gnutls-3.4.6.tar.xz && \
     tar -xJf gnutls-3.4.6.tar.xz && cd gnutls-3.4.6 && \
-    ./configure --prefix=/usr/local/gnutls-3.4.6 --exec_prefix=/usr/local/gnutls-3.4.6 --disable-shared --without-p11-kit && \
+    CFLAGS='-O2 -g -std=gnu11' PKG_CONFIG_PATH=/usr/local/libnettle-3.1/lib/pkgconfig:/usr/local/libnettle-3.1/lib64/pkgconfig ./configure --prefix=/usr/local/gnutls-3.4.6 --exec_prefix=/usr/local/gnutls-3.4.6 --disable-shared --without-p11-kit && \
     make && make install && cat config.log && cd .. && \
     rm -rf gnutls-3.4.6*
 ENV GNUTLS_3_4_6_CLI=/usr/local/gnutls-3.4.6/bin/gnutls-cli
@@ -328,11 +327,10 @@ ENV GNUTLS_SERV=/usr/local/gnutls-3.4.6/bin/gnutls-serv
 RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.7.3.tar.gz && \
     tar -zxf nettle-3.7.3.tar.gz && cd nettle-3.7.3 && \
     ./configure --prefix=/usr/local/libnettle-3.7.3 --exec_prefix=/usr/local/libnettle-3.7.3  --disable-shared --disable-openssl && \
-    make && make install && cd .. && rm -rf nettle-3.7.3* && \
-    export PKG_CONFIG_PATH=/usr/local/libnettle-3.7.3/lib/pkgconfig:/usr/local/libnettle-3.7.3/lib64/pkgconfig:/usr/local/lib/pkgconfig && \
-    wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.7/gnutls-3.7.2.tar.xz && \
+    make && make install && cd .. && rm -rf nettle-3.7.3*
+RUN wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.7/gnutls-3.7.2.tar.xz && \
     tar -xJf gnutls-3.7.2.tar.xz && cd gnutls-3.7.2 && \
-    ./configure --prefix=/usr/local/gnutls-3.7.2 --exec_prefix=/usr/local/gnutls-3.7.2 --disable-shared --without-p11-kit && \
+    CFLAGS='-O2 -g -std=gnu11' PKG_CONFIG_PATH=/usr/local/libnettle-3.7.3/lib/pkgconfig:/usr/local/libnettle-3.7.3/lib64/pkgconfig ./configure --prefix=/usr/local/gnutls-3.7.2 --exec_prefix=/usr/local/gnutls-3.7.2 --disable-shared --without-p11-kit && \
     make && make install && cat config.log && cd .. && \
     rm -rf gnutls-3.7.2*
 ENV GNUTLS_3_7_2_CLI=/usr/local/gnutls-3.7.2/bin/gnutls-cli
