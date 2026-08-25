@@ -363,7 +363,7 @@ ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.7.2/bin/gnutls-serv
 # We need version 0.75.1
 RUN git clone --branch uncrustify-0.75.1 https://github.com/uncrustify/uncrustify.git && \
     cd uncrustify && mkdir build && cd build && cmake .. && make install && \
-    cd .. && rm -rf uncrustify
+    cd ../.. && rm -rf uncrustify
 
 # Prepare Python.
 # The tooling that comes with the operating system is good enough.
