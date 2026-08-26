@@ -159,8 +159,7 @@ RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 15CF4D18AF4F742
         clang-20 && \
     rm -rf /var/lib/apt/lists/ && \
     # create symbolic links for latest gcc and clang versions
-    ln -s /usr/bin/clang-20 /usr/local/bin/clang-latest && \
-    ln -s /usr/bin/gcc-14 /usr/local/bin/gcc-latest
+    ln -s /usr/bin/clang-20 /usr/local/bin/clang-latest
 
 # Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
 # gcc-multilib conflicts with cross-compiler packages that we'll install later,
@@ -212,22 +211,23 @@ RUN if [ "$(uname -m)" = aarch64 ]; then \
     fi && \
     rm -rf /var/lib/apt/lists/
 
-# Install a snapshot of GCC that we want to test with.
-# GCC 15 will break our code: https://github.com/Mbed-TLS/mbedtls/issues/9814
-# During a transition period, we will use a snapshot of GCC 15 to test the
-# fix for that issue.
-# Eventually, gcc-latest should become GCC 15. This will cause test failures
-# on branches that don't have the fix yet, which is why we don't make
-# GCC 15 be gcc-latest immediately.
+# Install a version of GCC 15. We need this to test the fix of
+# https://github.com/Mbed-TLS/mbedtls/issues/9814 .
+# Stick to 15.1, not 15.2 because that breaks our build:
+# https://github.com/Mbed-TLS/TF-PSA-Crypto/issues/876 .
+# GCC 16.2 would work, but we hard-code the use of gcc-15 in a script,
+# so we must have it somewhere on the CI:
+# https://github.com/Mbed-TLS/TF-PSA-Crypto/issues/878 .
 RUN wget -q https://mirror.koddos.net/gcc/releases/gcc-15.1.0/gcc-15.1.0.tar.xz && \
     tar -xf gcc-15.1.0.tar.xz && \
     rm gcc-15.1.0.tar.xz && \
     cd gcc-15.1.0 && \
-    ./configure --prefix=/usr/local/gcc-15 --program-suffix=-15 --disable-bootstrap --enable-languages=c,c++,lto && \
+    ./configure --prefix=/usr/local --program-suffix=-15 --disable-bootstrap --enable-languages=c,c++,lto && \
     make && \
     make install && \
     cd .. && \
-    rm -rf gcc-15.1.0
+    rm -rf gcc-15.1.0 && \
+    ln -s gcc-15 /usr/local/bin/gcc-latest
 
 # Install the minimum versions of CMake that we advertize:
 # * CMake 3.10.2 in Mbed TLS 3.6 LTS (only available for x86_64, not for aarch64)
