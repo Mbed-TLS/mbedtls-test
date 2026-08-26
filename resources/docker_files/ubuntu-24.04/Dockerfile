@@ -159,8 +159,7 @@ RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 15CF4D18AF4F742
         clang-20 && \
     rm -rf /var/lib/apt/lists/ && \
     # create symbolic links for latest gcc and clang versions
-    ln -s /usr/bin/clang-20 /usr/local/bin/clang-latest && \
-    ln -s /usr/bin/gcc-14 /usr/local/bin/gcc-latest
+    ln -s /usr/bin/clang-20 /usr/local/bin/clang-latest
 
 # Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
 # gcc-multilib conflicts with cross-compiler packages that we'll install later,
@@ -212,22 +211,23 @@ RUN if [ "$(uname -m)" = aarch64 ]; then \
     fi && \
     rm -rf /var/lib/apt/lists/
 
-# Install a snapshot of GCC that we want to test with.
-# GCC 15 will break our code: https://github.com/Mbed-TLS/mbedtls/issues/9814
-# During a transition period, we will use a snapshot of GCC 15 to test the
-# fix for that issue.
-# Eventually, gcc-latest should become GCC 15. This will cause test failures
-# on branches that don't have the fix yet, which is why we don't make
-# GCC 15 be gcc-latest immediately.
+# Install a version of GCC 15. We need this to test the fix of
+# https://github.com/Mbed-TLS/mbedtls/issues/9814 .
+# Stick to 15.1, not 15.2 because that breaks our build:
+# https://github.com/Mbed-TLS/TF-PSA-Crypto/issues/876 .
+# GCC 16.2 would work, but we hard-code the use of gcc-15 in a script,
+# so we must have it somewhere on the CI:
+# https://github.com/Mbed-TLS/TF-PSA-Crypto/issues/878 .
 RUN wget -q https://mirror.koddos.net/gcc/releases/gcc-15.1.0/gcc-15.1.0.tar.xz && \
     tar -xf gcc-15.1.0.tar.xz && \
     rm gcc-15.1.0.tar.xz && \
     cd gcc-15.1.0 && \
-    ./configure --prefix=/usr/local/gcc-15 --program-suffix=-15 --disable-bootstrap --enable-languages=c,c++,lto && \
+    ./configure --prefix=/usr/local --program-suffix=-15 --disable-bootstrap --enable-languages=c,c++,lto && \
     make && \
     make install && \
     cd .. && \
-    rm -rf gcc-15.1.0
+    rm -rf gcc-15.1.0 && \
+    ln -s gcc-15 /usr/local/bin/gcc-latest
 
 # Install the minimum versions of CMake that we advertize:
 # * CMake 3.10.2 in Mbed TLS 3.6 LTS (only available for x86_64, not for aarch64)
@@ -251,15 +251,6 @@ RUN cd /opt && \
 # Distro packages tend to include patches that disrupt our testing scripts,
 # and such patches may be added at any time. Avoid surprises by using fixed
 # versions.
-
-RUN wget -q https://www.openssl.org/source/old/1.0.1/openssl-1.0.1j.tar.gz && \
-    tar -zxf openssl-1.0.1j.tar.gz && cd openssl-1.0.1j && \
-    ./config --openssldir=/usr/local/openssl-1.0.1j && \
-    make clean && make && make install && cd .. && \
-    rm -rf openssl-1.0.1j*
-ENV OPENSSL_1_0_1=/usr/local/openssl-1.0.1j/bin/openssl
-# Up to at least 2023, the test scripts expect that $OPENSSL_LEGACY is 1.0.1j.
-ENV OPENSSL_LEGACY=/usr/local/openssl-1.0.1j/bin/openssl
 
 RUN wget -q https://www.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz && \
     tar -zxf openssl-1.0.2g.tar.gz && cd openssl-1.0.2g && \
@@ -332,12 +323,6 @@ ENV GNUTLS_3_4_SERV=/usr/local/gnutls-3.4.6/bin/gnutls-serv
 ENV GNUTLS_CLI=/usr/local/gnutls-3.4.6/bin/gnutls-cli
 ENV GNUTLS_SERV=/usr/local/gnutls-3.4.6/bin/gnutls-serv
 
-# For backward compatibility with older all.sh. At the time of writing,
-# GnuTLS 3.4.6 works fine as the "legacy" version, and newer all.sh will
-# stop using a separate GNUTLS_LEGACY_xxx pair of programs.
-ENV GNUTLS_LEGACY_CLI=$GNUTLS_CLI
-ENV GNUTLS_LEGACY_SERV=$GNUTLS_SERV
-
 # Instal GNU TLS 3.7.2 (nettle 3.7) - "next" version
 RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.7.3.tar.gz && \
     tar -zxf nettle-3.7.3.tar.gz && cd nettle-3.7.3 && \
@@ -363,7 +348,7 @@ ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.7.2/bin/gnutls-serv
 # We need version 0.75.1
 RUN git clone --branch uncrustify-0.75.1 https://github.com/uncrustify/uncrustify.git && \
     cd uncrustify && mkdir build && cd build && cmake .. && make install && \
-    cd .. && rm -rf uncrustify
+    cd ../.. && rm -rf uncrustify
 
 # Prepare Python.
 # The tooling that comes with the operating system is good enough.

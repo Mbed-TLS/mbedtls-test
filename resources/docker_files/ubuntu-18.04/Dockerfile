@@ -170,6 +170,7 @@ RUN apt-get update -q && apt-get install -yq \
 # Install the minimum versions of CMake that we advertize:
 # * CMake 3.10.2 in Mbed TLS 3.6 LTS (only available for x86_64, not for aarch64)
 # * CMake 3.20.2 in TF-PSA-Crypto 1.0. and Mbed TLS 4.0.0
+# Make CMake 3.20.2 the default version.
 RUN cd /opt && \
     if [ "$(uname -m)" = x86_64 ]; then \
         wget -q https://github.com/Kitware/CMake/releases/download/v3.10.2/cmake-3.10.2-linux-$(uname -m).tar.gz && \
@@ -182,7 +183,8 @@ RUN cd /opt && \
     for x in cmake-*-$(uname -m)/bin/*; do \
         v="${x#*-}"; v="${v%%-*}"; \
         ln -s "$PWD/$x" "/usr/local/bin/${x##*/}-${v}"; \
-    done
+    done; \
+    ln -s cmake-3.20.2 /usr/local/bin/cmake
 
 # Install abi-compliance-checker
 # The version in Ubuntu 18.04 is too old, we want at least the version below
@@ -196,15 +198,6 @@ RUN wget -q https://github.com/lvc/abi-compliance-checker/archive/2.3.tar.gz && 
 # Distro packages tend to include patches that disrupt our testing scripts,
 # and such patches may be added at any time. Avoid surprises by using fixed
 # versions.
-
-RUN wget -q https://www.openssl.org/source/old/1.0.1/openssl-1.0.1j.tar.gz && \
-    tar -zxf openssl-1.0.1j.tar.gz && cd openssl-1.0.1j && \
-    ./config --openssldir=/usr/local/openssl-1.0.1j && \
-    make clean && make && make install && cd .. && \
-    rm -rf openssl-1.0.1j*
-ENV OPENSSL_1_0_1=/usr/local/openssl-1.0.1j/bin/openssl
-# Up to at least 2023, the test scripts expect that $OPENSSL_LEGACY is 1.0.1j.
-ENV OPENSSL_LEGACY=/usr/local/openssl-1.0.1j/bin/openssl
 
 RUN wget -q https://www.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz && \
     tar -zxf openssl-1.0.2g.tar.gz && cd openssl-1.0.2g && \
@@ -277,12 +270,6 @@ ENV GNUTLS_3_4_SERV=/usr/local/gnutls-3.4.6/bin/gnutls-serv
 ENV GNUTLS_CLI=/usr/local/gnutls-3.4.6/bin/gnutls-cli
 ENV GNUTLS_SERV=/usr/local/gnutls-3.4.6/bin/gnutls-serv
 
-# For backward compatibility with older all.sh. At the time of writing,
-# GnuTLS 3.4.6 works fine as the "legacy" version, and newer all.sh will
-# stop using a separate GNUTLS_LEGACY_xxx pair of programs.
-ENV GNUTLS_LEGACY_CLI=$GNUTLS_CLI
-ENV GNUTLS_LEGACY_SERV=$GNUTLS_SERV
-
 # Instal GNU TLS 3.7.2 (nettle 3.7) - "next" version
 RUN wget -q https://ftp.gnu.org/gnu/nettle/nettle-3.7.3.tar.gz && \
     tar -zxf nettle-3.7.3.tar.gz && cd nettle-3.7.3 && \
@@ -308,7 +295,13 @@ ENV GNUTLS_NEXT_SERV=/usr/local/gnutls-3.7.2/bin/gnutls-serv
 # We need version 0.75.1
 RUN git clone --branch uncrustify-0.75.1 https://github.com/uncrustify/uncrustify.git && \
     cd uncrustify && mkdir build && cd build && cmake .. && make install && \
-    cd .. && rm -rf uncrustify
+    cd ../.. && rm -rf uncrustify
+
+# Make Python 3.8 the default `python3` in $PATH.
+# This is the minimum Python version that we declare as required for
+# Mbed TLS 3.6 LTS, TF-PSA-Crypto 1.1 LTS and Mbed TLS 4.1 LTS.
+# It is the version with which we run pylint and mypy since September 2026.
+RUN ln -s ../../bin/python3.8 /usr/local/bin/python3
 
 # Install Python pip packages
 #
