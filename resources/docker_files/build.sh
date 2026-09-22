@@ -23,7 +23,6 @@ if [ "$1" = "--help" ]; then
 fi
 
 ARM_COMPILER_FILE=
-ARM_COMPILER_TEMP=
 ARM_COMPILER_HASH=
 SUDO=sudo
 
@@ -50,6 +49,7 @@ build () {
     set --
     tag="$("$list_sh" "$dir")"
 
+    ARM_COMPILER_TEMP=
     if [ -n "$ARM_COMPILER_FILE" ]; then
         ARM_COMPILER_TEMP="$dir/arm_compiler.$$.tmp"
         arm_compiler_url="file:///run/context/arm_compiler.$$.tmp"
