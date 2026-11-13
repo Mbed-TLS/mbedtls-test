@@ -59,6 +59,8 @@ RUN apt-get update -q && apt-get install -yq \
         bsdextrautils \
         # to build Mbed TLS
         clang \
+        # for static analysis of Mbed TLS (e.g. bugprone-macro-parentheses)
+        clang-tidy \
         # to build Mbed TLS
         cmake \
         # to compile and test with dietlibc (lightweight libc) \
